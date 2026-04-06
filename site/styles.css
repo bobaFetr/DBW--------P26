@@ -22,8 +22,32 @@ body {
   overflow-x: hidden;
 }
 
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 16px;
+  z-index: 1100;
+  padding: 10px 14px;
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  background: var(--bg-dark);
+  color: var(--accent);
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 16px;
+}
+
 a {
   color: inherit;
+}
+
+a:focus-visible,
+button:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.9);
+  outline-offset: 3px;
 }
 
 img {
@@ -100,6 +124,11 @@ nav {
   text-decoration: none;
 }
 
+.desktop-menu a[aria-current="page"] button {
+  background: var(--accent);
+  color: black;
+}
+
 nav button {
   background: transparent;
   border: none;
@@ -165,7 +194,8 @@ nav button.active {
 
 #mobile-menu a:hover,
 #mobile-menu a:active,
-#mobile-menu a.active {
+#mobile-menu a.active,
+#mobile-menu a[aria-current="page"] {
   background: var(--accent);
   color: black;
   box-shadow: 0 0 12px rgba(255, 255, 255, 0.18);
