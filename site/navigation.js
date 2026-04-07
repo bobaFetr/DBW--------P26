@@ -1,4 +1,4 @@
-const HOME_PAGE = "mainPage.html";
+const HOME_PAGE = "index.html";
 const HOME_ALIASES = new Set(["", "index.html", "mainpage.html", "logoinheader.html"]);
 
 const NAV_ITEMS = [
@@ -50,7 +50,7 @@ function renderHeader(activeKey) {
       <div class="mobile-header-bar">
         <button id="menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">&#9776;</button>
         <a href="${HOME_PAGE}" class="mobile-brand">
-          <img src="/logo.ico" alt="Paralyze logo" />
+          <img src="logo.ico" alt="Paralyze logo" />
           <span>PARALYZE</span>
         </a>
         <div class="mobile-spacer" aria-hidden="true"></div>
@@ -67,7 +67,7 @@ function renderHeader(activeKey) {
         <nav class="desktop-menu" aria-label="Primary navigation">
           <div class="header-logo">
             <a href="${HOME_PAGE}">
-              <img src="/logo.ico" alt="Paralyze logo" />
+              <img src="logo.ico" alt="Paralyze logo" />
             </a>
           </div>
           <div class="menu-links">
@@ -93,8 +93,8 @@ function renderFooter() {
         <a href="https://mail.google.com/mail/?view=cm&fs=1&to=bobata1236@gmail.com">Support guy!</a>
       </div>
       <div class="social-links">
-        <a href="https://www.youtube.com/@deathbywish" target="_blank" rel="noreferrer">
-          <img src="/youtube_icon.png" alt="YouTube" width="30" height="30" />
+        <a href="https://www.youtube.com/@deathbywish" target="_blank" rel="noreferrer" class="social-link-pill">
+          YouTube
         </a>
       </div>
     </footer>
