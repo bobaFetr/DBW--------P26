@@ -2,5 +2,5 @@ services:
   - type: web
     name: paralyze-site
     runtime: static
-    buildCommand: echo "Static site ready"
-    staticPublishPath: ./site
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./out
