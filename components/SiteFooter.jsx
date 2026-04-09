@@ -4,7 +4,7 @@ export default function SiteFooter() {
       <h5>&copy; 2026 Paralyze</h5>
       <h4>All Rights Reserved</h4>
       <div>
-        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=bobata1236@gmail.com">
+        <a href="">
           Support guy!
         </a>
       </div>
