@@ -3,19 +3,29 @@ import PageIntro from "../../components/PageIntro";
 
 const cards = [
   {
-    title: "Lead Single",
-    meta: "Release placeholder",
-    body: "Add artwork, a short description, and direct links to the premiere or streaming platforms."
+    title: "Misery (demo)",
+    badge: "Released",
+    meta: "October 28, 2025",
+    body: "The second official demo — showcasing the band's evolving sound and tighter direction.",
+    href: "https://www.youtube.com/@deathbywish",
+    linkLabel: "Listen on YouTube"
   },
   {
-    title: "Lyric Video",
-    meta: "Video slot",
-    body: "This is a good place for a featured video embed or a still image linked to the release."
+    title: "Guilt and Killer (demo)",
+    badge: "Released",
+    meta: "September 11, 2025",
+    body: "The debut recording — the first official introduction of Paralyze to the world.",
+    href: "https://www.youtube.com/@deathbywish",
+    linkLabel: "Listen on YouTube"
   },
   {
-    title: "Behind the Song",
-    meta: "Extra context",
-    body: "Use this block for meaning, writing credits, recording notes, or production shout-outs."
+    title: "Next Single",
+    badge: "Coming Soon",
+    urgent: true,
+    meta: "2026",
+    body: "New material is in progress. Expect a harder and more refined direction.",
+    href: "/news",
+    linkLabel: "Follow Updates"
   }
 ];
 
@@ -28,8 +38,7 @@ export default function SinglesPage() {
   return (
     <>
       <PageIntro title="Singles">
-        Separate singles deserve their own page, especially when you want faster
-        updates between larger releases.
+        Every release, from the earliest demos to upcoming tracks.
       </PageIntro>
       <CardGrid cards={cards} />
     </>

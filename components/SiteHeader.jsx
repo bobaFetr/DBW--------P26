@@ -4,18 +4,41 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-const NAV_ITEMS = [
+const NAV_GROUPS = [
+  {
+    label: "Music",
+    items: [
+      { key: "albums", href: "/albums", label: "Albums" },
+      { key: "singles", href: "/singles", label: "Singles" }
+    ]
+  },
+  {
+    label: "Live",
+    items: [
+      { key: "concerts", href: "/concerts", label: "Concerts" }
+    ]
+  },
+  {
+    label: "Media",
+    items: [
+      { key: "gallery", href: "/gallery", label: "Gallery" },
+      { key: "news", href: "/news", label: "News" }
+    ]
+  },
+  {
+    label: "Band",
+    items: [
+      { key: "about", href: "/about", label: "About" },
+      { key: "members", href: "/members", label: "Members" },
+      { key: "timeline", href: "/timeline", label: "Timeline" },
+      { key: "merch", href: "/merch", label: "Merch" }
+    ]
+  }
+];
+
+const ALL_NAV_ITEMS = [
   { key: "home", href: "/", label: "Home" },
-  { key: "about", href: "/about", label: "About" },
-  { key: "concerts", href: "/concerts", label: "Concerts" },
-  { key: "albums", href: "/albums", label: "Albums" },
-  { key: "singles", href: "/singles", label: "Singles" },
-  { key: "merch", href: "/merch", label: "Merch" },
-  { key: "news", href: "/news", label: "News" },
-  { key: "timeline", href: "/timeline", label: "Timeline" },
-  { key: "members", href: "/members", label: "Members" },
-  { key: "gallery", href: "/gallery", label: "Gallery" },
-  { key: "admin", href: "/admin", label: "Admin" }
+  ...NAV_GROUPS.flatMap((g) => g.items)
 ];
 
 const LEGACY_PATHS = {
@@ -52,7 +75,7 @@ export default function SiteHeader() {
       return LEGACY_PATHS[normalizedPath];
     }
 
-    return NAV_ITEMS.find((item) => item.href === normalizedPath)?.key ?? "home";
+    return ALL_NAV_ITEMS.find((item) => item.href === normalizedPath)?.key ?? "home";
   }, [pathname]);
 
   useEffect(() => {
@@ -114,21 +137,33 @@ export default function SiteHeader() {
         aria-label="Mobile navigation"
         aria-hidden={!menuOpen}
       >
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.key === activeKey;
-
-          return (
-            <Link
-              key={item.key}
-              href={item.href}
-              aria-current={isActive ? "page" : undefined}
-              className={isActive ? "active" : undefined}
-              onClick={closeMobileMenu}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+        <Link
+          href="/"
+          aria-current={activeKey === "home" ? "page" : undefined}
+          className={activeKey === "home" ? "active" : undefined}
+          onClick={closeMobileMenu}
+        >
+          Home
+        </Link>
+        {NAV_GROUPS.map((group) => (
+          <div key={group.label} className="mobile-menu-group">
+            <span className="mobile-menu-group-label">{group.label}</span>
+            {group.items.map((item) => {
+              const isActive = item.key === activeKey;
+              return (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  className={isActive ? "active" : undefined}
+                  onClick={closeMobileMenu}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
       <div className="header-content">
@@ -140,21 +175,28 @@ export default function SiteHeader() {
             </Link>
           </div>
           <div className="menu-links">
-            {NAV_ITEMS.map((item) => {
-              const isActive = item.key === activeKey;
-
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <span className={`nav-button${isActive ? " active" : ""}`}>
-                    {item.label}
-                  </span>
-                </Link>
-              );
-            })}
+            <Link href="/" aria-current={activeKey === "home" ? "page" : undefined}>
+              <span className={`nav-button${activeKey === "home" ? " active" : ""}`}>Home</span>
+            </Link>
+            {NAV_GROUPS.map((group, groupIndex) => (
+              <span key={group.label} style={{ display: "contents" }}>
+                {groupIndex > 0 && <span className="nav-sep" aria-hidden="true" />}
+                {group.items.map((item) => {
+                  const isActive = item.key === activeKey;
+                  return (
+                    <Link
+                      key={item.key}
+                      href={item.href}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      <span className={`nav-button${isActive ? " active" : ""}`}>
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </span>
+            ))}
           </div>
         </nav>
       </div>
