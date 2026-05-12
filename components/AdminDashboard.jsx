@@ -2,8 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import AdminLogin from "./AdminLogin";
 
 const STORAGE_KEY = "paralyze-admin-dashboard";
+const SESSION_KEY = "paralyze-admin-session";
+
+// Credentials are stored here because this app has no backend.
+// In a production setup these should be replaced with a real auth service.
+const ADMIN_USERS = [
+  { username: "superadmin", password: "Super@2025", role: "super_admin" },
+  { username: "admin", password: "Admin@2025", role: "admin" }
+];
 
 const COLLECTIONS = [
   {
@@ -176,12 +185,22 @@ function createInitialDrafts() {
 }
 
 export default function AdminDashboard() {
+  const [session, setSession] = useState(null); // { username, role }
   const [activeKey, setActiveKey] = useState(COLLECTIONS[0].key);
   const [records, setRecords] = useState(createInitialRecords);
   const [drafts, setDrafts] = useState(createInitialDrafts);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
+    const savedSession = window.sessionStorage.getItem(SESSION_KEY);
+    if (savedSession) {
+      try {
+        setSession(JSON.parse(savedSession));
+      } catch {
+        // ignore invalid session
+      }
+    }
+
     const savedData = window.localStorage.getItem(STORAGE_KEY);
 
     if (savedData) {
@@ -194,6 +213,24 @@ export default function AdminDashboard() {
 
     setHasLoaded(true);
   }, []);
+
+  function login(username, password) {
+    const user = ADMIN_USERS.find(
+      (u) => u.username === username && u.password === password
+    );
+    if (!user) return false;
+    const sessionData = { username: user.username, role: user.role };
+    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+    setSession(sessionData);
+    return true;
+  }
+
+  function logout() {
+    window.sessionStorage.removeItem(SESSION_KEY);
+    setSession(null);
+  }
+
+  const isSuperAdmin = session?.role === "super_admin";
 
   useEffect(() => {
     if (hasLoaded) {
@@ -209,6 +246,12 @@ export default function AdminDashboard() {
   const activeDraft = drafts[activeCollection.key];
   const totalRecords = COLLECTIONS.reduce(
     (total, collection) => total + (records[collection.key]?.length ?? 0),
+    0
+  );
+  const pendingCount = COLLECTIONS.reduce(
+    (total, collection) =>
+      total +
+      (records[collection.key] ?? []).filter((r) => r.status === "Pending Review").length,
     0
   );
 
@@ -238,7 +281,7 @@ export default function AdminDashboard() {
 
     const nextRecord = {
       id: `${activeCollection.key}-${Date.now()}`,
-      status: "Draft",
+      status: isSuperAdmin ? "Draft" : "Pending Review",
       ...cleanedDraft
     };
 
@@ -258,6 +301,9 @@ export default function AdminDashboard() {
   }
 
   function removeRecord(recordId) {
+    const record = (records[activeCollection.key] ?? []).find((r) => r.id === recordId);
+    if (!record) return;
+    if (!isSuperAdmin && record.status !== "Pending Review") return;
     setRecords((currentRecords) => ({
       ...currentRecords,
       [activeCollection.key]: (currentRecords[activeCollection.key] ?? []).filter(
@@ -267,6 +313,7 @@ export default function AdminDashboard() {
   }
 
   function toggleStatus(recordId) {
+    if (!isSuperAdmin) return;
     setRecords((currentRecords) => ({
       ...currentRecords,
       [activeCollection.key]: (currentRecords[activeCollection.key] ?? []).map((record) =>
@@ -277,8 +324,21 @@ export default function AdminDashboard() {
     }));
   }
 
+  function approveRecord(recordId) {
+    setRecords((currentRecords) => ({
+      ...currentRecords,
+      [activeCollection.key]: (currentRecords[activeCollection.key] ?? []).map((record) =>
+        record.id === recordId ? { ...record, status: "Draft" } : record
+      )
+    }));
+  }
+
   function resetDashboard() {
     setRecords(createInitialRecords());
+  }
+
+  if (!session) {
+    return <AdminLogin onLogin={login} />;
   }
 
   return (
@@ -289,6 +349,20 @@ export default function AdminDashboard() {
         <p>Drafts save in this browser until a database or CMS is connected.</p>
       </section>
 
+      <div className="admin-toolbar">
+        <div className="admin-role-info">
+          <span>Signed in as <strong>{session.username}</strong></span>
+          <span
+            className={`admin-role-badge ${isSuperAdmin ? "admin-role-badge--super" : ""}`}
+          >
+            {isSuperAdmin ? "Super Admin" : "Admin"}
+          </span>
+        </div>
+        <button type="button" className="admin-logout-btn" onClick={logout}>
+          Sign Out
+        </button>
+      </div>
+
       <section className="admin-shell">
         <div className="admin-summary" aria-label="Dashboard summary">
           <div className="admin-summary-item">
@@ -296,13 +370,22 @@ export default function AdminDashboard() {
             <strong>{COLLECTIONS.length}</strong>
           </div>
           <div className="admin-summary-item">
-            <span>Draft rows</span>
+            <span>Total rows</span>
             <strong>{totalRecords}</strong>
           </div>
-          <div className="admin-summary-item">
-            <span>Active</span>
-            <strong>{activeCollection.label}</strong>
-          </div>
+          {isSuperAdmin ? (
+            <div className="admin-summary-item">
+              <span>Pending Review</span>
+              <strong className={pendingCount > 0 ? "admin-pending-count" : ""}>
+                {pendingCount}
+              </strong>
+            </div>
+          ) : (
+            <div className="admin-summary-item">
+              <span>Active</span>
+              <strong>{activeCollection.label}</strong>
+            </div>
+          )}
         </div>
 
         <div className="admin-workspace">
@@ -368,10 +451,12 @@ export default function AdminDashboard() {
                 />
               </label>
               <div className="admin-actions">
-                <button type="submit">Add Draft</button>
-                <button type="button" onClick={resetDashboard}>
-                  Reset Seed Data
-                </button>
+                <button type="submit">{isSuperAdmin ? "Add Draft" : "Submit for Review"}</button>
+                {isSuperAdmin && (
+                  <button type="button" onClick={resetDashboard}>
+                    Reset Seed Data
+                  </button>
+                )}
               </div>
             </form>
 
@@ -382,19 +467,40 @@ export default function AdminDashboard() {
                     <div>
                       <div className="admin-record-topline">
                         <h4>{record.title}</h4>
-                        <span>{record.status}</span>
+                        <span className={record.status === "Pending Review" ? "status-pending" : undefined}>
+                          {record.status}
+                        </span>
                       </div>
                       {record.meta ? <p className="meta">{record.meta}</p> : null}
                       <p>{record.detail}</p>
                       {record.extra ? <small>{record.extra}</small> : null}
                     </div>
                     <div className="admin-record-actions">
-                      <button type="button" onClick={() => toggleStatus(record.id)}>
-                        Toggle Status
-                      </button>
-                      <button type="button" onClick={() => removeRecord(record.id)}>
-                        Remove
-                      </button>
+                      {isSuperAdmin && record.status === "Pending Review" && (
+                        <>
+                          <button type="button" onClick={() => approveRecord(record.id)}>
+                            Approve
+                          </button>
+                          <button type="button" onClick={() => removeRecord(record.id)}>
+                            Reject
+                          </button>
+                        </>
+                      )}
+                      {isSuperAdmin && record.status !== "Pending Review" && (
+                        <>
+                          <button type="button" onClick={() => toggleStatus(record.id)}>
+                            Toggle Status
+                          </button>
+                          <button type="button" onClick={() => removeRecord(record.id)}>
+                            Remove
+                          </button>
+                        </>
+                      )}
+                      {!isSuperAdmin && record.status === "Pending Review" && (
+                        <button type="button" onClick={() => removeRecord(record.id)}>
+                          Cancel
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))
