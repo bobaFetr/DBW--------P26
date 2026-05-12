@@ -3,19 +3,29 @@ import PageIntro from "../../components/PageIntro";
 
 const cards = [
   {
-    title: "Debut Release",
-    meta: "Album placeholder",
-    body: "Add the release title, year, cover image, and a short summary of the record here."
+    title: "Debut Album",
+    badge: "In Progress",
+    urgent: true,
+    meta: "2026 — TBA",
+    body: "The first full-length record is being written. Expect the complete Paralyze sound — heavier, darker, more focused.",
+    href: "/news",
+    linkLabel: "Follow Updates"
   },
   {
-    title: "Tracklist Block",
-    meta: "Expandable section",
-    body: "Use this slot for song names, credits, and production notes once the material is finalized."
+    title: "Demo Collection",
+    badge: "Available",
+    meta: "2025",
+    body: "Two demo recordings — Guilt and Killer and Misery — that mark the beginning of the Paralyze catalog.",
+    href: "/singles",
+    linkLabel: "Hear The Demos"
   },
   {
-    title: "Streaming Links",
-    meta: "Spotify, YouTube, Bandcamp",
-    body: "Keep one clean area for platform buttons so fans can find releases immediately."
+    title: "Live Recording",
+    badge: "Released",
+    meta: "February 1, 2026",
+    body: "The live recording from Old Skulls captures the intensity of the first performance.",
+    href: "https://www.youtube.com/@deathbywish",
+    linkLabel: "Watch on YouTube"
   }
 ];
 
@@ -28,7 +38,7 @@ export default function AlbumsPage() {
   return (
     <>
       <PageIntro title="Albums">
-        This page is ready for full releases, artwork, tracklists, and streaming links.
+        Full releases, collections, and recordings from the Paralyze catalog.
       </PageIntro>
       <CardGrid cards={cards} />
     </>

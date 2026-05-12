@@ -1,4 +1,6 @@
 import "./globals.css";
+import MobileBottomNav from "../components/MobileBottomNav";
+import NowPlayingBar from "../components/NowPlayingBar";
 import SiteFooter from "../components/SiteFooter";
 import SiteHeader from "../components/SiteHeader";
 
@@ -35,8 +37,10 @@ export default function RootLayout({ children }) {
           Skip to content
         </a>
         <SiteHeader />
+        <NowPlayingBar />
         <main id="main-content">{children}</main>
         <SiteFooter />
+        <MobileBottomNav />
       </body>
     </html>
   );

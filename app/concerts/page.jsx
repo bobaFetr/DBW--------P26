@@ -3,19 +3,28 @@ import PageIntro from "../../components/PageIntro";
 
 const cards = [
   {
-    title: "Upcoming Show Slot",
-    meta: "Date TBA",
-    body: "Add venue, city, and ticket or contact details here when the next show is confirmed."
+    title: "Old Skulls",
+    badge: "Performed",
+    meta: "October 31, 2025 · Sofia",
+    body: "The band's first major live appearance. Raw energy on stage and a defining public moment for Paralyze.",
+    href: "/timeline",
+    linkLabel: "View Timeline"
   },
   {
-    title: "Booking Information",
-    meta: "For promoters",
-    body: "Use this card for stage requirements, contact email, and links to your electronic press kit."
+    title: "Next Show",
+    badge: "TBA",
+    urgent: true,
+    meta: "Date To Be Announced",
+    body: "A new show is being planned. Follow us for the announcement — venue and ticket details coming soon.",
+    href: "/news",
+    linkLabel: "Stay Updated"
   },
   {
-    title: "Past Performance",
-    meta: "Archive slot",
-    body: "Keep a record of completed gigs here so the page still feels active between announcements."
+    title: "Booking",
+    meta: "For promoters & venues",
+    body: "Reach out for stage requirements, EPK, and booking inquiries. We are available for local and touring shows.",
+    href: "mailto:booking@paralyze.band",
+    linkLabel: "Contact Us"
   }
 ];
 
@@ -28,8 +37,7 @@ export default function ConcertsPage() {
   return (
     <>
       <PageIntro title="Concerts">
-        A dedicated live page makes it easier to publish show announcements instead
-        of burying them on the homepage.
+        Live performances, upcoming shows, and booking information.
       </PageIntro>
       <CardGrid cards={cards} />
     </>
