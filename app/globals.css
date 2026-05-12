@@ -1878,6 +1878,6 @@ footer {
   color: #ffc83d;
 }
 
-.admin-pending-count {
-  color: #ffc83d !important;
+.admin-summary-item strong.admin-pending-count {
+  color: #ffc83d;
 }

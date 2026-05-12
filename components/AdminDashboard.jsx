@@ -282,6 +282,7 @@ export default function AdminDashboard() {
     const nextRecord = {
       id: `${activeCollection.key}-${Date.now()}`,
       status: isSuperAdmin ? "Draft" : "Pending Review",
+      createdBy: session.username,
       ...cleanedDraft
     };
 
@@ -303,7 +304,9 @@ export default function AdminDashboard() {
   function removeRecord(recordId) {
     const record = (records[activeCollection.key] ?? []).find((r) => r.id === recordId);
     if (!record) return;
-    if (!isSuperAdmin && record.status !== "Pending Review") return;
+    if (!isSuperAdmin) {
+      if (record.status !== "Pending Review" || record.createdBy !== session.username) return;
+    }
     setRecords((currentRecords) => ({
       ...currentRecords,
       [activeCollection.key]: (currentRecords[activeCollection.key] ?? []).filter(
@@ -335,6 +338,7 @@ export default function AdminDashboard() {
 
   function resetDashboard() {
     setRecords(createInitialRecords());
+    setDrafts(createInitialDrafts());
   }
 
   if (!session) {
