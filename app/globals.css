@@ -1526,7 +1526,7 @@ footer {
 }
 
 .airbrush-canvas.is-drawing {
-  cursor: grabbing;
+  cursor: url('/BUntitled.png') 16 32, crosshair;
 }
 
 .airbrush-help {
