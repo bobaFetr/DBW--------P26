@@ -100,6 +100,7 @@ export default function SiteFooter() {
         <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", justifyContent: "center" }}>
           <Link href="/about">About</Link>
           <Link href="/news">News</Link>
+          <Link href="/airbrush-board">Airbrush Board</Link>
           <Link href="/timeline">Timeline</Link>
           <a href="/admin" style={{ opacity: 0.4 }}>Admin</a>
         </div>

@@ -22,6 +22,7 @@ const NAV_GROUPS = [
     label: "Media",
     items: [
       { key: "gallery", href: "/gallery", label: "Gallery" },
+      { key: "airbrush-board", href: "/airbrush-board", label: "Airbrush Board" },
       { key: "news", href: "/news", label: "News" }
     ]
   },
@@ -54,6 +55,7 @@ const LEGACY_PATHS = {
   "/Timeline.html": "timeline",
   "/members.html": "members",
   "/Gallery.html": "gallery",
+  "/AirBrushBoard.html": "airbrush-board",
   "/admin.html": "admin"
 };
 
