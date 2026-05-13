@@ -232,7 +232,8 @@ main {
 .card-grid-section,
 .timeline-section,
 .gallery-section,
-.cta-strip {
+.cta-strip,
+.airbrush-shell {
   width: var(--panel-width);
   margin: 0 auto 32px;
 }
@@ -1446,6 +1447,93 @@ footer {
   font-size: 0.9rem;
 }
 
+.airbrush-shell {
+  display: grid;
+  gap: 18px;
+}
+
+.airbrush-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  background: var(--bg-panel);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.airbrush-controls label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.airbrush-controls input[type="range"] {
+  width: 100%;
+}
+
+.airbrush-controls input[type="color"] {
+  width: 56px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  padding: 0;
+  background: transparent;
+}
+
+.airbrush-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.airbrush-actions button {
+  min-height: 42px;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  padding: 10px 14px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.airbrush-actions button:hover {
+  background: var(--accent);
+  color: black;
+}
+
+.airbrush-board-wrapper {
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  background:
+    radial-gradient(circle at 25% 20%, rgba(255, 255, 255, 0.08), transparent 38%),
+    linear-gradient(160deg, #0f0f0f, #1c1c1c);
+}
+
+.airbrush-canvas {
+  width: 100%;
+  display: block;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.airbrush-canvas.is-drawing {
+  cursor: grabbing;
+}
+
+.airbrush-help {
+  margin: 0;
+  color: var(--text-muted);
+}
+
 @media (max-width: 900px) {
   .split-panel,
   .gallery-layout,
@@ -1577,7 +1665,8 @@ footer {
   .timeline-section,
   .gallery-section,
   .cta-strip,
-  .admin-shell {
+  .admin-shell,
+  .airbrush-shell {
     width: min(100% - 24px, 1100px);
   }
 
@@ -1610,7 +1699,8 @@ footer {
   .gallery-copy,
   .cta-strip,
   .admin-editor,
-  .admin-export {
+  .admin-export,
+  .airbrush-controls {
     padding: 24px 18px;
   }
 
