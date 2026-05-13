@@ -218,7 +218,13 @@ export default function AirbrushBoard() {
         </label>
         <div className="airbrush-actions">
           <button type="button" onClick={handleClearCanvas}>Clear</button>
-          <button type="button" onClick={handleDownload}>Save PNG</button>
+          <button
+            type="button"
+            onClick={handleDownload}
+            aria-label="Download current board as PNG"
+          >
+            Download Board
+          </button>
         </div>
       </div>
 
@@ -237,7 +243,8 @@ export default function AirbrushBoard() {
       </div>
 
       <p className="airbrush-help">
-        Press and drag on the board to paint spray marks.
+        Press and drag on the board to paint spray marks. Use Download Board at any
+        time to save your painting.
       </p>
     </section>
   );
