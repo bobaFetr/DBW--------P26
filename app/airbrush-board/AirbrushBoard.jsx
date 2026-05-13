@@ -231,7 +231,7 @@ export default function AirbrushBoard() {
           onPointerUp={endSpray}
           onPointerCancel={endSpray}
           onPointerLeave={endSpray}
-          role="img"
+          role="application"
           aria-label="Interactive air brush painting board"
         />
       </div>
