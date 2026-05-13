@@ -2,7 +2,7 @@ import PageIntro from "../../components/PageIntro";
 import AirbrushBoard from "./AirbrushBoard";
 
 export const metadata = {
-  title: "Air Brush Board",
+  title: "Airbrush Board",
   description:
     "Prototype virtual air brush painting board for sketching ideas directly in the browser."
 };
@@ -10,7 +10,7 @@ export const metadata = {
 export default function AirbrushBoardPage() {
   return (
     <>
-      <PageIntro title="Virtual Air Brush Board">
+      <PageIntro title="Virtual Airbrush Board">
         A prototype painting board for quick spray-style sketches. No account or backend
         is required.
       </PageIntro>

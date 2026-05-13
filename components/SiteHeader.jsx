@@ -22,7 +22,7 @@ const NAV_GROUPS = [
     label: "Media",
     items: [
       { key: "gallery", href: "/gallery", label: "Gallery" },
-      { key: "airbrush-board", href: "/airbrush-board", label: "Air Brush Board" },
+      { key: "airbrush-board", href: "/airbrush-board", label: "Airbrush Board" },
       { key: "news", href: "/news", label: "News" }
     ]
   },
