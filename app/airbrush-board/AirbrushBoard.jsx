@@ -3,6 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 
 const CANVAS_HEIGHT = 520;
+const SPRAY_INTERVAL_MS = 30;
+const MIN_DOT_SIZE = 0.45;
+const DOT_SIZE_BASE_FACTOR = 0.05;
+const DOT_SIZE_RANDOM_FACTOR = 0.08;
+const MIN_ALPHA = 0.05;
+const ALPHA_RANDOM_RANGE = 0.18;
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -106,8 +112,11 @@ export default function AirbrushBoard() {
       const distance = Math.random() * radius;
       const x = point.x + Math.cos(angle) * distance;
       const y = point.y + Math.sin(angle) * distance;
-      const dotSize = Math.max(0.45, radius * (0.05 + Math.random() * 0.08));
-      const alpha = 0.05 + Math.random() * 0.18;
+      const dotSize = Math.max(
+        MIN_DOT_SIZE,
+        radius * (DOT_SIZE_BASE_FACTOR + Math.random() * DOT_SIZE_RANDOM_FACTOR)
+      );
+      const alpha = MIN_ALPHA + Math.random() * ALPHA_RANDOM_RANGE;
 
       context.globalAlpha = alpha;
       context.beginPath();
@@ -124,7 +133,7 @@ export default function AirbrushBoard() {
     window.clearInterval(intervalRef.current);
     intervalRef.current = window.setInterval(() => {
       sprayAtPoint(pointerRef.current);
-    }, 30);
+    }, SPRAY_INTERVAL_MS);
   }
 
   function endSpray() {
