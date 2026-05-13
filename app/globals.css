@@ -1522,10 +1522,6 @@ footer {
   width: 100%;
   display: block;
   touch-action: none;
-  cursor: crosshair;
-}
-
-.airbrush-canvas.is-drawing {
   cursor: url('/BUntitled.png') 16 32, crosshair;
 }
 
