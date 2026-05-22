@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "AkyM/rwYOXQ=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\Lenovo\\Desktop\\paralyze\\DBW--------P26\\Back End\\MyApi\\MyApi.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Lenovo\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.6\\microsoft.aspnetcore.openapi.10.0.6.nupkg.sha512",
+    "C:\\Users\\Lenovo\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
