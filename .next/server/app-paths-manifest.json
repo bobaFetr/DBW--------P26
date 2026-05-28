@@ -1,7 +1,13 @@
 {
   "/page": "app/page.js",
+  "/albums/page": "app/albums/page.js",
+  "/singles/page": "app/singles/page.js",
+  "/concerts/page": "app/concerts/page.js",
+  "/gallery/page": "app/gallery/page.js",
+  "/airbrush-board/page": "app/airbrush-board/page.js",
+  "/news/page": "app/news/page.js",
+  "/about/page": "app/about/page.js",
+  "/members/page": "app/members/page.js",
   "/timeline/page": "app/timeline/page.js",
-  "/merch/page": "app/merch/page.js",
-  "/admin/page": "app/admin/page.js",
-  "/singles/page": "app/singles/page.js"
+  "/merch/page": "app/merch/page.js"
 }

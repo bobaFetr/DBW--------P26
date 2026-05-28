@@ -1,4 +1,4 @@
-// File: C:\Users\Lenovo\Desktop\paralyze\DBW--------P26\app\singles\page.jsx
+// File: /home/admin07/p26/DBW--------P26/app/singles/page.jsx
 import * as entry from '../../../../app/singles/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

@@ -1,8 +1,8 @@
-// File: C:\Users\Lenovo\Desktop\paralyze\DBW--------P26\app\admin\page.jsx
-import * as entry from '../../../../app/admin/page.js'
+// File: /home/admin07/p26/DBW--------P26/app/airbrush-board/page.jsx
+import * as entry from '../../../../app/airbrush-board/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../app/admin/page.js')
+type TEntry = typeof import('../../../../app/airbrush-board/page.js')
 
 type SegmentParams<T extends Object = any> = T extends Record<string, any>
   ? { [K in keyof T]: T[K] extends string ? string | string[] | undefined : never }
