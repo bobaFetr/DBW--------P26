@@ -2,5 +2,6 @@
   "/page": "app/page.js",
   "/timeline/page": "app/timeline/page.js",
   "/merch/page": "app/merch/page.js",
-  "/admin/page": "app/admin/page.js"
+  "/admin/page": "app/admin/page.js",
+  "/singles/page": "app/singles/page.js"
 }
