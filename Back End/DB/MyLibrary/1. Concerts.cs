@@ -1,7 +1,11 @@
-﻿namespace MyLibrary;
+﻿using System.ComponentModel.DataAnnotations;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace MyLibrary;
 
 public class Concerts
 {
+    [Key]
     public int ConcertId {get; set;}
     public DateTime Date {get; set;}
     public string  Location {get; set;} = string.Empty;
