@@ -1,25 +1,129 @@
 using Microsoft.EntityFrameworkCore;
-//using MyLibrary.Data.Models;
 
-namespace MyLibrary.Data
+namespace MyLibrary;
+
+public class AppDbContext : DbContext
 {
-    public class AppDbContext : DbContext
+    public AppDbContext(DbContextOptions<AppDbContext> options)
+        : base(options)
     {
-        //this cass is for the table relationships and the connection to the database
-        public AppDbContext(DbContextOptions<AppDbContext> options)
-            : base(options)
-        {
-        }
+    }
 
-        // public DbSet<> Books { get; set; }
-        // public DbSet<> Authors { get; set; }
-        // public DbSet<> Categories { get; set; }
+    public DbSet<Concerts> Concerts { get; set; }
+    public DbSet<Singles> Singles { get; set; }
+    public DbSet<Albums> Albums { get; set; }
+    public DbSet<ConcertSong> ConcertSongs { get; set; }
+    public DbSet<News> News { get; set; }
+    public DbSet<TimeLine> TimeLines { get; set; }
+    public DbSet<Members> Members { get; set; }
+    public DbSet<Gallery> Gallery { get; set; }
 
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
 
-            // Configure entity relationships and constraints here if needed
-        }
+        // Album 1 -> many Singles
+        modelBuilder.Entity<Singles>()
+            .HasOne(s => s.Album)
+            .WithMany(a => a.Singles)
+            .HasForeignKey(s => s.AlbumId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        // ConcertSong composite primary key
+        modelBuilder.Entity<ConcertSong>()
+            .HasKey(cs => new { cs.ConcertId, cs.SongId });
+
+        // Concert 1 -> many ConcertSongs
+        modelBuilder.Entity<ConcertSong>()
+            .HasOne(cs => cs.Concert)
+            .WithMany(c => c.ConcertSongs)
+            .HasForeignKey(cs => cs.ConcertId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Single 1 -> many ConcertSongs
+        modelBuilder.Entity<ConcertSong>()
+            .HasOne(cs => cs.Song)
+            .WithMany(s => s.ConcertSongs)
+            .HasForeignKey(cs => cs.SongId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // String length rules
+        modelBuilder.Entity<Concerts>()
+            .Property(c => c.Location)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<Singles>()
+            .Property(s => s.SongName)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<Singles>()
+            .Property(s => s.AvailableOnYoutube)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<Singles>()
+            .Property(s => s.AvailableOnSpotify)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<Albums>()
+            .Property(a => a.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<News>()
+            .Property(n => n.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<News>()
+            .Property(n => n.Content)
+            .IsRequired();
+
+        modelBuilder.Entity<News>()
+            .Property(n => n.Author)
+            .IsRequired()
+            .HasMaxLength(150);
+
+        modelBuilder.Entity<TimeLine>()
+            .Property(t => t.Event)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<TimeLine>()
+            .Property(t => t.Description)
+            .IsRequired();
+
+        modelBuilder.Entity<TimeLine>()
+            .Property(t => t.Location)
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<Members>()
+            .Property(m => m.Name)
+            .IsRequired()
+            .HasMaxLength(150);
+
+        modelBuilder.Entity<Members>()
+            .Property(m => m.Instrument)
+            .IsRequired()
+            .HasMaxLength(100);
+
+        modelBuilder.Entity<Members>()
+            .Property(m => m.PhotoUrl)
+            .HasMaxLength(500);
+
+        modelBuilder.Entity<Gallery>()
+            .Property(g => g.Title)
+            .IsRequired()
+            .HasMaxLength(200);
+
+        modelBuilder.Entity<Gallery>()
+            .Property(g => g.Description)
+            .HasMaxLength(1000);
+
+        modelBuilder.Entity<Gallery>()
+            .Property(g => g.ImageUrl)
+            .IsRequired()
+            .HasMaxLength(500);
     }
 }
