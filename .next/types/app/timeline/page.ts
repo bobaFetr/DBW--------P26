@@ -1,8 +1,8 @@
-// File: /home/admin07/p26/DBW--------P26/app/news/page.jsx
-import * as entry from '../../../../app/news/page.js'
+// File: /home/admin07/p26/DBW--------P26/app/timeline/page.jsx
+import * as entry from '../../../../app/timeline/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
-type TEntry = typeof import('../../../../app/news/page.js')
+type TEntry = typeof import('../../../../app/timeline/page.js')
 
 type SegmentParams<T extends Object = any> = T extends Record<string, any>
   ? { [K in keyof T]: T[K] extends string ? string | string[] | undefined : never }
