@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace MyLibrary;
 
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityDbContext<ApplicationUser>
 {
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -18,36 +19,127 @@ public class AppDbContext : DbContext
     public DbSet<Members> Members { get; set; }
     public DbSet<Gallery> Gallery { get; set; }
 
+    public DbSet<AdminProfile> AdminProfiles { get; set; }
+    public DbSet<AdminRequest> AdminRequests { get; set; }
+    public DbSet<ContentChangeRequest> ContentChangeRequests { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Album 1 -> many Singles
+        // AdminProfile: one Identity user can have one admin profile
+        modelBuilder.Entity<AdminProfile>()
+            .HasOne(a => a.User)
+            .WithOne(u => u.AdminProfile)
+            .HasForeignKey<AdminProfile>(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AdminProfile>()
+            .HasIndex(a => a.UserId)
+            .IsUnique();
+
+        modelBuilder.Entity<AdminProfile>()
+            .HasIndex(a => a.AdminCode)
+            .IsUnique();
+
+        modelBuilder.Entity<AdminProfile>()
+            .Property(a => a.AdminCode)
+            .IsRequired()
+            .HasMaxLength(30);
+
+        // AdminRequest: one user can have many requests over time
+        modelBuilder.Entity<AdminRequest>()
+            .HasOne(r => r.User)
+            .WithMany(u => u.AdminRequests)
+            .HasForeignKey(r => r.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AdminRequest>()
+            .HasIndex(r => r.RequestCode)
+            .IsUnique();
+
+        modelBuilder.Entity<AdminRequest>()
+            .Property(r => r.RequestCode)
+            .IsRequired()
+            .HasMaxLength(30);
+
+        modelBuilder.Entity<AdminRequest>()
+            .Property(r => r.Message)
+            .HasMaxLength(1000);
+
+        modelBuilder.Entity<AdminRequest>()
+            .Property(r => r.ReviewNote)
+            .HasMaxLength(1000);
+
+        // Optional: prevent multiple pending requests from same user
+        modelBuilder.Entity<AdminRequest>()
+            .HasIndex(r => new { r.UserId, r.Status });
+
+        // ContentChangeRequest: content admins submit changes for superadmin review.
+        modelBuilder.Entity<ContentChangeRequest>()
+            .HasOne(r => r.RequestedByUser)
+            .WithMany(u => u.ContentChangeRequests)
+            .HasForeignKey(r => r.RequestedByUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .HasIndex(r => r.ChangeCode)
+            .IsUnique();
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .HasIndex(r => new { r.ContentType, r.Status });
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .HasIndex(r => new { r.RequestedByUserId, r.Status });
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.ChangeCode)
+            .IsRequired()
+            .HasMaxLength(30);
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.ContentType)
+            .IsRequired()
+            .HasMaxLength(80);
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.TargetEntityId)
+            .HasMaxLength(80);
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.PayloadJson)
+            .IsRequired();
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.Message)
+            .HasMaxLength(1000);
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.ReviewNote)
+            .HasMaxLength(1000);
+
+        // Your existing relations
         modelBuilder.Entity<Singles>()
             .HasOne(s => s.Album)
             .WithMany(a => a.Singles)
             .HasForeignKey(s => s.AlbumId)
             .OnDelete(DeleteBehavior.SetNull);
 
-        // ConcertSong composite primary key
         modelBuilder.Entity<ConcertSong>()
             .HasKey(cs => new { cs.ConcertId, cs.SongId });
 
-        // Concert 1 -> many ConcertSongs
         modelBuilder.Entity<ConcertSong>()
             .HasOne(cs => cs.Concert)
             .WithMany(c => c.ConcertSongs)
             .HasForeignKey(cs => cs.ConcertId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Single 1 -> many ConcertSongs
         modelBuilder.Entity<ConcertSong>()
             .HasOne(cs => cs.Song)
             .WithMany(s => s.ConcertSongs)
             .HasForeignKey(cs => cs.SongId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // String length rules
         modelBuilder.Entity<Concerts>()
             .Property(c => c.Location)
             .IsRequired()
@@ -57,14 +149,6 @@ public class AppDbContext : DbContext
             .Property(s => s.SongName)
             .IsRequired()
             .HasMaxLength(200);
-
-        modelBuilder.Entity<Singles>()
-            .Property(s => s.AvailableOnYoutube)
-            .HasMaxLength(500);
-
-        modelBuilder.Entity<Singles>()
-            .Property(s => s.AvailableOnSpotify)
-            .HasMaxLength(500);
 
         modelBuilder.Entity<Albums>()
             .Property(a => a.Title)
@@ -94,10 +178,6 @@ public class AppDbContext : DbContext
             .Property(t => t.Description)
             .IsRequired();
 
-        modelBuilder.Entity<TimeLine>()
-            .Property(t => t.Location)
-            .HasMaxLength(200);
-
         modelBuilder.Entity<Members>()
             .Property(m => m.Name)
             .IsRequired()
@@ -108,18 +188,10 @@ public class AppDbContext : DbContext
             .IsRequired()
             .HasMaxLength(100);
 
-        modelBuilder.Entity<Members>()
-            .Property(m => m.PhotoUrl)
-            .HasMaxLength(500);
-
         modelBuilder.Entity<Gallery>()
             .Property(g => g.Title)
             .IsRequired()
             .HasMaxLength(200);
-
-        modelBuilder.Entity<Gallery>()
-            .Property(g => g.Description)
-            .HasMaxLength(1000);
 
         modelBuilder.Entity<Gallery>()
             .Property(g => g.ImageUrl)

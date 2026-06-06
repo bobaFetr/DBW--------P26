@@ -1,1 +1,5 @@
-public class
+namespace MyLibrary.Configurations;
+
+public static class Configurations
+{
+}

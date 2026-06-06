@@ -1223,6 +1223,7 @@ footer {
 .admin-summary-item,
 .admin-sidebar,
 .admin-editor,
+.admin-review-panel,
 .admin-export {
   background: var(--bg-panel);
   border: 2px solid var(--accent);
@@ -1352,6 +1353,7 @@ footer {
 
 .admin-form input,
 .admin-form textarea,
+.admin-review-note input,
 .admin-export textarea {
   width: 100%;
   border: 2px solid rgba(255, 255, 255, 0.38);
@@ -1361,7 +1363,8 @@ footer {
   font: inherit;
 }
 
-.admin-form input {
+.admin-form input,
+.admin-review-note input {
   min-height: 46px;
   padding: 10px 12px;
 }
@@ -1374,6 +1377,7 @@ footer {
 
 .admin-form input:focus,
 .admin-form textarea:focus,
+.admin-review-note input:focus,
 .admin-export textarea:focus {
   outline: 3px solid rgba(255, 255, 255, 0.7);
   outline-offset: 2px;
@@ -1438,6 +1442,18 @@ footer {
 .admin-export {
   margin-top: 22px;
   padding: 24px;
+}
+
+.admin-review-panel {
+  margin-top: 22px;
+  padding: 24px;
+}
+
+.admin-review-note {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+  font-weight: bold;
 }
 
 .admin-export textarea {
@@ -1962,6 +1978,17 @@ footer {
 .admin-record-topline span.status-pending {
   border-color: rgba(255, 200, 50, 0.6);
   color: #ffc83d;
+}
+
+.admin-record-topline span.status-approved {
+  border-color: rgba(105, 220, 140, 0.7);
+  color: #8ee6a5;
+}
+
+.admin-record-topline span.status-denied,
+.admin-record-topline span.status-cancelled {
+  border-color: rgba(230, 80, 80, 0.7);
+  color: #ff7676;
 }
 
 .admin-summary-item strong.admin-pending-count {
