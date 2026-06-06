@@ -55,10 +55,10 @@ export default function HomePage() {
     <>
       <section className="hero">
         <div className="hero-inner">
-          <span className="eyebrow">Death By Wish</span>
+          <span className="eyebrow">Death By Wish is dead</span>
           <h2>Paralyze</h2>
           <p>
-            Death metal from Bulgaria — raw, cold, and uncompromising.
+            Goth metal band Sofia from Bulgaria.
           </p>
           <div className="hero-actions">
             <Link className="action-link primary" href="/singles">

@@ -20,8 +20,8 @@ export default function SiteFooter() {
         <div className="footer-col">
           <h4>Paralyze</h4>
           <p>
-            Death metal from Bulgaria. <br />
-            Founded December 2024.
+            Goth metal band  from Sofia, Bulgaria.<br/>
+            Founded February 2026.
           </p>
           <div className="footer-streaming-links" style={{ marginTop: "16px" }}>
             <a
