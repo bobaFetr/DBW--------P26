@@ -22,6 +22,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<AdminProfile> AdminProfiles { get; set; }
     public DbSet<AdminRequest> AdminRequests { get; set; }
     public DbSet<ContentChangeRequest> ContentChangeRequests { get; set; }
+    public DbSet<AdminAuditLog> AdminAuditLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -117,6 +118,28 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<ContentChangeRequest>()
             .Property(r => r.ReviewNote)
             .HasMaxLength(1000);
+
+        modelBuilder.Entity<AdminAuditLog>()
+            .HasOne(log => log.AdminUser)
+            .WithMany()
+            .HasForeignKey(log => log.AdminUserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<AdminAuditLog>()
+            .HasIndex(log => new { log.AdminUserId, log.CreatedAtUtc });
+
+        modelBuilder.Entity<AdminAuditLog>()
+            .Property(log => log.Action)
+            .IsRequired()
+            .HasMaxLength(120);
+
+        modelBuilder.Entity<AdminAuditLog>()
+            .Property(log => log.EntityType)
+            .HasMaxLength(80);
+
+        modelBuilder.Entity<AdminAuditLog>()
+            .Property(log => log.EntityId)
+            .HasMaxLength(80);
 
         // Your existing relations
         modelBuilder.Entity<Singles>()
