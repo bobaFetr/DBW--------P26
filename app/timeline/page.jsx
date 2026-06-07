@@ -1,4 +1,5 @@
 import PageIntro from "../../components/PageIntro";
+import ApiTimeline from "../../components/ApiTimeline";
 
 const timelineItems = [
   {
@@ -52,20 +53,7 @@ export default function TimelinePage() {
         This project archive tracks the milestones that shaped the path into the
         current Paralyze direction.
       </PageIntro>
-      <section className="timeline-section">
-        <div className="timeline">
-          {timelineItems.map((item) => (
-            <article className="timeline-item" key={`${item.date}-${item.title}`}>
-              <div className="timeline-dot" />
-              <div className="timeline-content">
-                <div className="timeline-date">{item.date}</div>
-                <div className="timeline-title">{item.title}</div>
-                <div className="timeline-description">{item.description}</div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+      <ApiTimeline fallbackItems={timelineItems} />
     </>
   );
 }

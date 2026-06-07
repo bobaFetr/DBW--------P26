@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+
 const GALLERY_ITEMS = [
   { id: "live-mood", caption: "Live Mood", category: "Live", className: "gallery-item gallery-item-tall" },
   { id: "promo-shot", caption: "Promo Shot", category: "Press", className: "gallery-item photo gallery-item-wide" },
@@ -12,6 +14,7 @@ const GALLERY_ITEMS = [
 ];
 
 export default function GalleryGrid() {
+  const [items, setItems] = useState(GALLERY_ITEMS);
   const [activeIndex, setActiveIndex] = useState(null);
 
   const isOpen = activeIndex !== null;
@@ -19,11 +22,47 @@ export default function GalleryGrid() {
   const close = useCallback(() => setActiveIndex(null), []);
 
   const prev = useCallback(() => {
-    setActiveIndex((i) => (i > 0 ? i - 1 : GALLERY_ITEMS.length - 1));
-  }, []);
+    setActiveIndex((i) => (i > 0 ? i - 1 : items.length - 1));
+  }, [items.length]);
 
   const next = useCallback(() => {
-    setActiveIndex((i) => (i < GALLERY_ITEMS.length - 1 ? i + 1 : 0));
+    setActiveIndex((i) => (i < items.length - 1 ? i + 1 : 0));
+  }, [items.length]);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadGallery() {
+      try {
+        const response = await fetch(`${API_BASE}/api/content/gallery`);
+        if (!response.ok) return;
+
+        const rows = await response.json();
+        if (!ignore && rows.length) {
+          setItems(
+            rows.map((row, index) => ({
+              id: String(row.id),
+              caption: row.title,
+              category: row.description,
+              imageUrl: row.imageUrl,
+              className:
+                index % 3 === 0
+                  ? "gallery-item gallery-item-tall"
+                  : index % 3 === 1
+                    ? "gallery-item photo gallery-item-wide"
+                    : "gallery-item alt-logo gallery-item-square"
+            }))
+          );
+        }
+      } catch {
+        // Keep fallback gallery.
+      }
+    }
+
+    void loadGallery();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -59,15 +98,16 @@ export default function GalleryGrid() {
     setTouchStartX(null);
   }
 
-  const activeItem = isOpen ? GALLERY_ITEMS[activeIndex] : null;
+  const activeItem = isOpen ? items[activeIndex] : null;
 
   return (
     <>
       <div className="gallery-masonry">
-        {GALLERY_ITEMS.map((item, index) => (
+        {items.map((item, index) => (
           <div
             key={item.id}
             className={item.className}
+            style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
             role="button"
             tabIndex={0}
             aria-label={`Open ${item.caption}`}
@@ -101,8 +141,11 @@ export default function GalleryGrid() {
             >
               ✕
             </button>
-            <div className={`lightbox-media ${activeItem.className.replace("gallery-item", "").trim()}`}>
-              PARALYZE
+            <div
+              className={`lightbox-media ${activeItem.className.replace("gallery-item", "").trim()}`}
+              style={activeItem.imageUrl ? { backgroundImage: `url(${activeItem.imageUrl})` } : undefined}
+            >
+              {activeItem.imageUrl ? "" : "PARALYZE"}
             </div>
             <p className="lightbox-caption">
               {activeItem.caption}
@@ -114,7 +157,7 @@ export default function GalleryGrid() {
             </p>
             <div className="lightbox-controls">
               <button className="lightbox-btn" onClick={prev} aria-label="Previous image" type="button">‹</button>
-              <span className="lightbox-counter">{activeIndex + 1} / {GALLERY_ITEMS.length}</span>
+              <span className="lightbox-counter">{activeIndex + 1} / {items.length}</span>
               <button className="lightbox-btn" onClick={next} aria-label="Next image" type="button">›</button>
             </div>
           </div>

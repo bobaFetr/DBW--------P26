@@ -4,83 +4,69 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminLogin from "./AdminLogin";
 
-const STORAGE_KEY = "paralyze-admin-infrastructure";
-const SESSION_KEY = "paralyze-admin-session";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
-const ADMIN_USERS = [
-  {
-    userId: "superadmin-user",
-    username: "superadmin",
-    password: "Super@2025",
-    displayName: "Super Admin",
-    adminCode: "SADM-000001",
-    adminKind: "SuperAdmin",
-    role: "super_admin"
-  },
-  {
-    userId: "contentadmin-user",
-    username: "admin",
-    password: "Admin@2025",
-    displayName: "Content Admin",
-    adminCode: "CADM-000001",
-    adminKind: "ContentAdmin",
-    role: "content_admin"
-  }
-];
+const CONTENT_ACTION = {
+  Create: 1,
+  Update: 2,
+  Delete: 3
+};
+
+const STATUS_LABELS = {
+  1: "Pending",
+  2: "Approved",
+  3: "Denied",
+  4: "Cancelled",
+  Pending: "Pending",
+  Approved: "Approved",
+  Denied: "Denied",
+  Cancelled: "Cancelled"
+};
+
+const ACTION_LABELS = {
+  1: "Create",
+  2: "Update",
+  3: "Delete",
+  Create: "Create",
+  Update: "Update",
+  Delete: "Delete"
+};
 
 const COLLECTIONS = [
   {
     key: "concerts",
     label: "Concerts",
-    dbSet: "Concerts",
-    entity: "Concerts",
     route: "/concerts",
+    idKey: "concertId",
     fields: [
       { key: "date", label: "Date", required: true, type: "date" },
       { key: "location", label: "Location", required: true },
       { key: "time", label: "Time", type: "time" },
       { key: "numberOfSongs", label: "Number of songs", type: "number" }
     ],
-    seed: [
-      {
-        date: "2026-08-16",
-        location: "Venue TBA",
-        time: "",
-        numberOfSongs: "0"
-      }
-    ],
     title: (record) => record.location,
-    meta: (record) => [record.date, record.time].filter(Boolean).join(" at "),
+    meta: (record) => [formatDate(record.date), record.time].filter(Boolean).join(" at "),
     detail: (record) => `${record.numberOfSongs || "0"} songs planned`
   },
   {
     key: "albums",
     label: "Albums",
-    dbSet: "Albums",
-    entity: "Albums",
     route: "/albums",
+    idKey: "albumId",
     fields: [
       { key: "title", label: "Title", required: true },
       { key: "releaseDate", label: "Release date", type: "date" },
       { key: "numberOfSongs", label: "Number of songs", type: "number" }
     ],
-    seed: [
-      {
-        title: "Debut Release",
-        releaseDate: "",
-        numberOfSongs: "0"
-      }
-    ],
     title: (record) => record.title,
-    meta: (record) => record.releaseDate || "Release date TBA",
+    meta: (record) => formatDate(record.releaseDate) || "Release date TBA",
     detail: (record) => `${record.numberOfSongs || "0"} songs`
   },
   {
     key: "singles",
     label: "Singles",
-    dbSet: "Singles",
-    entity: "Singles",
     route: "/singles",
+    idKey: "songId",
     fields: [
       { key: "songName", label: "Song name", required: true },
       { key: "releaseDate", label: "Release date", type: "date" },
@@ -88,17 +74,8 @@ const COLLECTIONS = [
       { key: "availableOnSpotify", label: "Spotify URL" },
       { key: "albumId", label: "Album ID", type: "number" }
     ],
-    seed: [
-      {
-        songName: "Lead Single",
-        releaseDate: "",
-        availableOnYoutube: "",
-        availableOnSpotify: "",
-        albumId: ""
-      }
-    ],
     title: (record) => record.songName,
-    meta: (record) => record.releaseDate || "Release date TBA",
+    meta: (record) => formatDate(record.releaseDate) || "Release date TBA",
     detail: (record) =>
       [record.availableOnYoutube && "YouTube", record.availableOnSpotify && "Spotify"]
         .filter(Boolean)
@@ -107,68 +84,42 @@ const COLLECTIONS = [
   {
     key: "news",
     label: "News",
-    dbSet: "News",
-    entity: "News",
     route: "/news",
+    idKey: "newsId",
     fields: [
       { key: "title", label: "Title", required: true },
       { key: "publicationDate", label: "Publication date", required: true, type: "date" },
       { key: "author", label: "Author", required: true },
       { key: "content", label: "Content", required: true, type: "textarea" }
     ],
-    seed: [
-      {
-        title: "Site Update",
-        publicationDate: "2026-06-06",
-        author: "Paralyze",
-        content: "The public pages should show approved content only."
-      }
-    ],
     title: (record) => record.title,
-    meta: (record) => [record.publicationDate, record.author].filter(Boolean).join(" / "),
+    meta: (record) => [formatDate(record.publicationDate), record.author].filter(Boolean).join(" / "),
     detail: (record) => record.content
   },
   {
     key: "timeline",
     label: "Timeline",
-    dbSet: "TimeLines",
-    entity: "TimeLine",
     route: "/timeline",
+    idKey: "id",
     fields: [
       { key: "date", label: "Date", type: "date" },
       { key: "event", label: "Event", required: true },
       { key: "location", label: "Location" },
       { key: "description", label: "Description", required: true, type: "textarea" }
     ],
-    seed: [
-      {
-        date: "2024-12-27",
-        event: "BAND FOUNDED",
-        location: "",
-        description: "The project was founded by Tonislav and Kris."
-      }
-    ],
     title: (record) => record.event,
-    meta: (record) => [record.date, record.location].filter(Boolean).join(" / "),
+    meta: (record) => [formatDate(record.date), record.location].filter(Boolean).join(" / "),
     detail: (record) => record.description
   },
   {
     key: "members",
     label: "Members",
-    dbSet: "Members",
-    entity: "Members",
     route: "/members",
+    idKey: "id",
     fields: [
       { key: "name", label: "Name", required: true },
       { key: "instrument", label: "Instrument", required: true },
       { key: "photoUrl", label: "Photo URL", required: true }
-    ],
-    seed: [
-      {
-        name: "Vocals",
-        instrument: "Member profile",
-        photoUrl: "/BUntitled.png"
-      }
     ],
     title: (record) => record.name,
     meta: (record) => record.instrument,
@@ -177,20 +128,12 @@ const COLLECTIONS = [
   {
     key: "gallery",
     label: "Gallery",
-    dbSet: "Gallery",
-    entity: "Gallery",
     route: "/gallery",
+    idKey: "id",
     fields: [
       { key: "title", label: "Title", required: true },
       { key: "imageUrl", label: "Image URL", required: true },
       { key: "description", label: "Description", type: "textarea" }
-    ],
-    seed: [
-      {
-        title: "Live Mood",
-        imageUrl: "/BUntitled.png",
-        description: "Live photo or performance mood slot."
-      }
     ],
     title: (record) => record.title,
     meta: (record) => record.imageUrl,
@@ -208,161 +151,186 @@ function createInitialDrafts() {
   );
 }
 
-function createRecord(collection, entry, index) {
-  return {
-    id: `${collection.key}-${index + 1}`,
-    entity: collection.entity,
-    dbSet: collection.dbSet,
-    status: "Approved",
-    isPublic: true,
-    createdByUserId: "superadmin-user",
-    approvedBySuperAdminId: "superadmin-user",
-    approvedAtUtc: new Date().toISOString(),
-    ...entry
-  };
+function normalizeStatus(status) {
+  return STATUS_LABELS[status] ?? String(status);
 }
 
-function createInitialRecords() {
+function normalizeAction(action) {
+  return ACTION_LABELS[action] ?? String(action);
+}
+
+function formatDate(value) {
+  if (!value) return "";
+  return String(value).slice(0, 10);
+}
+
+function normalizeDraft(collection, draft) {
   return Object.fromEntries(
-    COLLECTIONS.map((collection) => [
-      collection.key,
-      collection.seed.map((entry, index) => createRecord(collection, entry, index))
-    ])
+    collection.fields.map((field) => {
+      const raw = String(draft[field.key] ?? "").trim();
+      if (field.type === "number") {
+        return [field.key, raw ? Number(raw) : 0];
+      }
+
+      return [field.key, raw || null];
+    })
   );
 }
 
-function createInitialAdminProfiles() {
-  return ADMIN_USERS.map((user) => ({
-    id: `${user.adminCode.toLowerCase()}-profile`,
-    userId: user.userId,
-    displayName: user.displayName,
-    username: user.username,
-    adminCode: user.adminCode,
-    adminKind: user.adminKind,
-    isActive: true,
-    approvedAtUtc: new Date().toISOString(),
-    approvedByUserId: user.adminKind === "SuperAdmin" ? null : "superadmin-user",
-    disabledAtUtc: null,
-    disabledByUserId: null
-  }));
-}
+async function apiFetch(path, options = {}) {
+  const response = await fetch(`${API_BASE}${path}`, {
+    credentials: "include",
+    ...options,
+    headers: {
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.headers ?? {})
+    }
+  });
 
-function createChangeCode(number) {
-  return `CHG-${String(number).padStart(6, "0")}`;
-}
+  if (!response.ok) {
+    let message = `${response.status} ${response.statusText}`;
+    try {
+      const body = await response.json();
+      message = Array.isArray(body)
+        ? body.map((item) => item.description ?? item.code ?? JSON.stringify(item)).join(" ")
+        : body.title ?? body.message ?? JSON.stringify(body);
+    } catch {
+      const text = await response.text();
+      if (text) message = text;
+    }
 
-function createReviewRequest(collection, payload, session, requestNumber) {
-  return {
-    id: `content-change-${Date.now()}`,
-    changeCode: createChangeCode(requestNumber),
-    requestedByUserId: session.userId,
-    requestedByAdminCode: session.adminCode,
-    requestedByDisplayName: session.displayName,
-    contentType: collection.entity,
-    dbSet: collection.dbSet,
-    targetEntityId: null,
-    action: "Create",
-    status: "Pending",
-    payloadJson: JSON.stringify(payload),
-    message: `Create ${collection.label} content`,
-    requestedAtUtc: new Date().toISOString(),
-    reviewedBySuperAdminId: null,
-    reviewedAtUtc: null,
-    reviewNote: null
-  };
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  return response.json();
 }
 
 export default function AdminDashboard() {
   const [session, setSession] = useState(null);
   const [activeKey, setActiveKey] = useState(COLLECTIONS[0].key);
-  const [records, setRecords] = useState(createInitialRecords);
+  const [records, setRecords] = useState({});
   const [drafts, setDrafts] = useState(createInitialDrafts);
   const [contentRequests, setContentRequests] = useState([]);
-  const [adminProfiles, setAdminProfiles] = useState(createInitialAdminProfiles);
+  const [adminRequests, setAdminRequests] = useState([]);
+  const [adminProfiles, setAdminProfiles] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
   const [reviewNote, setReviewNote] = useState("");
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const savedSession = window.sessionStorage.getItem(SESSION_KEY);
-    if (savedSession) {
-      try {
-        setSession(JSON.parse(savedSession));
-      } catch {
-        // ignore invalid session
-      }
-    }
+  const isSuperAdmin = session?.roles?.includes("SuperAdmin");
+  const isAdmin = session?.roles?.includes("SuperAdmin") || session?.roles?.includes("ContentAdmin");
 
-    const savedData = window.localStorage.getItem(STORAGE_KEY);
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setRecords(parsed.records ?? createInitialRecords());
-        setDrafts(parsed.drafts ?? createInitialDrafts());
-        setContentRequests(parsed.contentRequests ?? []);
-        setAdminProfiles(parsed.adminProfiles ?? createInitialAdminProfiles());
-      } catch {
-        setRecords(createInitialRecords());
-      }
-    }
-
-    setHasLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    if (hasLoaded) {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ records, drafts, contentRequests, adminProfiles })
-      );
-    }
-  }, [adminProfiles, contentRequests, drafts, hasLoaded, records]);
-
-  function login(username, password) {
-    const user = ADMIN_USERS.find(
-      (u) => u.username === username && u.password === password
-    );
-    const profile = adminProfiles.find((p) => p.userId === user?.userId);
-
-    if (!user || !profile?.isActive) return false;
-
-    const sessionData = {
-      userId: user.userId,
-      username: user.username,
-      displayName: user.displayName,
-      role: user.role,
-      adminKind: user.adminKind,
-      adminCode: user.adminCode
-    };
-
-    window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
-    setSession(sessionData);
-    return true;
-  }
-
-  function logout() {
-    window.sessionStorage.removeItem(SESSION_KEY);
-    setSession(null);
-  }
-
-  const isSuperAdmin = session?.adminKind === "SuperAdmin";
   const activeCollection = useMemo(
     () => COLLECTIONS.find((collection) => collection.key === activeKey) ?? COLLECTIONS[0],
     [activeKey]
   );
+
   const activeRecords = records[activeCollection.key] ?? [];
   const activeDraft = drafts[activeCollection.key] ?? emptyDraft(activeCollection);
-  const pendingRequests = contentRequests.filter((request) => request.status === "Pending");
-  const visibleRequests = isSuperAdmin
-    ? contentRequests
-    : contentRequests.filter((request) => request.requestedByUserId === session?.userId);
+  const visibleRequests = contentRequests;
+  const pendingRequests = contentRequests.filter(
+    (request) => normalizeStatus(request.status) === "Pending"
+  );
   const publicCount = COLLECTIONS.reduce(
-    (total, collection) =>
-      total + (records[collection.key] ?? []).filter((record) => record.isPublic).length,
+    (total, collection) => total + (records[collection.key]?.length ?? 0),
     0
   );
-  const contentAdminCount = adminProfiles.filter(
-    (profile) => profile.adminKind === "ContentAdmin" && profile.isActive
-  ).length;
+
+  useEffect(() => {
+    void boot();
+  }, []);
+
+  async function boot() {
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const user = await apiFetch("/api/auth/me");
+      setSession(user);
+      await refreshDashboard(user);
+    } catch {
+      setSession(null);
+      await loadContentRows();
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function refreshDashboard(user = session) {
+    await loadContentRows();
+
+    if (!user) return;
+
+    const roles = user.roles ?? [];
+    if (roles.includes("SuperAdmin")) {
+      const [requests, admins, pendingAdminRequests] = await Promise.all([
+        apiFetch("/api/content-requests/pending"),
+        apiFetch("/api/content-admins"),
+        apiFetch("/api/content-admin-requests/pending")
+      ]);
+      setContentRequests(requests);
+      setAdminProfiles(admins);
+      setAdminRequests(pendingAdminRequests);
+    } else {
+      const requests = await apiFetch("/api/content-requests/mine");
+      setContentRequests(requests);
+      setAdminProfiles([]);
+      setAdminRequests([]);
+    }
+  }
+
+  async function loadContentRows() {
+    const entries = await Promise.all(
+      COLLECTIONS.map(async (collection) => [
+        collection.key,
+        await apiFetch(`/api/content/${collection.key}`)
+      ])
+    );
+    setRecords(Object.fromEntries(entries));
+  }
+
+  async function login(identifier, password) {
+    const user = await apiFetch("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: identifier, password })
+    });
+
+    if (!user.roles?.some((role) => role === "SuperAdmin" || role === "ContentAdmin")) {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+      throw new Error("This account is not an approved admin yet.");
+    }
+
+    setSession(user);
+    await refreshDashboard(user);
+  }
+
+  async function registerContentAdmin(payload) {
+    await apiFetch("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    });
+    await apiFetch("/api/content-admin-requests", {
+      method: "POST",
+      body: JSON.stringify({ message: "I want to help manage site content." })
+    });
+    await apiFetch("/api/auth/logout", { method: "POST" });
+  }
+
+  async function logout() {
+    await apiFetch("/api/auth/logout", { method: "POST" });
+    setSession(null);
+    setContentRequests([]);
+    setAdminProfiles([]);
+    setAdminRequests([]);
+    setAuditLogs([]);
+    setSelectedAuditUserId("");
+  }
 
   function updateDraft(field, value) {
     setDrafts((currentDrafts) => ({
@@ -374,157 +342,116 @@ export default function AdminDashboard() {
     }));
   }
 
-  function addContent(event) {
+  async function addContent(event) {
     event.preventDefault();
+    setError("");
 
-    const cleanedDraft = Object.fromEntries(
-      activeCollection.fields.map((field) => [
-        field.key,
-        String(activeDraft[field.key] ?? "").trim()
-      ])
-    );
+    const cleanedDraft = normalizeDraft(activeCollection, activeDraft);
     const hasMissingRequired = activeCollection.fields.some(
       (field) => field.required && !cleanedDraft[field.key]
     );
 
     if (hasMissingRequired) return;
 
-    if (isSuperAdmin) {
-      const nextRecord = {
-        id: `${activeCollection.key}-${Date.now()}`,
-        entity: activeCollection.entity,
-        dbSet: activeCollection.dbSet,
-        status: "Approved",
-        isPublic: true,
-        createdByUserId: session.userId,
-        approvedBySuperAdminId: session.userId,
-        approvedAtUtc: new Date().toISOString(),
-        ...cleanedDraft
-      };
+    try {
+      if (isSuperAdmin) {
+        await apiFetch(`/api/content/${activeCollection.key}`, {
+          method: "POST",
+          body: JSON.stringify(cleanedDraft)
+        });
+      } else {
+        await apiFetch("/api/content-requests", {
+          method: "POST",
+          body: JSON.stringify({
+            contentType: activeCollection.key,
+            targetEntityId: null,
+            action: CONTENT_ACTION.Create,
+            payloadJson: JSON.stringify(cleanedDraft),
+            message: `Create ${activeCollection.label} content`
+          })
+        });
+      }
 
-      setRecords((currentRecords) => ({
-        ...currentRecords,
-        [activeCollection.key]: [nextRecord, ...(currentRecords[activeCollection.key] ?? [])]
+      setDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [activeCollection.key]: emptyDraft(activeCollection)
       }));
-    } else {
-      setContentRequests((currentRequests) => [
-        createReviewRequest(activeCollection, cleanedDraft, session, currentRequests.length + 1),
-        ...currentRequests
-      ]);
+      await refreshDashboard();
+    } catch (err) {
+      setError(err.message);
     }
-
-    setDrafts((currentDrafts) => ({
-      ...currentDrafts,
-      [activeCollection.key]: emptyDraft(activeCollection)
-    }));
   }
 
-  function approveRequest(requestId) {
-    const request = contentRequests.find((item) => item.id === requestId);
-    if (!request || !isSuperAdmin) return;
+  async function approveRequest(requestId) {
+    if (!isSuperAdmin) return;
 
-    const collection = COLLECTIONS.find((item) => item.entity === request.contentType);
-    if (!collection) return;
-
-    const payload = JSON.parse(request.payloadJson);
-    const approvedRecord = {
-      id: `${collection.key}-${Date.now()}`,
-      entity: collection.entity,
-      dbSet: collection.dbSet,
-      status: "Approved",
-      isPublic: true,
-      createdByUserId: request.requestedByUserId,
-      approvedBySuperAdminId: session.userId,
-      approvedAtUtc: new Date().toISOString(),
-      ...payload
-    };
-
-    setRecords((currentRecords) => ({
-      ...currentRecords,
-      [collection.key]: [approvedRecord, ...(currentRecords[collection.key] ?? [])]
-    }));
-    setContentRequests((currentRequests) =>
-      currentRequests.map((item) =>
-        item.id === requestId
-          ? {
-              ...item,
-              status: "Approved",
-              reviewedBySuperAdminId: session.userId,
-              reviewedAtUtc: new Date().toISOString(),
-              reviewNote: reviewNote.trim() || "Approved for public site"
-            }
-          : item
-      )
-    );
+    await apiFetch(`/api/content-requests/${requestId}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved for public site" })
+    });
     setReviewNote("");
+    await refreshDashboard();
   }
 
-  function denyRequest(requestId) {
+  async function denyRequest(requestId) {
     if (!isSuperAdmin) return;
 
-    setContentRequests((currentRequests) =>
-      currentRequests.map((item) =>
-        item.id === requestId
-          ? {
-              ...item,
-              status: "Denied",
-              reviewedBySuperAdminId: session.userId,
-              reviewedAtUtc: new Date().toISOString(),
-              reviewNote: reviewNote.trim() || "Denied by superadmin"
-            }
-          : item
-      )
-    );
+    await apiFetch(`/api/content-requests/${requestId}/deny`, {
+      method: "POST",
+      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
+    });
     setReviewNote("");
+    await refreshDashboard();
   }
 
-  function cancelRequest(requestId) {
-    setContentRequests((currentRequests) =>
-      currentRequests.map((item) =>
-        item.id === requestId && item.requestedByUserId === session.userId
-          ? { ...item, status: "Cancelled" }
-          : item
-      )
-    );
+  async function cancelRequest(requestId) {
+    await apiFetch(`/api/content-requests/${requestId}/cancel`, { method: "POST" });
+    await refreshDashboard();
   }
 
-  function removePublicRecord(recordId) {
+  async function removePublicRecord(record) {
     if (!isSuperAdmin) return;
 
-    setRecords((currentRecords) => ({
-      ...currentRecords,
-      [activeCollection.key]: (currentRecords[activeCollection.key] ?? []).filter(
-        (record) => record.id !== recordId
-      )
-    }));
+    await apiFetch(`/api/content/${activeCollection.key}/${record[activeCollection.idKey]}`, {
+      method: "DELETE"
+    });
+    await refreshDashboard();
   }
 
-  function toggleContentAdmin(userId) {
-    if (!isSuperAdmin) return;
-
-    setAdminProfiles((currentProfiles) =>
-      currentProfiles.map((profile) =>
-        profile.userId === userId && profile.adminKind === "ContentAdmin"
-          ? {
-              ...profile,
-              isActive: !profile.isActive,
-              disabledAtUtc: profile.isActive ? new Date().toISOString() : null,
-              disabledByUserId: profile.isActive ? session.userId : null
-            }
-          : profile
-      )
-    );
+  async function approveAdminRequest(requestId) {
+    await apiFetch(`/api/content-admin-requests/${requestId}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved as content admin" })
+    });
+    setReviewNote("");
+    await refreshDashboard();
   }
 
-  function resetDashboard() {
-    setRecords(createInitialRecords());
-    setDrafts(createInitialDrafts());
-    setContentRequests([]);
-    setAdminProfiles(createInitialAdminProfiles());
+  async function denyAdminRequest(requestId) {
+    await apiFetch(`/api/content-admin-requests/${requestId}/deny`, {
+      method: "POST",
+      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
+    });
+    setReviewNote("");
+    await refreshDashboard();
   }
 
-  if (!session) {
-    return <AdminLogin onLogin={login} />;
+  async function kickContentAdmin(userId) {
+    await apiFetch(`/api/content-admins/${userId}`, { method: "DELETE" });
+    await refreshDashboard();
+  }
+
+  async function loadAudit(userId) {
+    setSelectedAuditUserId(userId);
+    setAuditLogs(await apiFetch(`/api/content-admins/${userId}/audit`));
+  }
+
+  if (isLoading) {
+    return <p className="admin-empty-state">Loading admin dashboard...</p>;
+  }
+
+  if (!session || !isAdmin) {
+    return <AdminLogin onLogin={login} onRegisterContentAdmin={registerContentAdmin} />;
   }
 
   return (
@@ -532,20 +459,17 @@ export default function AdminDashboard() {
       <section className="page-intro admin-intro">
         <span className="eyebrow">Admin</span>
         <h2 className="section-title">Content Approval Dashboard</h2>
-        <p>Content admins submit database-backed changes. The public site uses approved rows.</p>
+        <p>Content admins submit database-backed changes. Super admins publish and manage admins.</p>
       </section>
 
       <div className="admin-toolbar">
         <div className="admin-role-info">
           <span>
-            Signed in as <strong>{session.displayName}</strong>
+            Signed in as <strong>{session.displayName ?? session.userName}</strong>
           </span>
-          <span
-            className={`admin-role-badge ${isSuperAdmin ? "admin-role-badge--super" : ""}`}
-          >
+          <span className={`admin-role-badge ${isSuperAdmin ? "admin-role-badge--super" : ""}`}>
             {isSuperAdmin ? "Super Admin" : "Content Admin"}
           </span>
-          <span>{session.adminCode}</span>
         </div>
         <button type="button" className="admin-logout-btn" onClick={logout}>
           Sign Out
@@ -553,6 +477,8 @@ export default function AdminDashboard() {
       </div>
 
       <section className="admin-shell">
+        {error && <p className="admin-login-error">{error}</p>}
+
         <div className="admin-summary" aria-label="Dashboard summary">
           <div className="admin-summary-item">
             <span>Public rows</span>
@@ -566,7 +492,7 @@ export default function AdminDashboard() {
           </div>
           <div className="admin-summary-item">
             <span>Active content admins</span>
-            <strong>{contentAdminCount}</strong>
+            <strong>{adminProfiles.length}</strong>
           </div>
         </div>
 
@@ -589,9 +515,7 @@ export default function AdminDashboard() {
             <div className="admin-editor-heading">
               <div>
                 <h3>{activeCollection.label}</h3>
-                <p>
-                  DbSet: {activeCollection.dbSet} / Entity: {activeCollection.entity}
-                </p>
+                <p>Database content type: {activeCollection.key}</p>
               </div>
               <Link className="action-link" href={activeCollection.route}>
                 <span>View Page</span>
@@ -626,18 +550,13 @@ export default function AdminDashboard() {
                 <button type="submit">
                   {isSuperAdmin ? "Publish Approved Row" : "Submit Change Request"}
                 </button>
-                {isSuperAdmin && (
-                  <button type="button" onClick={resetDashboard}>
-                    Reset Mock Data
-                  </button>
-                )}
               </div>
             </form>
 
             <div className="admin-record-list" aria-live="polite">
               {activeRecords.length ? (
                 activeRecords.map((record) => (
-                  <article className="admin-record" key={record.id}>
+                  <article className="admin-record" key={record[activeCollection.idKey]}>
                     <div>
                       <div className="admin-record-topline">
                         <h4>{activeCollection.title(record)}</h4>
@@ -649,7 +568,7 @@ export default function AdminDashboard() {
                     </div>
                     {isSuperAdmin && (
                       <div className="admin-record-actions">
-                        <button type="button" onClick={() => removePublicRecord(record.id)}>
+                        <button type="button" onClick={() => removePublicRecord(record)}>
                           Remove
                         </button>
                       </div>
@@ -667,7 +586,7 @@ export default function AdminDashboard() {
           <div className="admin-editor-heading">
             <div>
               <h3>ContentChangeRequests</h3>
-              <p>Pending content admin changes wait here until a superadmin reviews them.</p>
+              <p>Normal users and content admins wait here until a super admin reviews them.</p>
             </div>
           </div>
 
@@ -686,28 +605,27 @@ export default function AdminDashboard() {
             {visibleRequests.length ? (
               visibleRequests.map((request) => {
                 const collection = COLLECTIONS.find(
-                  (item) => item.entity === request.contentType
+                  (item) => item.key === String(request.contentType).toLowerCase()
                 );
                 const payload = JSON.parse(request.payloadJson);
+                const status = normalizeStatus(request.status);
 
                 return (
                   <article className="admin-record" key={request.id}>
                     <div>
                       <div className="admin-record-topline">
                         <h4>{request.changeCode}</h4>
-                        <span className={`status-${request.status.toLowerCase()}`}>
-                          {request.status}
-                        </span>
+                        <span className={`status-${status.toLowerCase()}`}>{status}</span>
                       </div>
                       <p className="meta">
-                        {request.action} {request.contentType} by{" "}
-                        {request.requestedByDisplayName}
+                        {normalizeAction(request.action)} {request.contentType} by{" "}
+                        {request.requestedByUserName ?? request.requestedByUserId}
                       </p>
                       <p>{collection?.title(payload) ?? request.message}</p>
                       {request.reviewNote ? <small>{request.reviewNote}</small> : null}
                     </div>
                     <div className="admin-record-actions">
-                      {isSuperAdmin && request.status === "Pending" && (
+                      {isSuperAdmin && status === "Pending" && (
                         <>
                           <button type="button" onClick={() => approveRequest(request.id)}>
                             Approve
@@ -717,7 +635,7 @@ export default function AdminDashboard() {
                           </button>
                         </>
                       )}
-                      {!isSuperAdmin && request.status === "Pending" && (
+                      {!isSuperAdmin && status === "Pending" && (
                         <button type="button" onClick={() => cancelRequest(request.id)}>
                           Cancel
                         </button>
@@ -733,54 +651,107 @@ export default function AdminDashboard() {
         </div>
 
         {isSuperAdmin && (
-          <div className="admin-review-panel">
-            <div className="admin-editor-heading">
-              <div>
-                <h3>AdminProfiles</h3>
-                <p>One superadmin can manage active content admins.</p>
+          <>
+            <div className="admin-review-panel">
+              <div className="admin-editor-heading">
+                <div>
+                  <h3>Content Admin Signup Requests</h3>
+                  <p>Approve a candidate before they receive the ContentAdmin role.</p>
+                </div>
+              </div>
+              <div className="admin-record-list">
+                {adminRequests.length ? (
+                  adminRequests.map((request) => (
+                    <article className="admin-record" key={request.id}>
+                      <div>
+                        <div className="admin-record-topline">
+                          <h4>{request.displayName ?? request.userName}</h4>
+                          <span className="status-pending">Pending</span>
+                        </div>
+                        <p className="meta">{request.email}</p>
+                        <p>{request.message}</p>
+                      </div>
+                      <div className="admin-record-actions">
+                        <button type="button" onClick={() => approveAdminRequest(request.id)}>
+                          Approve
+                        </button>
+                        <button type="button" onClick={() => denyAdminRequest(request.id)}>
+                          Deny
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <p className="admin-empty-state">No pending content admin signups.</p>
+                )}
               </div>
             </div>
-            <div className="admin-record-list">
-              {adminProfiles.map((profile) => (
-                <article className="admin-record" key={profile.id}>
-                  <div>
-                    <div className="admin-record-topline">
-                      <h4>{profile.displayName}</h4>
-                      <span>{profile.adminKind}</span>
-                    </div>
-                    <p className="meta">
-                      {profile.adminCode} / {profile.isActive ? "Active" : "Disabled"}
-                    </p>
-                  </div>
-                  {profile.adminKind === "ContentAdmin" && (
-                    <div className="admin-record-actions">
-                      <button type="button" onClick={() => toggleContentAdmin(profile.userId)}>
-                        {profile.isActive ? "Disable" : "Enable"}
-                      </button>
-                    </div>
-                  )}
-                </article>
-              ))}
-            </div>
-          </div>
-        )}
 
-        <div className="admin-export">
-          <h3>Infrastructure JSON</h3>
-          <textarea
-            readOnly
-            value={JSON.stringify(
-              {
-                adminProfiles,
-                contentChangeRequests: contentRequests,
-                publicContent: records
-              },
-              null,
-              2
+            <div className="admin-review-panel">
+              <div className="admin-editor-heading">
+                <div>
+                  <h3>Content Admins</h3>
+                  <p>Kick removes the ContentAdmin role and deletes their admin profile.</p>
+                </div>
+              </div>
+              <div className="admin-record-list">
+                {adminProfiles.length ? (
+                  adminProfiles.map((profile) => (
+                    <article className="admin-record" key={profile.userId}>
+                      <div>
+                        <div className="admin-record-topline">
+                          <h4>{profile.displayName ?? profile.userName}</h4>
+                          <span>{profile.adminCode}</span>
+                        </div>
+                        <p className="meta">{profile.email}</p>
+                      </div>
+                      <div className="admin-record-actions">
+                        <button type="button" onClick={() => loadAudit(profile.userId)}>
+                          Audit
+                        </button>
+                        <button type="button" onClick={() => kickContentAdmin(profile.userId)}>
+                          Kick
+                        </button>
+                      </div>
+                    </article>
+                  ))
+                ) : (
+                  <p className="admin-empty-state">No active content admins.</p>
+                )}
+              </div>
+            </div>
+
+            {selectedAuditUserId && (
+              <div className="admin-review-panel">
+                <div className="admin-editor-heading">
+                  <div>
+                    <h3>Audit Log</h3>
+                    <p>{selectedAuditUserId}</p>
+                  </div>
+                </div>
+                <div className="admin-record-list">
+                  {auditLogs.length ? (
+                    auditLogs.map((log) => (
+                      <article className="admin-record" key={log.id}>
+                        <div>
+                          <div className="admin-record-topline">
+                            <h4>{log.action}</h4>
+                            <span>{formatDate(log.createdAtUtc)}</span>
+                          </div>
+                          <p className="meta">
+                            {log.entityType ?? "Admin"} {log.entityId ?? ""}
+                          </p>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="admin-empty-state">No audit events for this admin yet.</p>
+                  )}
+                </div>
+              </div>
             )}
-            rows={10}
-          />
-        </div>
+          </>
+        )}
       </section>
     </>
   );

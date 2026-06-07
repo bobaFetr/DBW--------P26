@@ -1,4 +1,4 @@
-import CardGrid from "../../components/CardGrid";
+import ApiCardGrid from "../../components/ApiCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 const cards = [
@@ -36,7 +36,7 @@ export default function MembersPage() {
         This page is ready for the full lineup, roles, and short individual
         introductions.
       </PageIntro>
-      <CardGrid cards={cards} />
+      <ApiCardGrid contentType="members" fallbackCards={cards} />
     </>
   );
 }

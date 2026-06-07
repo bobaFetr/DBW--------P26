@@ -1,4 +1,4 @@
-import CardGrid from "../../components/CardGrid";
+import ApiCardGrid from "../../components/ApiCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 const cards = [
@@ -40,7 +40,7 @@ export default function AlbumsPage() {
       <PageIntro title="Albums">
         Full releases, collections, and recordings from the Paralyze catalog.
       </PageIntro>
-      <CardGrid cards={cards} />
+      <ApiCardGrid contentType="albums" fallbackCards={cards} />
     </>
   );
 }

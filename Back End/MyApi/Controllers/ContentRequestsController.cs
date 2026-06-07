@@ -80,6 +80,26 @@ public class ContentRequestsController(
         return Ok(requests);
     }
 
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetMine()
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var requests = await dbContext.ContentChangeRequests
+            .Include(changeRequest => changeRequest.RequestedByUser)
+            .Where(changeRequest => changeRequest.RequestedByUserId == user.Id)
+            .OrderByDescending(changeRequest => changeRequest.RequestedAtUtc)
+            .Select(changeRequest => ToResponse(changeRequest))
+            .ToListAsync();
+
+        return Ok(requests);
+    }
+
     [HttpPost("{id:guid}/approve")]
     [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<ContentChangeRequestResponse>> Approve(Guid id, ReviewRequestDto request)
@@ -166,6 +186,41 @@ public class ContentRequestsController(
                 changeRequest.TargetEntityId,
                 changeRequest.PayloadJson);
         }
+
+        return Ok(ToResponse(changeRequest));
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    [Authorize]
+    public async Task<ActionResult<ContentChangeRequestResponse>> Cancel(Guid id)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user is null)
+        {
+            return Unauthorized();
+        }
+
+        var changeRequest = await dbContext.ContentChangeRequests
+            .Include(requestEntity => requestEntity.RequestedByUser)
+            .FirstOrDefaultAsync(requestEntity => requestEntity.Id == id);
+
+        if (changeRequest is null)
+        {
+            return NotFound();
+        }
+
+        if (changeRequest.RequestedByUserId != user.Id)
+        {
+            return Forbid();
+        }
+
+        if (changeRequest.Status != ContentChangeStatus.Pending)
+        {
+            return Conflict("Only pending content requests can be cancelled.");
+        }
+
+        changeRequest.Status = ContentChangeStatus.Cancelled;
+        await dbContext.SaveChangesAsync();
 
         return Ok(ToResponse(changeRequest));
     }

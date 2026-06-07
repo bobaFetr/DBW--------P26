@@ -1,4 +1,4 @@
-import CardGrid from "../../components/CardGrid";
+import ApiCardGrid from "../../components/ApiCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 const cards = [
@@ -39,7 +39,7 @@ export default function ConcertsPage() {
       <PageIntro title="Concerts">
         Live performances, upcoming shows, and booking information.
       </PageIntro>
-      <CardGrid cards={cards} />
+      <ApiCardGrid contentType="concerts" fallbackCards={cards} />
     </>
   );
 }

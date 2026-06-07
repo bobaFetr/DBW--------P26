@@ -18,4 +18,3 @@ public record CurrentUserResponse(
     string? Email,
     string? DisplayName,
     IReadOnlyList<string> Roles);
-

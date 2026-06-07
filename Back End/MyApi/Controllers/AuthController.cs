@@ -39,7 +39,8 @@ public class AuthController(
     [AllowAnonymous]
     public async Task<ActionResult<CurrentUserResponse>> Login(LoginRequest request)
     {
-        var user = await userManager.FindByEmailAsync(request.Email);
+        var user = await userManager.FindByEmailAsync(request.Email)
+            ?? await userManager.FindByNameAsync(request.Email);
         if (user is null || user.IsDisabled)
         {
             return Unauthorized();

@@ -1,4 +1,4 @@
-import CardGrid from "../../components/CardGrid";
+import ApiCardGrid from "../../components/ApiCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 const cards = [
@@ -30,7 +30,7 @@ export default function NewsPage() {
       <PageIntro title="News">
         Use this page for updates, announcements, and release countdowns.
       </PageIntro>
-      <CardGrid cards={cards} />
+      <ApiCardGrid contentType="news" fallbackCards={cards} />
     </>
   );
 }

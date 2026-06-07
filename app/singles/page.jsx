@@ -1,4 +1,4 @@
-import CardGrid from "../../components/CardGrid";
+import ApiCardGrid from "../../components/ApiCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 const cards = [
@@ -40,7 +40,7 @@ export default function SinglesPage() {
       <PageIntro title="Singles">
         Every release, from the earliest demos to upcoming tracks.
       </PageIntro>
-      <CardGrid cards={cards} />
+      <ApiCardGrid contentType="singles" fallbackCards={cards} />
     </>
   );
 }

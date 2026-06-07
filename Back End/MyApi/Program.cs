@@ -4,6 +4,7 @@ using MyApi.Services;
 using MyLibrary;
 
 var builder = WebApplication.CreateBuilder(args);
+const string FrontendCorsPolicy = "Frontend";
 
 // Add services to the container.
 
@@ -25,6 +26,21 @@ builder.Services
 builder.Services
     .AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(
+        FrontendCorsPolicy,
+        policy => policy
+            .WithOrigins(
+                "http://localhost:3000",
+                "https://localhost:3000",
+                "http://127.0.0.1:3000",
+                "https://127.0.0.1:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials());
+});
 
 builder.Services.AddAuthorization();
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHasher>();
@@ -51,6 +67,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors(FrontendCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 

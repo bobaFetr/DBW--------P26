@@ -1,0 +1,15 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/airbrush-board/page": "/airbrush-board",
+  "/admin/page": "/admin",
+  "/albums/page": "/albums",
+  "/about/page": "/about",
+  "/gallery/page": "/gallery",
+  "/merch/page": "/merch",
+  "/members/page": "/members",
+  "/concerts/page": "/concerts",
+  "/news/page": "/news",
+  "/singles/page": "/singles",
+  "/timeline/page": "/timeline"
+}
