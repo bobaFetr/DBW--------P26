@@ -312,15 +312,16 @@ export default function AdminDashboard() {
   }
 
   async function registerContentAdmin(payload) {
-    await apiFetch("/api/auth/register", {
+    await apiFetch("/api/auth/register-content-admin-request", {
       method: "POST",
       body: JSON.stringify(payload)
     });
-    await apiFetch("/api/content-admin-requests", {
-      method: "POST",
-      body: JSON.stringify({ message: "I want to help manage site content." })
-    });
-    await apiFetch("/api/auth/logout", { method: "POST" });
+    setSession(null);
+    setContentRequests([]);
+    setAdminProfiles([]);
+    setAdminRequests([]);
+    setAuditLogs([]);
+    setSelectedAuditUserId("");
   }
 
   async function logout() {

@@ -1,4 +1,6 @@
 {
   "/page": "app/page.js",
-  "/admin/page": "app/admin/page.js"
+  "/admin/page": "app/admin/page.js",
+  "/concerts/page": "app/concerts/page.js",
+  "/albums/page": "app/albums/page.js"
 }

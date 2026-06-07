@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using MyApi.Dto;
 using MyApi.Services;
 using MyLibrary;
@@ -12,7 +13,9 @@ namespace MyApi.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
-    IAuditLogger auditLogger) : ControllerBase
+    IAuditLogger auditLogger,
+    AppDbContext dbContext,
+    ICodeGenerator codeGenerator) : ControllerBase
 {
     [HttpPost("register")]
     [AllowAnonymous]
@@ -33,6 +36,56 @@ public class AuthController(
 
         await signInManager.SignInAsync(user, isPersistent: false);
         return Ok(await ToCurrentUserResponse(user));
+    }
+
+    [HttpPost("register-content-admin-request")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AdminRequestResponse>> RegisterContentAdminRequest(
+        RegisterRequest request)
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            await signInManager.SignOutAsync();
+        }
+
+        var user = new ApplicationUser
+        {
+            UserName = request.UserName,
+            Email = request.Email,
+            DisplayName = request.DisplayName
+        };
+
+        var result = await userManager.CreateAsync(user, request.Password);
+        if (!result.Succeeded)
+        {
+            return BadRequest(result.Errors);
+        }
+
+        var adminRequest = new AdminRequest
+        {
+            RequestCode = await codeGenerator.NextAdminRequestCodeAsync(),
+            UserId = user.Id,
+            Message = "I want to help manage site content."
+        };
+
+        dbContext.AdminRequests.Add(adminRequest);
+        await dbContext.SaveChangesAsync();
+
+        return Created(
+            $"/api/content-admin-requests/{adminRequest.Id}",
+            new AdminRequestResponse(
+                adminRequest.Id,
+                adminRequest.RequestCode,
+                adminRequest.UserId,
+                user.UserName,
+                user.Email,
+                user.DisplayName,
+                adminRequest.Status,
+                adminRequest.Message,
+                adminRequest.RequestedAtUtc,
+                adminRequest.ReviewedBySuperAdminId,
+                adminRequest.ReviewedAtUtc,
+                adminRequest.ReviewNote));
     }
 
     [HttpPost("login")]
