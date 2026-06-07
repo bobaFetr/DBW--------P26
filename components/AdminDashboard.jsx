@@ -189,13 +189,14 @@ async function apiFetch(path, options = {}) {
 
   if (!response.ok) {
     let message = `${response.status} ${response.statusText}`;
+    const text = await response.text();
+
     try {
-      const body = await response.json();
+      const body = text ? JSON.parse(text) : null;
       message = Array.isArray(body)
         ? body.map((item) => item.description ?? item.code ?? JSON.stringify(item)).join(" ")
-        : body.title ?? body.message ?? JSON.stringify(body);
+        : body?.title ?? body?.message ?? JSON.stringify(body);
     } catch {
-      const text = await response.text();
       if (text) message = text;
     }
 

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MyApi.Services;
 using MyLibrary;
 
 namespace MyApi.Controllers;
@@ -115,6 +116,7 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         var entity = payload.Deserialize<TEntity>(JsonOptions)
             ?? throw new InvalidOperationException("Request body could not be read.");
 
+        DateTimeNormalizer.NormalizeUtc(entity);
         add(entity);
         return entity;
     }

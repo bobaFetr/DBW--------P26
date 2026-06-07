@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm run dev:all",
+    "dev:all": "sh -c 'dotnet run --project \"Back End/MyApi/MyApi.csproj\" --launch-profile http & api_pid=$!; next dev & web_pid=$!; trap \"kill $api_pid $web_pid 2>/dev/null\" INT TERM EXIT; wait $api_pid $web_pid'",
+    "dev:api": "dotnet run --project \"Back End/MyApi/MyApi.csproj\" --launch-profile http",
+    "dev:frontend": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."
