@@ -178,12 +178,58 @@ static async Task ValidatePrincipalAsync(CookieValidatePrincipalContext context)
     var user = await userManager.GetUserAsync(context.Principal);
     if (user is null || user.IsDisabled || !user.EmailConfirmed)
     {
-        context.RejectPrincipal();
-        await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+        await RejectPrincipalAsync(context);
         return;
     }
 
     await SecurityStampValidator.ValidatePrincipalAsync(context);
+    if (context.Principal?.Identity?.IsAuthenticated != true)
+    {
+        return;
+    }
+
+    if (!await HasActiveAdminProfileAsync(context, user))
+    {
+        await RejectPrincipalAsync(context);
+    }
+}
+
+static async Task<bool> HasActiveAdminProfileAsync(
+    CookieValidatePrincipalContext context,
+    ApplicationUser user)
+{
+    var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+    var roles = await userManager.GetRolesAsync(user);
+
+    if (roles.Contains("SuperAdmin"))
+    {
+        return await HasActiveProfileAsync(context, user.Id, AdminKind.SuperAdmin);
+    }
+
+    if (roles.Contains("ContentAdmin"))
+    {
+        return await HasActiveProfileAsync(context, user.Id, AdminKind.ContentAdmin);
+    }
+
+    return true;
+}
+
+static async Task<bool> HasActiveProfileAsync(
+    CookieValidatePrincipalContext context,
+    string userId,
+    AdminKind adminKind)
+{
+    var dbContext = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+    return await dbContext.AdminProfiles.AnyAsync(profile =>
+        profile.UserId == userId &&
+        profile.AdminKind == adminKind &&
+        profile.IsActive);
+}
+
+static async Task RejectPrincipalAsync(CookieValidatePrincipalContext context)
+{
+    context.RejectPrincipal();
+    await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
 }
 
 static string GetClientPartition(HttpContext context)

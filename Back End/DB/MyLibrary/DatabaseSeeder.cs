@@ -47,16 +47,25 @@ public static class DatabaseSeeder
             email: "contentadmin@paralyze.local",
             displayName: "Content Admin",
             password: options.ContentAdminPassword,
-            role: "ContentAdmin");
+            role: "ContentAdmin",
+            ensureRoleForExistingUser: false);
 
-        await EnsureAdminProfileAsync(
-            dbContext,
-            contentAdmin.Id,
-            adminCode: "CADM-000001",
-            adminKind: AdminKind.ContentAdmin,
-            approvedByUserId: superAdmin.Id);
+        var contentAdminHasRole = await userManager.IsInRoleAsync(contentAdmin, "ContentAdmin");
+        if (contentAdminHasRole)
+        {
+            await EnsureAdminProfileAsync(
+                dbContext,
+                contentAdmin.Id,
+                adminCode: "CADM-000001",
+                adminKind: AdminKind.ContentAdmin,
+                approvedByUserId: superAdmin.Id);
+        }
 
-        await EnsureIdentityMetadataAsync(userManager, roleManager, superAdmin, contentAdmin);
+        await EnsureIdentityMetadataAsync(
+            userManager,
+            roleManager,
+            superAdmin,
+            contentAdminHasRole ? contentAdmin : null);
         await EnsureSiteContentAsync(dbContext, superAdmin.Id, contentAdmin.Id);
     }
 
@@ -83,9 +92,11 @@ public static class DatabaseSeeder
         string email,
         string displayName,
         string password,
-        string role)
+        string role,
+        bool ensureRoleForExistingUser = true)
     {
         var user = await userManager.FindByNameAsync(username);
+        var userWasCreated = false;
 
         if (user is null)
         {
@@ -103,9 +114,12 @@ public static class DatabaseSeeder
                 throw new InvalidOperationException(
                     $"Failed to create user '{username}': {FormatErrors(createResult)}");
             }
+
+            userWasCreated = true;
         }
 
-        if (!await userManager.IsInRoleAsync(user, role))
+        if ((userWasCreated || ensureRoleForExistingUser) &&
+            !await userManager.IsInRoleAsync(user, role))
         {
             var roleResult = await userManager.AddToRoleAsync(user, role);
             if (!roleResult.Succeeded)
@@ -155,27 +169,31 @@ public static class DatabaseSeeder
         UserManager<ApplicationUser> userManager,
         RoleManager<IdentityRole> roleManager,
         ApplicationUser superAdmin,
-        ApplicationUser contentAdmin)
+        ApplicationUser? contentAdmin)
     {
         await EnsureRoleClaimAsync(roleManager, "SuperAdmin", "permission", "content.manage_all");
         await EnsureRoleClaimAsync(roleManager, "ContentAdmin", "permission", "content.request_changes");
 
         await EnsureUserClaimAsync(userManager, superAdmin, "admin_code", "SADM-000001");
-        await EnsureUserClaimAsync(userManager, contentAdmin, "admin_code", "CADM-000001");
 
         await EnsureUserLoginAsync(userManager, superAdmin, "Seed", "superadmin", "Seeded superadmin");
-        await EnsureUserLoginAsync(userManager, contentAdmin, "Seed", "contentadmin", "Seeded content admin");
 
         await userManager.SetAuthenticationTokenAsync(
             superAdmin,
             "Seed",
             "InitialToken",
             "superadmin-seed-token");
-        await userManager.SetAuthenticationTokenAsync(
-            contentAdmin,
-            "Seed",
-            "InitialToken",
-            "contentadmin-seed-token");
+
+        if (contentAdmin is not null)
+        {
+            await EnsureUserClaimAsync(userManager, contentAdmin, "admin_code", "CADM-000001");
+            await EnsureUserLoginAsync(userManager, contentAdmin, "Seed", "contentadmin", "Seeded content admin");
+            await userManager.SetAuthenticationTokenAsync(
+                contentAdmin,
+                "Seed",
+                "InitialToken",
+                "contentadmin-seed-token");
+        }
     }
 
     private static async Task EnsureRoleClaimAsync(
