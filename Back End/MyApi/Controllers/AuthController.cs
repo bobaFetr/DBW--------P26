@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,8 +17,18 @@ public class AuthController(
     SignInManager<ApplicationUser> signInManager,
     IAuditLogger auditLogger,
     AppDbContext dbContext,
-    ICodeGenerator codeGenerator) : ControllerBase
+    ICodeGenerator codeGenerator,
+    IAntiforgery antiforgery) : ControllerBase
 {
+    [HttpGet("csrf")]
+    [AllowAnonymous]
+    public ActionResult<CsrfTokenResponse> GetCsrfToken()
+    {
+        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+        Response.Headers.CacheControl = "no-store";
+        return Ok(new CsrfTokenResponse(tokens.RequestToken!));
+    }
+
     [HttpPost("register")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthSensitive")]
@@ -27,6 +38,7 @@ public class AuthController(
         {
             UserName = request.UserName,
             Email = request.Email,
+            EmailConfirmed = false,
             DisplayName = request.DisplayName
         };
 
@@ -36,7 +48,6 @@ public class AuthController(
             return BadRequest(result.Errors);
         }
 
-        await signInManager.SignInAsync(user, isPersistent: false);
         return Ok(await ToCurrentUserResponse(user));
     }
 
@@ -55,6 +66,7 @@ public class AuthController(
         {
             UserName = request.UserName,
             Email = request.Email,
+            EmailConfirmed = false,
             DisplayName = request.DisplayName
         };
 
@@ -160,3 +172,5 @@ public class AuthController(
             roles.ToList());
     }
 }
+
+public record CsrfTokenResponse(string Token);

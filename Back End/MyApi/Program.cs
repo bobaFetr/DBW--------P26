@@ -1,5 +1,8 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Services;
@@ -20,6 +23,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
     {
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Password.RequiredLength = 12;
+        options.SignIn.RequireConfirmedAccount = true;
         options.User.RequireUniqueEmail = true;
     })
     .AddRoles<IdentityRole>()
@@ -30,6 +38,19 @@ builder.Services
 builder.Services
     .AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
+
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.Name = "Paralyze.Auth";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.Events.OnValidatePrincipal = ValidatePrincipalAsync;
+});
 
 builder.Services.AddCors(options =>
 {
@@ -46,6 +67,15 @@ builder.Services.AddCors(options =>
             .AllowCredentials());
 });
 
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.Name = "Paralyze.Csrf";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+});
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
@@ -84,7 +114,10 @@ builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHashe
 builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 builder.Services.AddScoped<ICodeGenerator, CodeGenerator>();
 builder.Services.AddScoped<IContentChangeApplier, ContentChangeApplier>();
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+});
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -93,8 +126,8 @@ var app = builder.Build();
 await DatabaseSeeder.SeedAsync(
     app.Services,
     new DatabaseSeedOptions(
-        SuperAdminPassword: app.Configuration["SeedUsers:SuperAdminPassword"] ?? "Super@2025",
-        ContentAdminPassword: app.Configuration["SeedUsers:ContentAdminPassword"] ?? "Admin@2025"));
+        SuperAdminPassword: GetRequiredConfiguration(app.Configuration, "SeedUsers:SuperAdminPassword"),
+        ContentAdminPassword: GetRequiredConfiguration(app.Configuration, "SeedUsers:ContentAdminPassword")));
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -114,9 +147,36 @@ app.MapControllers();
 
 app.Run();
 
+static async Task ValidatePrincipalAsync(CookieValidatePrincipalContext context)
+{
+    if (context.Principal is null)
+    {
+        context.RejectPrincipal();
+        await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+        return;
+    }
+
+    var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
+    var user = await userManager.GetUserAsync(context.Principal);
+    if (user is null || user.IsDisabled)
+    {
+        context.RejectPrincipal();
+        await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+        return;
+    }
+
+    await SecurityStampValidator.ValidatePrincipalAsync(context);
+}
+
 static string GetClientPartition(HttpContext context)
 {
     return context.User.Identity?.IsAuthenticated == true
         ? $"user:{context.User.Identity.Name}"
         : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+}
+
+static string GetRequiredConfiguration(IConfiguration configuration, string key)
+{
+    return configuration[key]
+        ?? throw new InvalidOperationException($"Configuration value '{key}' was not found.");
 }

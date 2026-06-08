@@ -117,6 +117,16 @@ public class AdminRequestsController(
             }
         }
 
+        if (!adminRequest.User.EmailConfirmed)
+        {
+            adminRequest.User.EmailConfirmed = true;
+            var updateResult = await userManager.UpdateAsync(adminRequest.User);
+            if (!updateResult.Succeeded)
+            {
+                return BadRequest(updateResult.Errors);
+            }
+        }
+
         var hasProfile = await dbContext.AdminProfiles.AnyAsync(profile => profile.UserId == adminRequest.UserId);
         if (!hasProfile)
         {
@@ -190,4 +200,3 @@ public class AdminRequestsController(
             request.ReviewNote);
     }
 }
-

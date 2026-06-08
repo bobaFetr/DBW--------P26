@@ -189,12 +189,32 @@ function normalizeDraft(collection, draft) {
   );
 }
 
+function isUnsafeMethod(method = "GET") {
+  return !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method.toUpperCase());
+}
+
+async function getCsrfToken() {
+  const response = await fetch(`${API_BASE}/api/auth/csrf`, {
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not prepare a secure request.");
+  }
+
+  const result = await response.json();
+  return result.token;
+}
+
 async function apiFetch(path, options = {}) {
+  const method = options.method ?? "GET";
+  const csrfToken = isUnsafeMethod(method) ? await getCsrfToken() : null;
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
     ...options,
     headers: {
       ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {}),
       ...(options.headers ?? {})
     }
   });
@@ -373,10 +393,14 @@ export default function AdminDashboard() {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      const csrfToken = await getCsrfToken();
 
       const response = await fetch(`${API_BASE}/api/uploads/images`, {
         method: "POST",
         credentials: "include",
+        headers: {
+          "X-CSRF-TOKEN": csrfToken
+        },
         body: formData
       });
 

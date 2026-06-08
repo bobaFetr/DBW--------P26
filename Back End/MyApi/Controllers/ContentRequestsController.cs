@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Dto;
 using MyApi.Services;
@@ -18,7 +19,8 @@ public class ContentRequestsController(
     IContentChangeApplier contentChangeApplier) : ControllerBase
 {
     [HttpPost]
-    [Authorize]
+    [Authorize(Roles = "SuperAdmin,ContentAdmin")]
+    [EnableRateLimiting("AdminMutation")]
     public async Task<ActionResult<ContentChangeRequestResponse>> Create(CreateContentChangeRequestDto request)
     {
         var user = await userManager.GetUserAsync(User);
