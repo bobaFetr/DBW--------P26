@@ -59,7 +59,7 @@ public class AuthController(
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            await signInManager.SignOutAsync();
+            await RevokeCurrentSessionAsync();
         }
 
         var user = new ApplicationUser
@@ -150,7 +150,7 @@ public class AuthController(
             }
         }
 
-        await signInManager.SignOutAsync();
+        await RevokeCurrentSessionAsync(user);
         return NoContent();
     }
 
@@ -177,6 +177,25 @@ public class AuthController(
     {
         var cleaned = value?.Trim();
         return string.IsNullOrEmpty(cleaned) ? null : cleaned;
+    }
+
+    private async Task RevokeCurrentSessionAsync(ApplicationUser? user = null)
+    {
+        user ??= await userManager.GetUserAsync(User);
+        if (user is not null)
+        {
+            await userManager.UpdateSecurityStampAsync(user);
+        }
+
+        await signInManager.SignOutAsync();
+        Response.Cookies.Delete("Paralyze.Csrf", new CookieOptions
+        {
+            HttpOnly = true,
+            SameSite = SameSiteMode.Lax,
+            Secure = !HttpContext.RequestServices
+                .GetRequiredService<IWebHostEnvironment>()
+                .IsDevelopment()
+        });
     }
 }
 

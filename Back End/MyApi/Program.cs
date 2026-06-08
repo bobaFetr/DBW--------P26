@@ -85,6 +85,8 @@ builder.Services.AddAntiforgery(options =>
 {
     options.HeaderName = "X-CSRF-TOKEN";
     options.Cookie.Name = "Paralyze.Csrf";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
