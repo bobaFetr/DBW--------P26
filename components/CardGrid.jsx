@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 
 function isExternalHref(href) {
   return /^(https?:|mailto:)/i.test(href);
@@ -8,11 +9,15 @@ export default function CardGrid({ cards }) {
   return (
     <section className="card-grid-section">
       <div className="card-grid">
-        {cards.map((card) => (
+        {cards.map((card) => {
+          const cover = safeImageUrl(card.cover);
+          const href = card.href?.startsWith("/") ? card.href : safeExternalUrl(card.href);
+
+          return (
           <article className="card" key={card.title}>
-            {card.cover ? (
+            {cover ? (
               <div className="card-cover">
-                <img src={card.cover} alt={card.coverAlt ?? card.title} />
+                <img src={cover} alt={card.coverAlt ?? card.title} />
               </div>
             ) : (
               <div className="card-cover" aria-hidden="true">
@@ -30,18 +35,19 @@ export default function CardGrid({ cards }) {
               </div>
               {card.meta ? <p className="meta">{card.meta}</p> : null}
               <p>{card.body}</p>
-              {card.href && isExternalHref(card.href) ? (
-                <a className="action-link" href={card.href} target="_blank" rel="noreferrer">
+              {href && isExternalHref(href) ? (
+                <a className="action-link" href={href} target="_blank" rel="noreferrer">
                   <span>{card.linkLabel ?? "View"}</span>
                 </a>
-              ) : card.href ? (
-                  <Link className="action-link" href={card.href}>
+              ) : href ? (
+                  <Link className="action-link" href={href}>
                     <span>{card.linkLabel ?? "View"}</span>
                   </Link>
                 ) : null}
             </div>
           </article>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

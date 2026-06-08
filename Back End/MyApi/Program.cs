@@ -166,6 +166,23 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.Use(async (context, next) =>
+{
+    context.Response.OnStarting(() =>
+    {
+        var headers = context.Response.Headers;
+        headers.TryAdd("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'; base-uri 'none'");
+        headers.TryAdd("X-Content-Type-Options", "nosniff");
+        headers.TryAdd("X-Frame-Options", "DENY");
+        headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+        headers.TryAdd("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+        headers.TryAdd("X-XSS-Protection", "0");
+        return Task.CompletedTask;
+    });
+
+    await next();
+});
+
 app.UseStaticFiles();
 app.UseCors(FrontendCorsPolicy);
 app.UseRateLimiter();

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { safeImageUrl } from "../../components/securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
@@ -44,7 +45,7 @@ export default function GalleryGrid() {
               id: String(row.id),
               caption: row.title,
               category: row.description,
-              imageUrl: row.imageUrl,
+              imageUrl: safeImageUrl(row.imageUrl),
               className:
                 index % 3 === 0
                   ? "gallery-item gallery-item-tall"

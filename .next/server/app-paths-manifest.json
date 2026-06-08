@@ -1,4 +1,15 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
-  "/admin/page": "app/admin/page.js"
+  "/airbrush-board/page": "app/airbrush-board/page.js",
+  "/admin/page": "app/admin/page.js",
+  "/albums/page": "app/albums/page.js",
+  "/about/page": "app/about/page.js",
+  "/gallery/page": "app/gallery/page.js",
+  "/concerts/page": "app/concerts/page.js",
+  "/members/page": "app/members/page.js",
+  "/merch/page": "app/merch/page.js",
+  "/news/page": "app/news/page.js",
+  "/singles/page": "app/singles/page.js",
+  "/timeline/page": "app/timeline/page.js"
 }

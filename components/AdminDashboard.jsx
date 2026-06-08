@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import AdminLogin from "./AdminLogin";
+import { safeImageUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
@@ -176,7 +177,7 @@ function normalizeDraft(collection, draft) {
         return [field.key, raw ? Number(raw) : 0];
       }
 
-      if (field.type === "url" && raw && !/^(https?:|mailto:)/i.test(raw)) {
+      if (field.type === "url" && raw && !/^https?:/i.test(raw)) {
         return [field.key, `https://${raw}`];
       }
 
@@ -650,10 +651,10 @@ export default function AdminDashboard() {
                         onChange={(event) => uploadImage(field.key, event.target.files?.[0])}
                       />
                       {uploadingField === field.key && <small>Uploading...</small>}
-                      {activeDraft[field.key] ? (
+                      {safeImageUrl(activeDraft[field.key]) ? (
                         <small>
                           Stored URL:{" "}
-                          <a href={activeDraft[field.key]} target="_blank" rel="noreferrer">
+                          <a href={safeImageUrl(activeDraft[field.key])} target="_blank" rel="noreferrer">
                             {activeDraft[field.key]}
                           </a>
                         </small>

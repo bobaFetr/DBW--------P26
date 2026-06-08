@@ -2,24 +2,12 @@
 
 import { useEffect, useState } from "react";
 import CardGrid from "./CardGrid";
+import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
-}
-
-function externalUrl(value) {
-  if (!value) return undefined;
-
-  const trimmed = String(value).trim();
-  if (!trimmed) return undefined;
-
-  if (/^(https?:|mailto:)/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `https://${trimmed}`;
 }
 
 function toCards(contentType, rows) {
@@ -41,7 +29,7 @@ function toCards(contentType, rows) {
           [row.availableOnYoutube && "YouTube", row.availableOnSpotify && "Spotify"]
             .filter(Boolean)
             .join(" / ") || "Streaming links pending",
-        href: externalUrl(row.availableOnYoutube || row.availableOnSpotify),
+        href: safeExternalUrl(row.availableOnYoutube || row.availableOnSpotify),
         linkLabel: row.availableOnYoutube ? "Listen on YouTube" : "Listen"
       }));
     case "concerts":
@@ -62,7 +50,7 @@ function toCards(contentType, rows) {
         title: row.name,
         meta: row.instrument,
         body: row.photoUrl,
-        cover: row.photoUrl,
+        cover: safeImageUrl(row.photoUrl),
         coverAlt: row.name
       }));
     default:

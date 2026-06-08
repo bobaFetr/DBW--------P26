@@ -2,25 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { safeExternalUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 const FALLBACK_RELEASE = {
   title: "Misery (demo)",
   href: "/singles"
 };
-
-function externalUrl(value) {
-  if (!value) return undefined;
-
-  const trimmed = String(value).trim();
-  if (!trimmed) return undefined;
-
-  if (/^(https?:|mailto:)/i.test(trimmed)) {
-    return trimmed;
-  }
-
-  return `https://${trimmed}`;
-}
 
 export default function NowPlayingBar() {
   const [release, setRelease] = useState(FALLBACK_RELEASE);
@@ -40,7 +28,7 @@ export default function NowPlayingBar() {
         setRelease({
           title: latestSingle.songName || FALLBACK_RELEASE.title,
           href:
-            externalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify) ||
+            safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify) ||
             FALLBACK_RELEASE.href
         });
       } catch {
