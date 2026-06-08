@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Dto;
 using MyApi.Services;
@@ -62,6 +63,7 @@ public class ContentAdminsController(
     }
 
     [HttpDelete("{userId}")]
+    [EnableRateLimiting("AdminMutation")]
     public async Task<IActionResult> KickOut(string userId, KickContentAdminRequest? request)
     {
         var superAdmin = await userManager.GetUserAsync(User);

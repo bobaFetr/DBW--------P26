@@ -1,10 +1,14 @@
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Services;
 using MyLibrary;
 
 var builder = WebApplication.CreateBuilder(args);
 const string FrontendCorsPolicy = "Frontend";
+const string AuthRateLimitPolicy = "AuthSensitive";
+const string AdminMutationRateLimitPolicy = "AdminMutation";
 
 // Add services to the container.
 
@@ -43,6 +47,39 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetClientPartition(context),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy(AuthRateLimitPolicy, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetClientPartition(context),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy(AdminMutationRateLimitPolicy, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetClientPartition(context),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0
+            }));
+});
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHasher>();
 builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 builder.Services.AddScoped<ICodeGenerator, CodeGenerator>();
@@ -69,9 +106,17 @@ app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 app.UseCors(FrontendCorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
+
+static string GetClientPartition(HttpContext context)
+{
+    return context.User.Identity?.IsAuthenticated == true
+        ? $"user:{context.User.Identity.Name}"
+        : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+}

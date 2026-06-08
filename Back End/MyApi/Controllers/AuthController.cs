@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Dto;
 using MyApi.Services;
@@ -19,6 +20,7 @@ public class AuthController(
 {
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthSensitive")]
     public async Task<ActionResult<CurrentUserResponse>> Register(RegisterRequest request)
     {
         var user = new ApplicationUser
@@ -40,6 +42,7 @@ public class AuthController(
 
     [HttpPost("register-content-admin-request")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthSensitive")]
     public async Task<ActionResult<AdminRequestResponse>> RegisterContentAdminRequest(
         RegisterRequest request)
     {
@@ -90,6 +93,7 @@ public class AuthController(
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("AuthSensitive")]
     public async Task<ActionResult<CurrentUserResponse>> Login(LoginRequest request)
     {
         var user = await userManager.FindByEmailAsync(request.Email)
