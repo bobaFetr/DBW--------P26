@@ -18,7 +18,8 @@ public class AuthController(
     IAuditLogger auditLogger,
     AppDbContext dbContext,
     ICodeGenerator codeGenerator,
-    IAntiforgery antiforgery) : ControllerBase
+    IAntiforgery antiforgery,
+    IWebHostEnvironment environment) : ControllerBase
 {
     [HttpGet("csrf")]
     [AllowAnonymous]
@@ -191,10 +192,8 @@ public class AuthController(
         Response.Cookies.Delete("Paralyze.Csrf", new CookieOptions
         {
             HttpOnly = true,
-            SameSite = SameSiteMode.Lax,
-            Secure = !HttpContext.RequestServices
-                .GetRequiredService<IWebHostEnvironment>()
-                .IsDevelopment()
+            SameSite = environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
+            Secure = !environment.IsDevelopment()
         });
     }
 }

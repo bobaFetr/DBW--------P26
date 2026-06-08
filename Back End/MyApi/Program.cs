@@ -31,9 +31,10 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var frontendOrigins = GetFrontendOrigins(builder.Configuration, builder.Environment);
 ValidateProductionHostSettings(builder.Configuration, builder.Environment);
-var defaultConnectionString = GetRequiredConfiguration(
+var defaultConnectionString = NormalizePostgresConnectionString(GetRequiredConfiguration(
     builder.Configuration,
-    "ConnectionStrings:DefaultConnection");
+    "ConnectionStrings:DefaultConnection",
+    "DATABASE_URL"));
 ValidateDatabaseConnectionString(defaultConnectionString, builder.Environment);
 
 // Add services to the container.
@@ -64,7 +65,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.HttpOnly = true;
     options.Cookie.Name = "Paralyze.Auth";
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SameSite = GetCookieSameSiteMode(builder.Environment);
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
         : CookieSecurePolicy.Always;
@@ -113,7 +114,7 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.Name = "Paralyze.Csrf";
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SameSite = GetCookieSameSiteMode(builder.Environment);
     options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
         ? CookieSecurePolicy.SameAsRequest
         : CookieSecurePolicy.Always;
@@ -273,6 +274,8 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
+    .AllowAnonymous();
 app.MapControllers();
 
 app.Run();
@@ -480,8 +483,68 @@ static bool ContainsEnabledConnectionStringFlag(string connectionString, string 
         });
 }
 
-static string GetRequiredConfiguration(IConfiguration configuration, string key)
+static SameSiteMode GetCookieSameSiteMode(IWebHostEnvironment environment)
 {
-    return configuration[key]
-        ?? throw new InvalidOperationException($"Configuration value '{key}' was not found.");
+    return environment.IsDevelopment()
+        ? SameSiteMode.Lax
+        : SameSiteMode.None;
+}
+
+static string NormalizePostgresConnectionString(string connectionString)
+{
+    if (!Uri.TryCreate(connectionString, UriKind.Absolute, out var uri) ||
+        (uri.Scheme != "postgres" && uri.Scheme != "postgresql"))
+    {
+        return connectionString;
+    }
+
+    var userInfo = uri.UserInfo.Split(':', 2);
+    var builder = new NpgsqlConnectionStringBuilder
+    {
+        Host = uri.Host,
+        Database = Uri.UnescapeDataString(uri.AbsolutePath.TrimStart('/')),
+        Username = userInfo.Length > 0 ? Uri.UnescapeDataString(userInfo[0]) : string.Empty,
+        Password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : string.Empty,
+        SslMode = SslMode.Require
+    };
+
+    if (uri.Port > 0)
+    {
+        builder.Port = uri.Port;
+    }
+
+    foreach (var queryPart in uri.Query.TrimStart('?').Split('&', StringSplitOptions.RemoveEmptyEntries))
+    {
+        var keyValue = queryPart.Split('=', 2);
+        if (keyValue.Length != 2 ||
+            !keyValue[0].Equals("sslmode", StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        if (Enum.TryParse<SslMode>(
+            Uri.UnescapeDataString(keyValue[1]),
+            ignoreCase: true,
+            out var sslMode))
+        {
+            builder.SslMode = sslMode;
+        }
+    }
+
+    return builder.ConnectionString;
+}
+
+static string GetRequiredConfiguration(IConfiguration configuration, params string[] keys)
+{
+    foreach (var key in keys)
+    {
+        var value = configuration[key];
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+    }
+
+    throw new InvalidOperationException(
+        $"None of these configuration values were found: {string.Join(", ", keys)}.");
 }

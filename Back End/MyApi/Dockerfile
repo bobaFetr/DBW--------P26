@@ -1,0 +1,17 @@
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["Back End/DB/MyLibrary/MyLibrary.csproj", "Back End/DB/MyLibrary/"]
+COPY ["Back End/MyApi/MyApi.csproj", "Back End/MyApi/"]
+RUN dotnet restore "Back End/MyApi/MyApi.csproj"
+
+COPY . .
+RUN dotnet publish "Back End/MyApi/MyApi.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+WORKDIR /app
+EXPOSE 10000
+ENV ASPNETCORE_URLS=http://0.0.0.0:10000
+
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "MyApi.dll"]

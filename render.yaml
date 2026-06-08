@@ -1,6 +1,61 @@
+databases:
+  - name: paralyze-db
+    databaseName: paralyze
+    user: paralyze_user
+    region: frankfurt
+    plan: starter
+
 services:
+  - type: web
+    name: paralyze-api
+    runtime: docker
+    region: frankfurt
+    plan: starter
+    dockerfilePath: ./Back End/MyApi/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: paralyze-db
+          property: connectionString
+      - key: Cors__FrontendOrigins__0
+        value: https://paralyze-site.onrender.com
+      - key: AllowedHosts
+        value: paralyze-api.onrender.com
+      - key: SeedUsers__SuperAdminPassword
+        sync: false
+      - key: SeedUsers__ContentAdminPassword
+        sync: false
+
   - type: web
     name: paralyze-site
     runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./out
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        value: https://paralyze-api.onrender.com
+    headers:
+      - path: /*
+        name: Content-Security-Policy
+        value: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob: http: https:; connect-src 'self' https://paralyze-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=(), payment=()
+      - path: /*
+        name: X-XSS-Protection
+        value: "0"
