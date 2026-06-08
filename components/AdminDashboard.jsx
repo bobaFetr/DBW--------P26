@@ -232,6 +232,8 @@ export default function AdminDashboard() {
   const [adminProfiles, setAdminProfiles] = useState([]);
   const [auditLogs, setAuditLogs] = useState([]);
   const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
+  const [kickConfirmation, setKickConfirmation] = useState(null);
+  const [kickPassword, setKickPassword] = useState("");
   const [reviewNote, setReviewNote] = useState("");
   const [uploadingField, setUploadingField] = useState("");
   const [notice, setNotice] = useState("");
@@ -336,6 +338,8 @@ export default function AdminDashboard() {
     setAdminRequests([]);
     setAuditLogs([]);
     setSelectedAuditUserId("");
+    setKickConfirmation(null);
+    setKickPassword("");
   }
 
   async function logout() {
@@ -346,6 +350,8 @@ export default function AdminDashboard() {
     setAdminRequests([]);
     setAuditLogs([]);
     setSelectedAuditUserId("");
+    setKickConfirmation(null);
+    setKickPassword("");
   }
 
   function updateDraft(field, value) {
@@ -484,9 +490,36 @@ export default function AdminDashboard() {
     await refreshDashboard();
   }
 
-  async function kickContentAdmin(userId) {
-    await apiFetch(`/api/content-admins/${userId}`, { method: "DELETE" });
-    await refreshDashboard();
+  function beginKickContentAdmin(profile) {
+    setError("");
+    setNotice("");
+    setKickConfirmation(profile);
+    setKickPassword("");
+  }
+
+  function cancelKickContentAdmin() {
+    setKickConfirmation(null);
+    setKickPassword("");
+  }
+
+  async function kickContentAdmin(event) {
+    event.preventDefault();
+    if (!kickConfirmation) return;
+
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch(`/api/content-admins/${kickConfirmation.userId}`, {
+        method: "DELETE",
+        body: JSON.stringify({ password: kickPassword })
+      });
+      setNotice(`${kickConfirmation.displayName ?? kickConfirmation.userName} was kicked.`);
+      cancelKickContentAdmin();
+      await refreshDashboard();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function loadAudit(userId) {
@@ -775,10 +808,30 @@ export default function AdminDashboard() {
                         <button type="button" onClick={() => loadAudit(profile.userId)}>
                           Audit
                         </button>
-                        <button type="button" onClick={() => kickContentAdmin(profile.userId)}>
+                        <button type="button" onClick={() => beginKickContentAdmin(profile)}>
                           Kick
                         </button>
                       </div>
+                      {kickConfirmation?.userId === profile.userId && (
+                        <form className="admin-kick-confirmation" onSubmit={kickContentAdmin}>
+                          <label>
+                            <span>Super admin password</span>
+                            <input
+                              type="password"
+                              autoComplete="current-password"
+                              value={kickPassword}
+                              onChange={(event) => setKickPassword(event.target.value)}
+                              required
+                            />
+                          </label>
+                          <div className="admin-record-actions">
+                            <button type="submit">Confirm Kick</button>
+                            <button type="button" onClick={cancelKickContentAdmin}>
+                              Cancel
+                            </button>
+                          </div>
+                        </form>
+                      )}
                     </article>
                   ))
                 ) : (

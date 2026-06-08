@@ -4,7 +4,8 @@ import PageIntro from "../../components/PageIntro";
 const cards = [
   {
     title: "Misery (demo)",
-    badge: "Released",
+    badge: "Latest Release",
+    urgent: true,
     meta: "October 28, 2025",
     body: "The second official demo — showcasing the band's evolving sound and tighter direction.",
     href: "https://www.youtube.com/@deathbywish",

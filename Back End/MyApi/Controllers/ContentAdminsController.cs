@@ -62,12 +62,22 @@ public class ContentAdminsController(
     }
 
     [HttpDelete("{userId}")]
-    public async Task<IActionResult> KickOut(string userId)
+    public async Task<IActionResult> KickOut(string userId, KickContentAdminRequest? request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
         {
             return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(request?.Password))
+        {
+            return BadRequest("Super admin password is required before kicking a content admin.");
+        }
+
+        if (!await userManager.CheckPasswordAsync(superAdmin, request.Password))
+        {
+            return Unauthorized("Super admin password is incorrect.");
         }
 
         var user = await userManager.FindByIdAsync(userId);
@@ -122,4 +132,3 @@ public class ContentAdminsController(
             profile.ApprovedAtUtc);
     }
 }
-

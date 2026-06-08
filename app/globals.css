@@ -1378,6 +1378,7 @@ footer {
 .admin-form input,
 .admin-form textarea,
 .admin-review-note input,
+.admin-kick-confirmation input,
 .admin-export textarea {
   width: 100%;
   border: 2px solid rgba(255, 255, 255, 0.38);
@@ -1388,7 +1389,8 @@ footer {
 }
 
 .admin-form input,
-.admin-review-note input {
+.admin-review-note input,
+.admin-kick-confirmation input {
   min-height: 46px;
   padding: 10px 12px;
 }
@@ -1402,6 +1404,7 @@ footer {
 .admin-form input:focus,
 .admin-form textarea:focus,
 .admin-review-note input:focus,
+.admin-kick-confirmation input:focus,
 .admin-export textarea:focus {
   outline: 3px solid rgba(255, 255, 255, 0.7);
   outline-offset: 2px;
@@ -1478,6 +1481,23 @@ footer {
   gap: 8px;
   color: var(--text-muted);
   font-weight: bold;
+}
+
+.admin-kick-confirmation {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.admin-kick-confirmation label {
+  display: grid;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
 }
 
 .admin-export textarea {

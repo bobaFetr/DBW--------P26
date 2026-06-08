@@ -6,6 +6,8 @@ public record CreateAdminRequestDto(string? Message);
 
 public record ReviewRequestDto(string? ReviewNote);
 
+public record KickContentAdminRequest(string? Password);
+
 public record AdminRequestResponse(
     Guid Id,
     string RequestCode,
@@ -38,4 +40,3 @@ public record AdminAuditLogResponse(
     string? EntityId,
     string? DetailsJson,
     DateTime CreatedAtUtc);
-

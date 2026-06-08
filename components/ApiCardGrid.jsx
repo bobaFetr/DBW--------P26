@@ -32,9 +32,10 @@ function toCards(contentType, rows) {
         body: `${row.numberOfSongs || 0} songs`
       }));
     case "singles":
-      return rows.map((row) => ({
+      return rows.map((row, index) => ({
         title: row.songName,
-        badge: "Single",
+        badge: index === 0 ? "Latest Release" : "Single",
+        urgent: index === 0,
         meta: dateOnly(row.releaseDate) || "Release date TBA",
         body:
           [row.availableOnYoutube && "YouTube", row.availableOnSpotify && "Spotify"]
