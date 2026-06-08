@@ -127,6 +127,12 @@ public class AdminRequestsController(
             }
         }
 
+        var stampResult = await userManager.UpdateSecurityStampAsync(adminRequest.User);
+        if (!stampResult.Succeeded)
+        {
+            return BadRequest(stampResult.Errors);
+        }
+
         var hasProfile = await dbContext.AdminProfiles.AnyAsync(profile => profile.UserId == adminRequest.UserId);
         if (!hasProfile)
         {

@@ -11,6 +11,7 @@ using MyLibrary;
 var builder = WebApplication.CreateBuilder(args);
 const string FrontendCorsPolicy = "Frontend";
 const string AuthRateLimitPolicy = "AuthSensitive";
+const string ReauthRateLimitPolicy = "ReauthSensitive";
 const string AdminMutationRateLimitPolicy = "AdminMutation";
 
 // Add services to the container.
@@ -50,6 +51,13 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.ExpireTimeSpan = TimeSpan.FromHours(8);
     options.SlidingExpiration = true;
     options.Events.OnValidatePrincipal = ValidatePrincipalAsync;
+    options.Events.OnRedirectToLogin = context => WriteApiUnauthorizedAsync(context);
+    options.Events.OnRedirectToAccessDenied = context => WriteApiForbiddenAsync(context);
+});
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    options.ValidationInterval = TimeSpan.Zero;
 });
 
 builder.Services.AddCors(options =>
@@ -109,6 +117,16 @@ builder.Services.AddRateLimiter(options =>
                 Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0
             }));
+
+    options.AddPolicy(ReauthRateLimitPolicy, context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            GetClientPartition(context),
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(5),
+                QueueLimit = 0
+            }));
 });
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHasher>();
 builder.Services.AddScoped<IAuditLogger, AuditLogger>();
@@ -158,7 +176,7 @@ static async Task ValidatePrincipalAsync(CookieValidatePrincipalContext context)
 
     var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<ApplicationUser>>();
     var user = await userManager.GetUserAsync(context.Principal);
-    if (user is null || user.IsDisabled)
+    if (user is null || user.IsDisabled || !user.EmailConfirmed)
     {
         context.RejectPrincipal();
         await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
@@ -173,6 +191,35 @@ static string GetClientPartition(HttpContext context)
     return context.User.Identity?.IsAuthenticated == true
         ? $"user:{context.User.Identity.Name}"
         : $"ip:{context.Connection.RemoteIpAddress?.ToString() ?? "unknown"}";
+}
+
+static Task WriteApiUnauthorizedAsync(RedirectContext<CookieAuthenticationOptions> context)
+{
+    if (IsApiRequest(context.Request))
+    {
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    }
+
+    context.Response.Redirect(context.RedirectUri);
+    return Task.CompletedTask;
+}
+
+static Task WriteApiForbiddenAsync(RedirectContext<CookieAuthenticationOptions> context)
+{
+    if (IsApiRequest(context.Request))
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    }
+
+    context.Response.Redirect(context.RedirectUri);
+    return Task.CompletedTask;
+}
+
+static bool IsApiRequest(HttpRequest request)
+{
+    return request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase);
 }
 
 static string GetRequiredConfiguration(IConfiguration configuration, string key)

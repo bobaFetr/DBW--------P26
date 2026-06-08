@@ -63,7 +63,7 @@ public class ContentAdminsController(
     }
 
     [HttpDelete("{userId}")]
-    [EnableRateLimiting("AdminMutation")]
+    [EnableRateLimiting("ReauthSensitive")]
     public async Task<IActionResult> KickOut(string userId, KickContentAdminRequest? request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
@@ -99,6 +99,12 @@ public class ContentAdminsController(
             if (!roleResult.Succeeded)
             {
                 return BadRequest(roleResult.Errors);
+            }
+
+            var stampResult = await userManager.UpdateSecurityStampAsync(user);
+            if (!stampResult.Succeeded)
+            {
+                return BadRequest(stampResult.Errors);
             }
         }
 
