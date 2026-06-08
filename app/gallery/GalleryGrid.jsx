@@ -107,13 +107,15 @@ export default function GalleryGrid() {
           <div
             key={item.id}
             className={item.className}
-            style={item.imageUrl ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
             role="button"
             tabIndex={0}
             aria-label={`Open ${item.caption}`}
             onClick={() => setActiveIndex(index)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveIndex(index); } }}
           >
+            {item.imageUrl ? (
+              <img className="gallery-thumb-img" src={item.imageUrl} alt={item.caption} />
+            ) : null}
             <div className="gallery-caption">{item.caption}</div>
           </div>
         ))}
@@ -141,11 +143,12 @@ export default function GalleryGrid() {
             >
               ✕
             </button>
-            <div
-              className={`lightbox-media ${activeItem.className.replace("gallery-item", "").trim()}`}
-              style={activeItem.imageUrl ? { backgroundImage: `url(${activeItem.imageUrl})` } : undefined}
-            >
-              {activeItem.imageUrl ? "" : "PARALYZE"}
+            <div className="lightbox-media">
+              {activeItem.imageUrl ? (
+                <img src={activeItem.imageUrl} alt={activeItem.caption} />
+              ) : (
+                "PARALYZE"
+              )}
             </div>
             <p className="lightbox-caption">
               {activeItem.caption}

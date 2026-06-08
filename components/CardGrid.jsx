@@ -1,5 +1,9 @@
 import Link from "next/link";
 
+function isExternalHref(href) {
+  return /^(https?:|mailto:)/i.test(href);
+}
+
 export default function CardGrid({ cards }) {
   return (
     <section className="card-grid-section">
@@ -26,11 +30,15 @@ export default function CardGrid({ cards }) {
               </div>
               {card.meta ? <p className="meta">{card.meta}</p> : null}
               <p>{card.body}</p>
-              {card.href ? (
-                <Link className="action-link" href={card.href}>
+              {card.href && isExternalHref(card.href) ? (
+                <a className="action-link" href={card.href} target="_blank" rel="noreferrer">
                   <span>{card.linkLabel ?? "View"}</span>
-                </Link>
-              ) : null}
+                </a>
+              ) : card.href ? (
+                  <Link className="action-link" href={card.href}>
+                    <span>{card.linkLabel ?? "View"}</span>
+                  </Link>
+                ) : null}
             </div>
           </article>
         ))}

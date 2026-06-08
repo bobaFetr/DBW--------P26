@@ -9,6 +9,19 @@ function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
 }
 
+function externalUrl(value) {
+  if (!value) return undefined;
+
+  const trimmed = String(value).trim();
+  if (!trimmed) return undefined;
+
+  if (/^(https?:|mailto:)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `https://${trimmed}`;
+}
+
 function toCards(contentType, rows) {
   switch (contentType) {
     case "albums":
@@ -27,7 +40,7 @@ function toCards(contentType, rows) {
           [row.availableOnYoutube && "YouTube", row.availableOnSpotify && "Spotify"]
             .filter(Boolean)
             .join(" / ") || "Streaming links pending",
-        href: row.availableOnYoutube || row.availableOnSpotify || undefined,
+        href: externalUrl(row.availableOnYoutube || row.availableOnSpotify),
         linkLabel: row.availableOnYoutube ? "Listen on YouTube" : "Listen"
       }));
     case "concerts":
@@ -84,4 +97,3 @@ export default function ApiCardGrid({ contentType, fallbackCards }) {
 
   return <CardGrid cards={cards} />;
 }
-

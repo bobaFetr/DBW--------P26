@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using MyLibrary;
 
 namespace MyApi.Services;
@@ -90,6 +91,7 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
         {
             var entity = Deserialize<TEntity>(request.PayloadJson);
             DateTimeNormalizer.NormalizeUtc(entity);
+            await ValidateContentAsync(entity, cancellationToken);
             add(entity);
             await dbContext.SaveChangesAsync(cancellationToken);
             return;
@@ -118,6 +120,7 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
 
         var updated = Deserialize<TEntity>(request.PayloadJson);
         DateTimeNormalizer.NormalizeUtc(updated);
+        await ValidateContentAsync(updated, cancellationToken);
         dbContext.Entry(existing).CurrentValues.SetValues(updated);
         dbContext.Entry(existing).Property(keyPropertyName).IsModified = false;
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -127,5 +130,16 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
     {
         return JsonSerializer.Deserialize<TEntity>(payloadJson, JsonOptions)
             ?? throw new InvalidOperationException("PayloadJson could not be read.");
+    }
+
+    private async Task ValidateContentAsync(object entity, CancellationToken cancellationToken)
+    {
+        if (entity is Singles single &&
+            single.AlbumId.HasValue &&
+            !await dbContext.Albums.AnyAsync(album => album.AlbumId == single.AlbumId, cancellationToken))
+        {
+            throw new InvalidOperationException(
+                $"AlbumId '{single.AlbumId}' does not exist. Leave Album ID empty or choose an existing album.");
+        }
     }
 }

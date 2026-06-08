@@ -75,6 +75,12 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
             _ => throw new InvalidOperationException($"Unsupported content type '{contentType}'.")
         };
 
+        var validationError = await ValidateContentAsync(created, cancellationToken);
+        if (validationError is not null)
+        {
+            return BadRequest(validationError);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return Ok(created);
     }
@@ -119,5 +125,17 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         DateTimeNormalizer.NormalizeUtc(entity);
         add(entity);
         return entity;
+    }
+
+    private async Task<string?> ValidateContentAsync(object entity, CancellationToken cancellationToken)
+    {
+        if (entity is Singles single &&
+            single.AlbumId.HasValue &&
+            !await dbContext.Albums.AnyAsync(album => album.AlbumId == single.AlbumId, cancellationToken))
+        {
+            return $"AlbumId '{single.AlbumId}' does not exist. Leave Album ID empty or choose an existing album.";
+        }
+
+        return null;
     }
 }

@@ -70,9 +70,9 @@ const COLLECTIONS = [
     fields: [
       { key: "songName", label: "Song name", required: true },
       { key: "releaseDate", label: "Release date", type: "date" },
-      { key: "availableOnYoutube", label: "YouTube URL" },
-      { key: "availableOnSpotify", label: "Spotify URL" },
-      { key: "albumId", label: "Album ID", type: "number" }
+      { key: "availableOnYoutube", label: "YouTube URL", type: "url" },
+      { key: "availableOnSpotify", label: "Spotify URL", type: "url" },
+      { key: "albumId", label: "Album ID", type: "number", nullable: true }
     ],
     title: (record) => record.songName,
     meta: (record) => formatDate(record.releaseDate) || "Release date TBA",
@@ -169,7 +169,15 @@ function normalizeDraft(collection, draft) {
     collection.fields.map((field) => {
       const raw = String(draft[field.key] ?? "").trim();
       if (field.type === "number") {
+        if (!raw && field.nullable) {
+          return [field.key, null];
+        }
+
         return [field.key, raw ? Number(raw) : 0];
+      }
+
+      if (field.type === "url" && raw && !/^(https?:|mailto:)/i.test(raw)) {
+        return [field.key, `https://${raw}`];
       }
 
       return [field.key, raw || null];
