@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Services;
 using MyLibrary;
@@ -17,8 +18,12 @@ const string AdminMutationRateLimitPolicy = "AdminMutation";
 
 builder.WebHost.ConfigureKestrel(options =>
 {
+    options.AddServerHeader = false;
     options.Limits.MaxRequestBodySize = 5 * 1024 * 1024;
 });
+
+var frontendOrigins = GetFrontendOrigins(builder.Configuration, builder.Environment);
+ValidateProductionHostSettings(builder.Configuration, builder.Environment);
 
 // Add services to the container.
 
@@ -71,14 +76,26 @@ builder.Services.AddCors(options =>
     options.AddPolicy(
         FrontendCorsPolicy,
         policy => policy
-            .WithOrigins(
-                "http://localhost:3000",
-                "https://localhost:3000",
-                "http://127.0.0.1:3000",
-                "https://127.0.0.1:3000")
+            .WithOrigins(frontendOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials());
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(180);
+    options.IncludeSubDomains = true;
+});
+
+builder.Services.AddHttpsRedirection(options =>
+{
+    options.RedirectStatusCode = StatusCodes.Status308PermanentRedirect;
 });
 
 builder.Services.AddAntiforgery(options =>
@@ -166,6 +183,12 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseForwardedHeaders();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
 app.UseHttpsRedirection();
 
 app.Use(async (context, next) =>
@@ -185,7 +208,19 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context =>
+    {
+        if (context.Context.Request.Path.StartsWithSegments("/uploads", StringComparison.OrdinalIgnoreCase))
+        {
+            var headers = context.Context.Response.Headers;
+            headers["Content-Disposition"] = "inline";
+            headers["Cache-Control"] = "public, max-age=31536000, immutable";
+            headers.TryAdd("X-Content-Type-Options", "nosniff");
+        }
+    }
+});
 app.UseCors(FrontendCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
@@ -296,6 +331,55 @@ static Task WriteApiForbiddenAsync(RedirectContext<CookieAuthenticationOptions> 
 static bool IsApiRequest(HttpRequest request)
 {
     return request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase);
+}
+
+static string[] GetFrontendOrigins(IConfiguration configuration, IWebHostEnvironment environment)
+{
+    var origins = configuration
+        .GetSection("Cors:FrontendOrigins")
+        .Get<string[]>()
+        ?.Where(origin => !string.IsNullOrWhiteSpace(origin))
+        .Select(origin => origin.Trim().TrimEnd('/'))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+
+    if (origins is { Length: > 0 })
+    {
+        if (!environment.IsDevelopment() &&
+            origins.Any(origin => origin.StartsWith("http://", StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("Production CORS origins must use HTTPS.");
+        }
+
+        return origins;
+    }
+
+    if (environment.IsDevelopment())
+    {
+        return
+        [
+            "http://localhost:3000",
+            "https://localhost:3000",
+            "http://127.0.0.1:3000",
+            "https://127.0.0.1:3000"
+        ];
+    }
+
+    throw new InvalidOperationException("Configure at least one HTTPS Cors:FrontendOrigins value for production.");
+}
+
+static void ValidateProductionHostSettings(IConfiguration configuration, IWebHostEnvironment environment)
+{
+    if (environment.IsDevelopment())
+    {
+        return;
+    }
+
+    var allowedHosts = configuration["AllowedHosts"];
+    if (string.IsNullOrWhiteSpace(allowedHosts) || allowedHosts.Trim() == "*")
+    {
+        throw new InvalidOperationException("Configure explicit AllowedHosts values for production.");
+    }
 }
 
 static string GetRequiredConfiguration(IConfiguration configuration, string key)
