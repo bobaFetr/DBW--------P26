@@ -122,7 +122,7 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         var entity = payload.Deserialize<TEntity>(JsonOptions)
             ?? throw new InvalidOperationException("Request body could not be read.");
 
-        DateTimeNormalizer.NormalizeUtc(entity);
+        EntityValueNormalizer.Normalize(entity);
         add(entity);
         return entity;
     }

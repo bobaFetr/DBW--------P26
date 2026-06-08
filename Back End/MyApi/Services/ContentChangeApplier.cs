@@ -90,7 +90,7 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
         if (request.Action == ContentChangeAction.Create)
         {
             var entity = Deserialize<TEntity>(request.PayloadJson);
-            DateTimeNormalizer.NormalizeUtc(entity);
+            EntityValueNormalizer.Normalize(entity);
             await ValidateContentAsync(entity, cancellationToken);
             add(entity);
             await dbContext.SaveChangesAsync(cancellationToken);
@@ -119,7 +119,7 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
         }
 
         var updated = Deserialize<TEntity>(request.PayloadJson);
-        DateTimeNormalizer.NormalizeUtc(updated);
+        EntityValueNormalizer.Normalize(updated);
         await ValidateContentAsync(updated, cancellationToken);
         dbContext.Entry(existing).CurrentValues.SetValues(updated);
         dbContext.Entry(existing).Property(keyPropertyName).IsModified = false;

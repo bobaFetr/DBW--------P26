@@ -102,9 +102,9 @@ const COLLECTIONS = [
     route: "/timeline",
     idKey: "id",
     fields: [
-      { key: "date", label: "Date", type: "date" },
+      { key: "date", label: "Date", required: true, type: "date" },
       { key: "event", label: "Event", required: true },
-      { key: "location", label: "Location" },
+      { key: "location", label: "Location", emptyValue: "" },
       { key: "description", label: "Description", required: true, type: "textarea" }
     ],
     title: (record) => record.event,
@@ -133,7 +133,7 @@ const COLLECTIONS = [
     fields: [
       { key: "title", label: "Title", required: true },
       { key: "imageUrl", label: "Image", required: true, type: "image" },
-      { key: "description", label: "Description", type: "textarea" }
+      { key: "description", label: "Description", type: "textarea", emptyValue: "" }
     ],
     title: (record) => record.title,
     meta: (record) => record.imageUrl,
@@ -180,7 +180,11 @@ function normalizeDraft(collection, draft) {
         return [field.key, `https://${raw}`];
       }
 
-      return [field.key, raw || null];
+      if (raw) {
+        return [field.key, raw];
+      }
+
+      return [field.key, field.emptyValue ?? null];
     })
   );
 }
@@ -230,6 +234,7 @@ export default function AdminDashboard() {
   const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
   const [reviewNote, setReviewNote] = useState("");
   const [uploadingField, setUploadingField] = useState("");
+  const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -385,6 +390,7 @@ export default function AdminDashboard() {
   async function addContent(event) {
     event.preventDefault();
     setError("");
+    setNotice("");
 
     const cleanedDraft = normalizeDraft(activeCollection, activeDraft);
     const hasMissingRequired = activeCollection.fields.some(
@@ -399,6 +405,7 @@ export default function AdminDashboard() {
           method: "POST",
           body: JSON.stringify(cleanedDraft)
         });
+        setNotice(`${activeCollection.label} was published to the site.`);
       } else {
         await apiFetch("/api/content-requests", {
           method: "POST",
@@ -410,6 +417,7 @@ export default function AdminDashboard() {
             message: `Create ${activeCollection.label} content`
           })
         });
+        setNotice(`${activeCollection.label} change request was sent for super admin approval.`);
       }
 
       setDrafts((currentDrafts) => ({
@@ -518,6 +526,7 @@ export default function AdminDashboard() {
 
       <section className="admin-shell">
         {error && <p className="admin-login-error">{error}</p>}
+        {notice && <p className="admin-empty-state">{notice}</p>}
 
         <div className="admin-summary" aria-label="Dashboard summary">
           <div className="admin-summary-item">

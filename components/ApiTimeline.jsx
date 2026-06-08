@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
@@ -11,34 +11,45 @@ function formatDate(value) {
 export default function ApiTimeline({ fallbackItems }) {
   const [items, setItems] = useState(fallbackItems);
 
+  const loadTimeline = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/content/timeline`, {
+        cache: "no-store"
+      });
+      if (!response.ok) return;
+
+      const rows = await response.json();
+      if (rows.length) {
+        setItems(
+          rows.map((row) => ({
+            date: formatDate(row.date),
+            title: row.event,
+            description: row.description
+          }))
+        );
+      }
+    } catch {
+      // Keep static fallback.
+    }
+  }, []);
+
   useEffect(() => {
-    let ignore = false;
+    void loadTimeline();
 
-    async function loadTimeline() {
-      try {
-        const response = await fetch(`${API_BASE}/api/content/timeline`);
-        if (!response.ok) return;
-
-        const rows = await response.json();
-        if (!ignore && rows.length) {
-          setItems(
-            rows.map((row) => ({
-              date: formatDate(row.date),
-              title: row.event,
-              description: row.description
-            }))
-          );
-        }
-      } catch {
-        // Keep static fallback.
+    function refreshWhenVisible() {
+      if (!document.hidden) {
+        void loadTimeline();
       }
     }
 
-    void loadTimeline();
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
     return () => {
-      ignore = true;
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
-  }, []);
+  }, [loadTimeline]);
 
   return (
     <section className="timeline-section">
