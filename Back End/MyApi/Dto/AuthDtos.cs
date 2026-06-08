@@ -3,14 +3,14 @@ using System.ComponentModel.DataAnnotations;
 namespace MyApi.Dto;
 
 public record RegisterRequest(
-    [Required] string UserName,
-    [Required, EmailAddress] string Email,
-    [Required] string Password,
-    string? DisplayName);
+    [Required, StringLength(64, MinimumLength = 3), RegularExpression(@"^[A-Za-z0-9._-]+$")] string UserName,
+    [Required, EmailAddress, StringLength(256)] string Email,
+    [Required, StringLength(128, MinimumLength = 12)] string Password,
+    [StringLength(120)] string? DisplayName);
 
 public record LoginRequest(
-    [Required] string Email,
-    [Required] string Password);
+    [Required, StringLength(256)] string Email,
+    [Required, StringLength(128)] string Password);
 
 public record CurrentUserResponse(
     string Id,

@@ -9,7 +9,9 @@ public interface IContentChangeApplier
     Task ApplyAsync(ContentChangeRequest request, CancellationToken cancellationToken = default);
 }
 
-public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplier
+public class ContentChangeApplier(
+    AppDbContext dbContext,
+    IContentInputValidator contentInputValidator) : IContentChangeApplier
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -18,10 +20,14 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
 
     public async Task ApplyAsync(ContentChangeRequest request, CancellationToken cancellationToken = default)
     {
-        switch (request.ContentType.Trim().ToLowerInvariant())
+        if (!contentInputValidator.TryNormalizeContentType(request.ContentType, out var normalizedContentType))
+        {
+            throw new InvalidOperationException("Unsupported content type.");
+        }
+
+        switch (normalizedContentType)
         {
             case "albums":
-            case "album":
                 await ApplyEntityAsync<Albums, int>(
                     request,
                     nameof(Albums.AlbumId),
@@ -29,7 +35,6 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
                     cancellationToken);
                 break;
             case "singles":
-            case "single":
                 await ApplyEntityAsync<Singles, int>(
                     request,
                     nameof(Singles.SongId),
@@ -37,7 +42,6 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
                     cancellationToken);
                 break;
             case "concerts":
-            case "concert":
                 await ApplyEntityAsync<Concerts, int>(
                     request,
                     nameof(Concerts.ConcertId),
@@ -52,7 +56,6 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
                     cancellationToken);
                 break;
             case "timeline":
-            case "timelines":
                 await ApplyEntityAsync<TimeLine, int>(
                     request,
                     nameof(TimeLine.Id),
@@ -60,7 +63,6 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
                     cancellationToken);
                 break;
             case "members":
-            case "member":
                 await ApplyEntityAsync<Members, int>(
                     request,
                     nameof(Members.Id),
@@ -75,7 +77,7 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
                     cancellationToken);
                 break;
             default:
-                throw new InvalidOperationException($"Unsupported content type '{request.ContentType}'.");
+                throw new InvalidOperationException("Unsupported content type.");
         }
     }
 
@@ -91,7 +93,12 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
         {
             var entity = Deserialize<TEntity>(request.PayloadJson);
             EntityValueNormalizer.Normalize(entity);
-            await ValidateContentAsync(entity, cancellationToken);
+            var validationError = await contentInputValidator.ValidateEntityAsync(entity, cancellationToken);
+            if (validationError is not null)
+            {
+                throw new InvalidOperationException(validationError);
+            }
+
             add(entity);
             await dbContext.SaveChangesAsync(cancellationToken);
             return;
@@ -102,7 +109,11 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
             throw new InvalidOperationException("TargetEntityId is required for update and delete requests.");
         }
 
-        var key = (TKey)Convert.ChangeType(request.TargetEntityId, typeof(TKey));
+        if (!TryConvertKey(request.TargetEntityId, out TKey key))
+        {
+            throw new InvalidOperationException("TargetEntityId must be a valid positive integer.");
+        }
+
         var existing = await dbContext.Set<TEntity>().FindAsync([key], cancellationToken);
 
         if (existing is null)
@@ -120,7 +131,12 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
 
         var updated = Deserialize<TEntity>(request.PayloadJson);
         EntityValueNormalizer.Normalize(updated);
-        await ValidateContentAsync(updated, cancellationToken);
+        var updateValidationError = await contentInputValidator.ValidateEntityAsync(updated, cancellationToken);
+        if (updateValidationError is not null)
+        {
+            throw new InvalidOperationException(updateValidationError);
+        }
+
         dbContext.Entry(existing).CurrentValues.SetValues(updated);
         dbContext.Entry(existing).Property(keyPropertyName).IsModified = false;
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -132,14 +148,19 @@ public class ContentChangeApplier(AppDbContext dbContext) : IContentChangeApplie
             ?? throw new InvalidOperationException("PayloadJson could not be read.");
     }
 
-    private async Task ValidateContentAsync(object entity, CancellationToken cancellationToken)
+    private static bool TryConvertKey<TKey>(string? targetEntityId, out TKey key)
+        where TKey : notnull
     {
-        if (entity is Singles single &&
-            single.AlbumId.HasValue &&
-            !await dbContext.Albums.AnyAsync(album => album.AlbumId == single.AlbumId, cancellationToken))
+        key = default!;
+
+        if (typeof(TKey) == typeof(int) &&
+            int.TryParse(targetEntityId, out var parsed) &&
+            parsed > 0)
         {
-            throw new InvalidOperationException(
-                $"AlbumId '{single.AlbumId}' does not exist. Leave Album ID empty or choose an existing album.");
+            key = (TKey)(object)parsed;
+            return true;
         }
+
+        return false;
     }
 }

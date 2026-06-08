@@ -36,10 +36,10 @@ public class AuthController(
     {
         var user = new ApplicationUser
         {
-            UserName = request.UserName,
-            Email = request.Email,
+            UserName = request.UserName.Trim(),
+            Email = request.Email.Trim(),
             EmailConfirmed = false,
-            DisplayName = request.DisplayName
+            DisplayName = CleanOptionalText(request.DisplayName)
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -64,10 +64,10 @@ public class AuthController(
 
         var user = new ApplicationUser
         {
-            UserName = request.UserName,
-            Email = request.Email,
+            UserName = request.UserName.Trim(),
+            Email = request.Email.Trim(),
             EmailConfirmed = false,
-            DisplayName = request.DisplayName
+            DisplayName = CleanOptionalText(request.DisplayName)
         };
 
         var result = await userManager.CreateAsync(user, request.Password);
@@ -108,8 +108,9 @@ public class AuthController(
     [EnableRateLimiting("AuthSensitive")]
     public async Task<ActionResult<CurrentUserResponse>> Login(LoginRequest request)
     {
-        var user = await userManager.FindByEmailAsync(request.Email)
-            ?? await userManager.FindByNameAsync(request.Email);
+        var identifier = request.Email.Trim();
+        var user = await userManager.FindByEmailAsync(identifier)
+            ?? await userManager.FindByNameAsync(identifier);
         if (user is null || user.IsDisabled)
         {
             return Unauthorized();
@@ -170,6 +171,12 @@ public class AuthController(
             user.Email,
             user.DisplayName,
             roles.ToList());
+    }
+
+    private static string? CleanOptionalText(string? value)
+    {
+        var cleaned = value?.Trim();
+        return string.IsNullOrEmpty(cleaned) ? null : cleaned;
     }
 }
 

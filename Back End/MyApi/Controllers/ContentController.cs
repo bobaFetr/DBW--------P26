@@ -9,7 +9,9 @@ namespace MyApi.Controllers;
 
 [ApiController]
 [Route("api/content")]
-public class ContentController(AppDbContext dbContext) : ControllerBase
+public class ContentController(
+    AppDbContext dbContext,
+    IContentInputValidator contentInputValidator) : ControllerBase
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -22,17 +24,22 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         string contentType,
         CancellationToken cancellationToken)
     {
-        return Ok(contentType.Trim().ToLowerInvariant() switch
+        if (!contentInputValidator.TryNormalizeContentType(contentType, out var normalizedContentType))
         {
-            "albums" or "album" => await dbContext.Albums
+            return BadRequest("Unsupported content type.");
+        }
+
+        return Ok(normalizedContentType switch
+        {
+            "albums" => await dbContext.Albums
                 .OrderByDescending(item => item.ReleaseDate)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
-            "singles" or "single" => await dbContext.Singles
+            "singles" => await dbContext.Singles
                 .OrderByDescending(item => item.ReleaseDate)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
-            "concerts" or "concert" => await dbContext.Concerts
+            "concerts" => await dbContext.Concerts
                 .OrderByDescending(item => item.Date)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
@@ -40,11 +47,11 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
                 .OrderByDescending(item => item.PublicationDate)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
-            "timeline" or "timelines" => await dbContext.TimeLines
+            "timeline" => await dbContext.TimeLines
                 .OrderByDescending(item => item.Date)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
-            "members" or "member" => await dbContext.Members
+            "members" => await dbContext.Members
                 .OrderBy(item => item.Name)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
@@ -52,7 +59,7 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
                 .OrderBy(item => item.Title)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
-            _ => throw new InvalidOperationException($"Unsupported content type '{contentType}'.")
+            _ => Array.Empty<object>()
         });
     }
 
@@ -63,19 +70,36 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         JsonElement payload,
         CancellationToken cancellationToken)
     {
-        object created = contentType.Trim().ToLowerInvariant() switch
+        if (!contentInputValidator.TryNormalizeContentType(contentType, out var normalizedContentType))
         {
-            "albums" or "album" => Add<Albums>(payload, entity => dbContext.Albums.Add(entity)),
-            "singles" or "single" => Add<Singles>(payload, entity => dbContext.Singles.Add(entity)),
-            "concerts" or "concert" => Add<Concerts>(payload, entity => dbContext.Concerts.Add(entity)),
-            "news" => Add<News>(payload, entity => dbContext.News.Add(entity)),
-            "timeline" or "timelines" => Add<TimeLine>(payload, entity => dbContext.TimeLines.Add(entity)),
-            "members" or "member" => Add<Members>(payload, entity => dbContext.Members.Add(entity)),
-            "gallery" => Add<Gallery>(payload, entity => dbContext.Gallery.Add(entity)),
-            _ => throw new InvalidOperationException($"Unsupported content type '{contentType}'.")
-        };
+            return BadRequest("Unsupported content type.");
+        }
 
-        var validationError = await ValidateContentAsync(created, cancellationToken);
+        object created;
+        try
+        {
+            created = normalizedContentType switch
+            {
+                "albums" => Add<Albums>(payload, entity => dbContext.Albums.Add(entity)),
+                "singles" => Add<Singles>(payload, entity => dbContext.Singles.Add(entity)),
+                "concerts" => Add<Concerts>(payload, entity => dbContext.Concerts.Add(entity)),
+                "news" => Add<News>(payload, entity => dbContext.News.Add(entity)),
+                "timeline" => Add<TimeLine>(payload, entity => dbContext.TimeLines.Add(entity)),
+                "members" => Add<Members>(payload, entity => dbContext.Members.Add(entity)),
+                "gallery" => Add<Gallery>(payload, entity => dbContext.Gallery.Add(entity)),
+                _ => throw new InvalidOperationException("Unsupported content type.")
+            };
+        }
+        catch (JsonException)
+        {
+            return BadRequest("Request body does not match the selected content type.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+
+        var validationError = await contentInputValidator.ValidateEntityAsync(created, cancellationToken);
         if (validationError is not null)
         {
             return BadRequest(validationError);
@@ -92,16 +116,21 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         int id,
         CancellationToken cancellationToken)
     {
-        object? entity = contentType.Trim().ToLowerInvariant() switch
+        if (!contentInputValidator.TryNormalizeContentType(contentType, out var normalizedContentType))
         {
-            "albums" or "album" => await dbContext.Albums.FindAsync([id], cancellationToken),
-            "singles" or "single" => await dbContext.Singles.FindAsync([id], cancellationToken),
-            "concerts" or "concert" => await dbContext.Concerts.FindAsync([id], cancellationToken),
+            return BadRequest("Unsupported content type.");
+        }
+
+        object? entity = normalizedContentType switch
+        {
+            "albums" => await dbContext.Albums.FindAsync([id], cancellationToken),
+            "singles" => await dbContext.Singles.FindAsync([id], cancellationToken),
+            "concerts" => await dbContext.Concerts.FindAsync([id], cancellationToken),
             "news" => await dbContext.News.FindAsync([id], cancellationToken),
-            "timeline" or "timelines" => await dbContext.TimeLines.FindAsync([id], cancellationToken),
-            "members" or "member" => await dbContext.Members.FindAsync([id], cancellationToken),
+            "timeline" => await dbContext.TimeLines.FindAsync([id], cancellationToken),
+            "members" => await dbContext.Members.FindAsync([id], cancellationToken),
             "gallery" => await dbContext.Gallery.FindAsync([id], cancellationToken),
-            _ => throw new InvalidOperationException($"Unsupported content type '{contentType}'.")
+            _ => null
         };
 
         if (entity is null)
@@ -125,17 +154,5 @@ public class ContentController(AppDbContext dbContext) : ControllerBase
         EntityValueNormalizer.Normalize(entity);
         add(entity);
         return entity;
-    }
-
-    private async Task<string?> ValidateContentAsync(object entity, CancellationToken cancellationToken)
-    {
-        if (entity is Singles single &&
-            single.AlbumId.HasValue &&
-            !await dbContext.Albums.AnyAsync(album => album.AlbumId == single.AlbumId, cancellationToken))
-        {
-            return $"AlbumId '{single.AlbumId}' does not exist. Leave Album ID empty or choose an existing album.";
-        }
-
-        return null;
     }
 }

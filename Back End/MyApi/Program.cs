@@ -1,6 +1,7 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -13,6 +14,11 @@ const string FrontendCorsPolicy = "Frontend";
 const string AuthRateLimitPolicy = "AuthSensitive";
 const string ReauthRateLimitPolicy = "ReauthSensitive";
 const string AdminMutationRateLimitPolicy = "AdminMutation";
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = 5 * 1024 * 1024;
+});
 
 // Add services to the container.
 
@@ -84,6 +90,10 @@ builder.Services.AddAntiforgery(options =>
         ? CookieSecurePolicy.SameAsRequest
         : CookieSecurePolicy.Always;
 });
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 5 * 1024 * 1024;
+});
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
@@ -131,6 +141,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHasher>();
 builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 builder.Services.AddScoped<ICodeGenerator, CodeGenerator>();
+builder.Services.AddScoped<IContentInputValidator, ContentInputValidator>();
 builder.Services.AddScoped<IContentChangeApplier, ContentChangeApplier>();
 builder.Services.AddControllers(options =>
 {

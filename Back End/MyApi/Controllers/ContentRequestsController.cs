@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +17,8 @@ public class ContentRequestsController(
     UserManager<ApplicationUser> userManager,
     ICodeGenerator codeGenerator,
     IAuditLogger auditLogger,
-    IContentChangeApplier contentChangeApplier) : ControllerBase
+    IContentChangeApplier contentChangeApplier,
+    IContentInputValidator contentInputValidator) : ControllerBase
 {
     [HttpPost]
     [Authorize(Roles = "SuperAdmin,ContentAdmin")]
@@ -29,15 +31,29 @@ public class ContentRequestsController(
             return Unauthorized();
         }
 
+        var validationError = await contentInputValidator.ValidateChangeRequestAsync(
+            request.Action,
+            request.ContentType,
+            request.TargetEntityId,
+            request.PayloadJson);
+        if (validationError is not null)
+        {
+            return BadRequest(validationError);
+        }
+
+        contentInputValidator.TryNormalizeContentType(request.ContentType, out var normalizedContentType);
+
         var changeRequest = new ContentChangeRequest
         {
             ChangeCode = await codeGenerator.NextContentChangeCodeAsync(),
             RequestedByUserId = user.Id,
-            ContentType = request.ContentType,
-            TargetEntityId = request.TargetEntityId,
+            ContentType = normalizedContentType,
+            TargetEntityId = string.IsNullOrWhiteSpace(request.TargetEntityId)
+                ? null
+                : request.TargetEntityId.Trim(),
             Action = request.Action,
             PayloadJson = request.PayloadJson,
-            Message = request.Message
+            Message = CleanOptionalText(request.Message)
         };
 
         dbContext.ContentChangeRequests.Add(changeRequest);
@@ -126,12 +142,31 @@ public class ContentRequestsController(
             return Conflict("Only pending content requests can be approved.");
         }
 
-        await contentChangeApplier.ApplyAsync(changeRequest);
+        try
+        {
+            await contentChangeApplier.ApplyAsync(changeRequest);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (JsonException)
+        {
+            return BadRequest("PayloadJson must contain valid JSON for the selected content type.");
+        }
+        catch (FormatException)
+        {
+            return BadRequest("TargetEntityId must be a valid integer.");
+        }
+        catch (OverflowException)
+        {
+            return BadRequest("TargetEntityId is outside the supported range.");
+        }
 
         changeRequest.Status = ContentChangeStatus.Approved;
         changeRequest.ReviewedBySuperAdminId = superAdmin.Id;
         changeRequest.ReviewedAtUtc = DateTime.UtcNow;
-        changeRequest.ReviewNote = request.ReviewNote;
+        changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
         await dbContext.SaveChangesAsync();
 
         if (await userManager.IsInRoleAsync(changeRequest.RequestedByUser, "ContentAdmin"))
@@ -175,7 +210,7 @@ public class ContentRequestsController(
         changeRequest.Status = ContentChangeStatus.Denied;
         changeRequest.ReviewedBySuperAdminId = superAdmin.Id;
         changeRequest.ReviewedAtUtc = DateTime.UtcNow;
-        changeRequest.ReviewNote = request.ReviewNote;
+        changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
         await dbContext.SaveChangesAsync();
 
         if (await userManager.IsInRoleAsync(changeRequest.RequestedByUser, "ContentAdmin"))
@@ -244,5 +279,11 @@ public class ContentRequestsController(
             request.ReviewedBySuperAdminId,
             request.ReviewedAtUtc,
             request.ReviewNote);
+    }
+
+    private static string? CleanOptionalText(string? value)
+    {
+        var cleaned = value?.Trim();
+        return string.IsNullOrEmpty(cleaned) ? null : cleaned;
     }
 }

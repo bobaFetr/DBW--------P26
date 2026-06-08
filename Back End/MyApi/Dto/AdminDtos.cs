@@ -1,12 +1,13 @@
+using System.ComponentModel.DataAnnotations;
 using MyLibrary;
 
 namespace MyApi.Dto;
 
-public record CreateAdminRequestDto(string? Message);
+public record CreateAdminRequestDto([StringLength(1000)] string? Message);
 
-public record ReviewRequestDto(string? ReviewNote);
+public record ReviewRequestDto([StringLength(1000)] string? ReviewNote);
 
-public record KickContentAdminRequest(string? Password);
+public record KickContentAdminRequest([Required, StringLength(128)] string? Password);
 
 public record AdminRequestResponse(
     Guid Id,

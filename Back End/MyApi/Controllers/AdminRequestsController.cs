@@ -45,7 +45,7 @@ public class AdminRequestsController(
         {
             RequestCode = await codeGenerator.NextAdminRequestCodeAsync(),
             UserId = user.Id,
-            Message = request.Message
+            Message = CleanOptionalText(request.Message)
         };
 
         dbContext.AdminRequests.Add(adminRequest);
@@ -106,7 +106,7 @@ public class AdminRequestsController(
         adminRequest.Status = AdminRequestStatus.Approved;
         adminRequest.ReviewedBySuperAdminId = superAdmin.Id;
         adminRequest.ReviewedAtUtc = DateTime.UtcNow;
-        adminRequest.ReviewNote = request.ReviewNote;
+        adminRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
 
         if (!await userManager.IsInRoleAsync(adminRequest.User, "ContentAdmin"))
         {
@@ -183,7 +183,7 @@ public class AdminRequestsController(
         adminRequest.Status = AdminRequestStatus.Denied;
         adminRequest.ReviewedBySuperAdminId = superAdmin.Id;
         adminRequest.ReviewedAtUtc = DateTime.UtcNow;
-        adminRequest.ReviewNote = request.ReviewNote;
+        adminRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
         await dbContext.SaveChangesAsync();
 
         return Ok(ToResponse(adminRequest));
@@ -204,5 +204,11 @@ public class AdminRequestsController(
             request.ReviewedBySuperAdminId,
             request.ReviewedAtUtc,
             request.ReviewNote);
+    }
+
+    private static string? CleanOptionalText(string? value)
+    {
+        var cleaned = value?.Trim();
+        return string.IsNullOrEmpty(cleaned) ? null : cleaned;
     }
 }
