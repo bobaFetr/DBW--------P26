@@ -211,7 +211,7 @@ builder.Services.AddScoped<IContentInputValidator, ContentInputValidator>();
 builder.Services.AddScoped<IContentChangeApplier, ContentChangeApplier>();
 builder.Services.AddControllers(options =>
 {
-    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    options.Filters.Add<ApiAntiforgeryFilter>();
 });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
