@@ -426,3 +426,12 @@ FodyWeavers.xsd
 *.msm
 *.msp
 .fake
+
+# Local secrets and environment-specific configuration
+.env
+.env.*
+!.env.example
+*.secrets.json
+secrets.json
+appsettings.Local.json
+appsettings.*.Local.json

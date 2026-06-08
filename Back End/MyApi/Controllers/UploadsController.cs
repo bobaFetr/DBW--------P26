@@ -24,7 +24,7 @@ public class UploadsController(IWebHostEnvironment environment) : ControllerBase
 
     [HttpPost("images")]
     [Consumes("multipart/form-data")]
-    [EnableRateLimiting("AdminMutation")]
+    [EnableRateLimiting("UploadSensitive")]
     [RequestSizeLimit(MaxImageBytes)]
     public async Task<ActionResult<ImageUploadResponse>> UploadImage([FromForm] IFormFile? file)
     {

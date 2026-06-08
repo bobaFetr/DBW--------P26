@@ -176,23 +176,9 @@ public static class DatabaseSeeder
 
         await EnsureUserClaimAsync(userManager, superAdmin, "admin_code", "SADM-000001");
 
-        await EnsureUserLoginAsync(userManager, superAdmin, "Seed", "superadmin", "Seeded superadmin");
-
-        await userManager.SetAuthenticationTokenAsync(
-            superAdmin,
-            "Seed",
-            "InitialToken",
-            "superadmin-seed-token");
-
         if (contentAdmin is not null)
         {
             await EnsureUserClaimAsync(userManager, contentAdmin, "admin_code", "CADM-000001");
-            await EnsureUserLoginAsync(userManager, contentAdmin, "Seed", "contentadmin", "Seeded content admin");
-            await userManager.SetAuthenticationTokenAsync(
-                contentAdmin,
-                "Seed",
-                "InitialToken",
-                "contentadmin-seed-token");
         }
     }
 
@@ -237,31 +223,6 @@ public static class DatabaseSeeder
         {
             throw new InvalidOperationException(
                 $"Failed to add claim to user '{user.UserName}': {FormatErrors(result)}");
-        }
-    }
-
-    private static async Task EnsureUserLoginAsync(
-        UserManager<ApplicationUser> userManager,
-        ApplicationUser user,
-        string loginProvider,
-        string providerKey,
-        string displayName)
-    {
-        var logins = await userManager.GetLoginsAsync(user);
-
-        if (logins.Any(login =>
-            login.LoginProvider == loginProvider && login.ProviderKey == providerKey))
-        {
-            return;
-        }
-
-        var result = await userManager.AddLoginAsync(
-            user,
-            new UserLoginInfo(loginProvider, providerKey, displayName));
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(
-                $"Failed to add login to user '{user.UserName}': {FormatErrors(result)}");
         }
     }
 

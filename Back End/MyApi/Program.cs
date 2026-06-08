@@ -6,31 +6,40 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 using MyApi.Services;
 using MyLibrary;
+using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
 const string FrontendCorsPolicy = "Frontend";
 const string AuthRateLimitPolicy = "AuthSensitive";
 const string ReauthRateLimitPolicy = "ReauthSensitive";
 const string AdminMutationRateLimitPolicy = "AdminMutation";
+const string UploadRateLimitPolicy = "UploadSensitive";
 
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.AddServerHeader = false;
+    options.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(30);
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
     options.Limits.MaxRequestBodySize = 5 * 1024 * 1024;
+    options.Limits.MinRequestBodyDataRate = new MinDataRate(bytesPerSecond: 240, gracePeriod: TimeSpan.FromSeconds(10));
+    options.Limits.MinResponseDataRate = new MinDataRate(bytesPerSecond: 240, gracePeriod: TimeSpan.FromSeconds(10));
 });
 
 var frontendOrigins = GetFrontendOrigins(builder.Configuration, builder.Environment);
 ValidateProductionHostSettings(builder.Configuration, builder.Environment);
+var defaultConnectionString = GetRequiredConfiguration(
+    builder.Configuration,
+    "ConnectionStrings:DefaultConnection");
+ValidateDatabaseConnectionString(defaultConnectionString, builder.Environment);
 
 // Add services to the container.
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Connection string 'DefaultConnection' was not found.")));
+    options.UseNpgsql(defaultConnectionString));
 
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
@@ -117,43 +126,81 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            GetClientPartition(context),
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 120,
-                Window = TimeSpan.FromMinutes(1),
-                QueueLimit = 0
-            }));
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            context.HttpContext.Response.Headers.RetryAfter = ((int)retryAfter.TotalSeconds).ToString();
+        }
+
+        await context.HttpContext.Response.WriteAsync("Too many requests.", cancellationToken);
+    };
+    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetConcurrencyLimiter(
+                GetClientPartition(context),
+                _ => new ConcurrencyLimiterOptions
+                {
+                    PermitLimit = 12,
+                    QueueLimit = 0
+                })),
+        PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            RateLimitPartition.GetTokenBucketLimiter(
+                GetClientPartition(context),
+                _ => new TokenBucketRateLimiterOptions
+                {
+                    TokenLimit = 60,
+                    TokensPerPeriod = 30,
+                    ReplenishmentPeriod = TimeSpan.FromSeconds(30),
+                    AutoReplenishment = true,
+                    QueueLimit = 0
+                })));
 
     options.AddPolicy(AuthRateLimitPolicy, context =>
-        RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitPartition.GetTokenBucketLimiter(
             GetClientPartition(context),
-            _ => new FixedWindowRateLimiterOptions
+            _ => new TokenBucketRateLimiterOptions
             {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(1),
+                TokenLimit = 5,
+                TokensPerPeriod = 2,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true,
                 QueueLimit = 0
             }));
 
     options.AddPolicy(AdminMutationRateLimitPolicy, context =>
-        RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitPartition.GetTokenBucketLimiter(
             GetClientPartition(context),
-            _ => new FixedWindowRateLimiterOptions
+            _ => new TokenBucketRateLimiterOptions
             {
-                PermitLimit = 20,
-                Window = TimeSpan.FromMinutes(1),
+                TokenLimit = 20,
+                TokensPerPeriod = 10,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true,
                 QueueLimit = 0
             }));
 
     options.AddPolicy(ReauthRateLimitPolicy, context =>
-        RateLimitPartition.GetFixedWindowLimiter(
+        RateLimitPartition.GetTokenBucketLimiter(
             GetClientPartition(context),
-            _ => new FixedWindowRateLimiterOptions
+            _ => new TokenBucketRateLimiterOptions
             {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(5),
+                TokenLimit = 5,
+                TokensPerPeriod = 1,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(5),
+                AutoReplenishment = true,
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy(UploadRateLimitPolicy, context =>
+        RateLimitPartition.GetTokenBucketLimiter(
+            GetClientPartition(context),
+            _ => new TokenBucketRateLimiterOptions
+            {
+                TokenLimit = 5,
+                TokensPerPeriod = 2,
+                ReplenishmentPeriod = TimeSpan.FromMinutes(1),
+                AutoReplenishment = true,
                 QueueLimit = 0
             }));
 });
@@ -380,6 +427,57 @@ static void ValidateProductionHostSettings(IConfiguration configuration, IWebHos
     {
         throw new InvalidOperationException("Configure explicit AllowedHosts values for production.");
     }
+}
+
+static void ValidateDatabaseConnectionString(string connectionString, IWebHostEnvironment environment)
+{
+    var builder = new NpgsqlConnectionStringBuilder(connectionString);
+
+    if (string.IsNullOrWhiteSpace(builder.Host) ||
+        string.IsNullOrWhiteSpace(builder.Database) ||
+        string.IsNullOrWhiteSpace(builder.Username))
+    {
+        throw new InvalidOperationException("Database connection string must include Host, Database, and Username.");
+    }
+
+    if (!environment.IsDevelopment())
+    {
+        if (builder.SslMode is SslMode.Disable or SslMode.Prefer)
+        {
+            throw new InvalidOperationException("Production database connections must require TLS. Set SSL Mode=Require or VerifyFull.");
+        }
+
+        if (ContainsEnabledConnectionStringFlag(connectionString, "Trust Server Certificate") ||
+            ContainsEnabledConnectionStringFlag(connectionString, "TrustServerCertificate"))
+        {
+            throw new InvalidOperationException("Production database connections must not use Trust Server Certificate=true.");
+        }
+
+        if (builder.IncludeErrorDetail)
+        {
+            throw new InvalidOperationException("Production database connections must not use Include Error Detail=true.");
+        }
+    }
+}
+
+static bool ContainsEnabledConnectionStringFlag(string connectionString, string key)
+{
+    return connectionString
+        .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .Any(part =>
+        {
+            var separatorIndex = part.IndexOf('=');
+            if (separatorIndex <= 0)
+            {
+                return false;
+            }
+
+            var partKey = part[..separatorIndex].Trim();
+            var partValue = part[(separatorIndex + 1)..].Trim();
+            return partKey.Equals(key, StringComparison.OrdinalIgnoreCase) &&
+                bool.TryParse(partValue, out var enabled) &&
+                enabled;
+        });
 }
 
 static string GetRequiredConfiguration(IConfiguration configuration, string key)
