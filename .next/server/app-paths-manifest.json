@@ -1,6 +1,8 @@
 {
-  "/page": "app/page.js",
   "/admin/page": "app/admin/page.js",
-  "/concerts/page": "app/concerts/page.js",
-  "/albums/page": "app/albums/page.js"
+  "/airbrush-board/page": "app/airbrush-board/page.js",
+  "/gallery/page": "app/gallery/page.js",
+  "/news/page": "app/news/page.js",
+  "/albums/page": "app/albums/page.js",
+  "/singles/page": "app/singles/page.js"
 }

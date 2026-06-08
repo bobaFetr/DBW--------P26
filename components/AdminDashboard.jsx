@@ -119,7 +119,7 @@ const COLLECTIONS = [
     fields: [
       { key: "name", label: "Name", required: true },
       { key: "instrument", label: "Instrument", required: true },
-      { key: "photoUrl", label: "Photo URL", required: true }
+      { key: "photoUrl", label: "Photo", required: true, type: "image" }
     ],
     title: (record) => record.name,
     meta: (record) => record.instrument,
@@ -132,7 +132,7 @@ const COLLECTIONS = [
     idKey: "id",
     fields: [
       { key: "title", label: "Title", required: true },
-      { key: "imageUrl", label: "Image URL", required: true },
+      { key: "imageUrl", label: "Image", required: true, type: "image" },
       { key: "description", label: "Description", type: "textarea" }
     ],
     title: (record) => record.title,
@@ -221,6 +221,7 @@ export default function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
   const [reviewNote, setReviewNote] = useState("");
+  const [uploadingField, setUploadingField] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -342,6 +343,35 @@ export default function AdminDashboard() {
         [field]: value
       }
     }));
+  }
+
+  async function uploadImage(field, file) {
+    if (!file) return;
+
+    setError("");
+    setUploadingField(field);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API_BASE}/api/uploads/images`, {
+        method: "POST",
+        credentials: "include",
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      const result = await response.json();
+      updateDraft(field, result.url);
+    } catch (err) {
+      setError(err.message || "Image upload failed.");
+    } finally {
+      setUploadingField("");
+    }
   }
 
   async function addContent(event) {
@@ -538,6 +568,23 @@ export default function AdminDashboard() {
                       rows={4}
                       required={field.required}
                     />
+                  ) : field.type === "image" ? (
+                    <>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        onChange={(event) => uploadImage(field.key, event.target.files?.[0])}
+                      />
+                      {uploadingField === field.key && <small>Uploading...</small>}
+                      {activeDraft[field.key] ? (
+                        <small>
+                          Stored URL:{" "}
+                          <a href={activeDraft[field.key]} target="_blank" rel="noreferrer">
+                            {activeDraft[field.key]}
+                          </a>
+                        </small>
+                      ) : null}
+                    </>
                   ) : (
                     <input
                       type={field.type ?? "text"}
