@@ -177,7 +177,7 @@ function normalizeDraft(collection, draft) {
         return [field.key, raw ? Number(raw) : 0];
       }
 
-      if (field.type === "url" && raw && !/^https?:/i.test(raw)) {
+      if ((field.type === "url" || field.type === "image") && raw && !/^https?:/i.test(raw) && !raw.startsWith("/")) {
         return [field.key, `https://${raw}`];
       }
 
@@ -645,6 +645,14 @@ export default function AdminDashboard() {
                     />
                   ) : field.type === "image" ? (
                     <>
+                      <input
+                        type="text"
+                        inputMode="url"
+                        value={activeDraft[field.key] ?? ""}
+                        onChange={(event) => updateDraft(field.key, event.target.value)}
+                        placeholder="https://example.com/image.jpg"
+                        required={field.required}
+                      />
                       <input
                         type="file"
                         accept="image/png,image/jpeg,image/webp,image/gif"
