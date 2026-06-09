@@ -1,15 +1,15 @@
 {
   "/_not-found/page": "/_not-found",
   "/page": "/",
-  "/admin/page": "/admin",
   "/airbrush-board/page": "/airbrush-board",
-  "/albums/page": "/albums",
   "/about/page": "/about",
+  "/admin/page": "/admin",
   "/gallery/page": "/gallery",
-  "/merch/page": "/merch",
-  "/members/page": "/members",
-  "/news/page": "/news",
+  "/albums/page": "/albums",
   "/concerts/page": "/concerts",
-  "/timeline/page": "/timeline",
-  "/singles/page": "/singles"
+  "/merch/page": "/merch",
+  "/news/page": "/news",
+  "/singles/page": "/singles",
+  "/members/page": "/members",
+  "/timeline/page": "/timeline"
 }
