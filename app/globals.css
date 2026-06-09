@@ -1275,7 +1275,7 @@ footer {
 }
 
 .admin-summary-item strong {
-  font-family: "FT Vortex", sans-serif;
+  font-family: Arial, Helvetica, sans-serif;
   font-size: 2.2rem;
   color: var(--accent);
 }
@@ -1329,8 +1329,16 @@ footer {
   min-width: 28px;
   padding: 3px 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--accent);
+  color: #000;
   text-align: center;
+  font-weight: bold;
+}
+
+.admin-sidebar button:hover small,
+.admin-sidebar button.active small {
+  background: #000;
+  color: var(--accent);
 }
 
 .admin-editor {
@@ -1633,7 +1641,7 @@ footer {
 
 @media (max-width: 768px) {
   body {
-    padding-top: 78px;
+    padding-top: 138px;
   }
 
   header {
@@ -1730,8 +1738,8 @@ footer {
   }
 
   #mobile-menu {
-    top: 90px;
-    max-height: calc(100dvh - 178px - env(safe-area-inset-bottom));
+    top: 144px;
+    max-height: calc(100dvh - 162px - env(safe-area-inset-bottom));
     padding-bottom: 18px;
   }
 
@@ -1804,17 +1812,20 @@ footer {
   .mobile-bottom-nav {
     display: flex;
     position: fixed;
-    bottom: 0;
+    top: 78px;
     left: 0;
     right: 0;
-    z-index: 950;
+    z-index: 1002;
     background: rgba(17, 17, 17, 0.97);
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
     backdrop-filter: blur(10px);
-    padding: 7px 3px calc(7px + env(safe-area-inset-bottom));
-    justify-content: space-around;
+    padding: 7px 8px;
+    justify-content: flex-start;
     align-items: center;
-    gap: 2px;
+    gap: 6px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
   }
 
   .mobile-bottom-nav a {
@@ -1822,7 +1833,7 @@ footer {
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: 7px 4px;
+    padding: 7px 10px;
     border-radius: 10px;
     text-decoration: none;
     color: var(--text-muted);
@@ -1830,8 +1841,8 @@ footer {
     text-transform: uppercase;
     letter-spacing: 0.5px;
     transition: var(--transition-fast);
-    min-width: 0;
-    flex: 1 1 0;
+    min-width: 64px;
+    flex: 0 0 auto;
     overflow-wrap: anywhere;
   }
 
@@ -1847,7 +1858,7 @@ footer {
   }
 
   main {
-    padding-bottom: 72px;
+    padding-bottom: 30px;
   }
 
   .footer-inner {
@@ -2005,7 +2016,7 @@ footer {
   }
 
   #mobile-menu {
-    top: 70px;
+    top: 134px;
     left: 10px;
     right: 10px;
   }
