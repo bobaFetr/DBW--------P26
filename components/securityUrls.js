@@ -1,3 +1,9 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+
+function apiAssetUrl(path) {
+  return `${API_BASE.replace(/\/$/, "")}${path}`;
+}
+
 export function safeExternalUrl(value) {
   if (!value) return undefined;
 
@@ -23,7 +29,11 @@ export function safeImageUrl(value) {
   const trimmed = String(value).trim();
   if (!trimmed) return undefined;
 
-  if (trimmed.startsWith("/uploads/images/") || trimmed === "/BUntitled.png") {
+  if (trimmed.startsWith("/uploads/images/")) {
+    return apiAssetUrl(trimmed);
+  }
+
+  if (trimmed === "/BUntitled.png") {
     return trimmed;
   }
 
