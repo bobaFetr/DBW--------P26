@@ -17,6 +17,15 @@ During blueprint creation, Render will ask for these secret values:
 
 Use strong passwords. The app uses these to seed the initial admin users when the API starts.
 
+Each seed password must be at least 12 characters and include:
+
+- At least one uppercase letter
+- At least one lowercase letter
+- At least one digit
+- At least one non-alphanumeric symbol, such as `!`, `#`, `$`, or `%`
+
+If the backend deploy logs say `Failed to create user 'superadmin'`, update these two Render environment variables and redeploy `paralyze-api`.
+
 ## 2. Initialize the Render database from pgAdmin 4
 
 The SQL script is generated at:

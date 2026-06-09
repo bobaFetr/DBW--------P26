@@ -13,5 +13,9 @@ WORKDIR /app
 EXPOSE 10000
 ENV ASPNETCORE_URLS=http://0.0.0.0:10000
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "MyApi.dll"]
