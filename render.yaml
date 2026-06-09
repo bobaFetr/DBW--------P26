@@ -3,7 +3,7 @@ databases:
     databaseName: paralyze
     user: paralyze_user
     region: frankfurt
-    plan: starter
+    plan: free
 
 services:
   - type: web
@@ -11,7 +11,7 @@ services:
     runtime: docker
     region: frankfurt
     plan: starter
-    dockerfilePath: ./Back End/MyApi/Dockerfile
+    dockerfilePath: ./Dockerfile.render
     dockerContext: .
     healthCheckPath: /health
     envVars:
@@ -41,21 +41,21 @@ services:
       - key: NEXT_PUBLIC_API_BASE_URL
         value: https://paralyze-api.onrender.com
     headers:
-      - path: /*
+      - path: "/*"
         name: Content-Security-Policy
-        value: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob: http: https:; connect-src 'self' https://paralyze-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
-      - path: /*
+        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob: http: https:; connect-src 'self' https://paralyze-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      - path: "/*"
         name: X-Content-Type-Options
         value: nosniff
-      - path: /*
+      - path: "/*"
         name: X-Frame-Options
         value: DENY
-      - path: /*
+      - path: "/*"
         name: Referrer-Policy
         value: strict-origin-when-cross-origin
-      - path: /*
+      - path: "/*"
         name: Permissions-Policy
         value: camera=(), microphone=(), geolocation=(), payment=()
-      - path: /*
+      - path: "/*"
         name: X-XSS-Protection
         value: "0"
