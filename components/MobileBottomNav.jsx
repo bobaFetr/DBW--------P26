@@ -8,7 +8,8 @@ const BOTTOM_ITEMS = [
   { href: "/singles", label: "Music", icon: "♪" },
   { href: "/concerts", label: "Live", icon: "★" },
   { href: "/gallery", label: "Gallery", icon: "◈" },
-  { href: "/news", label: "News", icon: "✦" }
+  { href: "/news", label: "News", icon: "✦" },
+  { href: "/admin", label: "Admin", icon: "⚙" }
 ];
 
 export default function MobileBottomNav() {
