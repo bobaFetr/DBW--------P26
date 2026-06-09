@@ -5,13 +5,9 @@ import { useEffect, useState } from "react";
 import { safeExternalUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
-const FALLBACK_RELEASE = {
-  title: "Misery (demo)",
-  href: "/singles"
-};
 
 export default function NowPlayingBar() {
-  const [release, setRelease] = useState(FALLBACK_RELEASE);
+  const [release, setRelease] = useState(null);
 
   useEffect(() => {
     let ignore = false;
@@ -26,13 +22,13 @@ export default function NowPlayingBar() {
         if (!latestSingle || ignore) return;
 
         setRelease({
-          title: latestSingle.songName || FALLBACK_RELEASE.title,
+          title: latestSingle.songName,
           href:
             safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify) ||
-            FALLBACK_RELEASE.href
+            "/singles"
         });
       } catch {
-        // Keep the fallback release when the API is offline.
+        // Hide the latest release bar when the API is offline.
       }
     }
 
@@ -41,6 +37,10 @@ export default function NowPlayingBar() {
       ignore = true;
     };
   }, []);
+
+  if (!release) {
+    return null;
+  }
 
   const isExternalRelease = /^(https?:|mailto:)/i.test(release.href);
   const ReleaseLink = isExternalRelease ? "a" : Link;

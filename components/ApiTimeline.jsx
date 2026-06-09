@@ -8,8 +8,9 @@ function formatDate(value) {
   return value ? String(value).slice(0, 10) : "";
 }
 
-export default function ApiTimeline({ fallbackItems }) {
-  const [items, setItems] = useState(fallbackItems);
+export default function ApiTimeline() {
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadTimeline = useCallback(async () => {
     try {
@@ -19,17 +20,17 @@ export default function ApiTimeline({ fallbackItems }) {
       if (!response.ok) return;
 
       const rows = await response.json();
-      if (rows.length) {
-        setItems(
-          rows.map((row) => ({
-            date: formatDate(row.date),
-            title: row.event,
-            description: row.description
-          }))
-        );
-      }
+      setItems(
+        rows.map((row) => ({
+          date: formatDate(row.date),
+          title: row.event,
+          description: row.description
+        }))
+      );
     } catch {
-      // Keep static fallback.
+      // Leave the timeline empty when the API is offline.
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -53,6 +54,10 @@ export default function ApiTimeline({ fallbackItems }) {
 
   return (
     <section className="timeline-section">
+      {isLoading ? <p className="content-empty-state">Loading timeline...</p> : null}
+      {!isLoading && !items.length ? (
+        <p className="content-empty-state">No timeline entries have been published yet.</p>
+      ) : null}
       <div className="timeline">
         {items.map((item) => (
           <article className="timeline-item" key={`${item.date}-${item.title}`}>

@@ -55,6 +55,16 @@ ConnectionStrings__DefaultConnection
 
 The blueprint wires this from `paralyze-db`. If the API deploys before you run the SQL, it can fail while seeding users. After the SQL finishes in pgAdmin, redeploy `paralyze-api`.
 
+The SQL script creates the database schema only. It does not contain public page content or admin passwords.
+
+Public albums, singles, concerts, gallery, news, members, and timeline entries are loaded from the database through the API. Add or edit that content from the admin dashboard.
+
+If an older deployment inserted demo seed rows, remove them from pgAdmin with:
+
+```text
+Back End/DB/remove-seeded-content.sql
+```
+
 ## 4. Deploy the frontend
 
 The frontend uses:

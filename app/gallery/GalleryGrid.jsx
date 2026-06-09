@@ -5,17 +5,9 @@ import { safeImageUrl } from "../../components/securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
-const GALLERY_ITEMS = [
-  { id: "live-mood", caption: "Live Mood", category: "Live", className: "gallery-item gallery-item-tall" },
-  { id: "promo-shot", caption: "Promo Shot", category: "Press", className: "gallery-item photo gallery-item-wide" },
-  { id: "logo-focus", caption: "Logo Focus", category: "Artwork", className: "gallery-item alt-logo gallery-item-square" },
-  { id: "stage-energy", caption: "Stage Energy", category: "Live", className: "gallery-item gallery-item-wide" },
-  { id: "future-artwork", caption: "Future Artwork", category: "Artwork", className: "gallery-item gallery-item-tall" },
-  { id: "old-skulls", caption: "Old Skulls — Oct 31, 2025", category: "Live", className: "gallery-item photo gallery-item-wide" }
-];
-
 export default function GalleryGrid() {
-  const [items, setItems] = useState(GALLERY_ITEMS);
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
 
   const isOpen = activeIndex !== null;
@@ -39,7 +31,7 @@ export default function GalleryGrid() {
         if (!response.ok) return;
 
         const rows = await response.json();
-        if (!ignore && rows.length) {
+        if (!ignore) {
           setItems(
             rows.map((row, index) => ({
               id: String(row.id),
@@ -56,7 +48,11 @@ export default function GalleryGrid() {
           );
         }
       } catch {
-        // Keep fallback gallery.
+        // Leave the gallery empty when the API is offline.
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     }
 
@@ -103,6 +99,10 @@ export default function GalleryGrid() {
 
   return (
     <>
+      {isLoading ? <p className="content-empty-state">Loading gallery...</p> : null}
+      {!isLoading && !items.length ? (
+        <p className="content-empty-state">No gallery items have been published yet.</p>
+      ) : null}
       <div className="gallery-masonry">
         {items.map((item, index) => (
           <div

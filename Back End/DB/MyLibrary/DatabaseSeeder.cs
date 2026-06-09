@@ -66,7 +66,6 @@ public static class DatabaseSeeder
             roleManager,
             superAdmin,
             contentAdminHasRole ? contentAdmin : null);
-        await EnsureSiteContentAsync(dbContext, superAdmin.Id, contentAdmin.Id);
     }
 
     private static async Task EnsureRoleAsync(
@@ -100,6 +99,15 @@ public static class DatabaseSeeder
 
         if (user is null)
         {
+            var usersInRole = await userManager.GetUsersInRoleAsync(role);
+            if (usersInRole.Count == 1)
+            {
+                user = usersInRole[0];
+            }
+        }
+
+        if (user is null)
+        {
             user = new ApplicationUser
             {
                 UserName = username,
@@ -116,6 +124,20 @@ public static class DatabaseSeeder
             }
 
             userWasCreated = true;
+        }
+        else
+        {
+            user.UserName = username;
+            user.Email = email;
+            user.EmailConfirmed = true;
+            user.DisplayName = displayName;
+
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to update user '{username}': {FormatErrors(updateResult)}");
+            }
         }
 
         if ((userWasCreated || ensureRoleForExistingUser) &&
@@ -224,270 +246,6 @@ public static class DatabaseSeeder
             throw new InvalidOperationException(
                 $"Failed to add claim to user '{user.UserName}': {FormatErrors(result)}");
         }
-    }
-
-    private static async Task EnsureSiteContentAsync(
-        AppDbContext dbContext,
-        string superAdminId,
-        string contentAdminId)
-    {
-        await EnsureAlbumsAsync(dbContext, superAdminId);
-        await EnsureSinglesAsync(dbContext);
-        await EnsureConcertsAsync(dbContext);
-        await EnsureConcertSongsAsync(dbContext);
-        await EnsureNewsAsync(dbContext);
-        await EnsureTimeLinesAsync(dbContext);
-        await EnsureMembersAsync(dbContext);
-        await EnsureGalleryAsync(dbContext);
-        await EnsureAdminRequestsAsync(dbContext, contentAdminId, superAdminId);
-        await EnsureContentChangeRequestsAsync(dbContext, contentAdminId, superAdminId);
-    }
-
-    private static async Task EnsureAlbumsAsync(AppDbContext dbContext, string superAdminId)
-    {
-        if (await dbContext.Albums.AnyAsync(album => album.Title == "Seeded Demo Album"))
-        {
-            return;
-        }
-
-        dbContext.Albums.Add(new Albums
-        {
-            Title = "Seeded Demo Album",
-            ReleaseDate = UtcDate(2026, 7, 12),
-            NumberOfSongs = 2
-        });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureSinglesAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.Singles.AnyAsync(single => single.SongName == "Seeded First Single"))
-        {
-            return;
-        }
-
-        var album = await dbContext.Albums.FirstAsync(album => album.Title == "Seeded Demo Album");
-
-        dbContext.Singles.AddRange(
-            new Singles
-            {
-                SongName = "Seeded First Single",
-                ReleaseDate = UtcDate(2026, 6, 21),
-                AvailableOnYoutube = "https://youtube.com/example",
-                AvailableOnSpotify = "https://open.spotify.com/example",
-                AlbumId = album.AlbumId
-            },
-            new Singles
-            {
-                SongName = "Seeded Second Single",
-                ReleaseDate = UtcDate(2026, 8, 2),
-                AvailableOnYoutube = "https://youtube.com/example-second",
-                AvailableOnSpotify = "https://open.spotify.com/example-second",
-                AlbumId = album.AlbumId
-            });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureConcertsAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.Concerts.AnyAsync(concert => concert.Location == "Seeded Sofia Club"))
-        {
-            return;
-        }
-
-        dbContext.Concerts.Add(new Concerts
-        {
-            Date = UtcDate(2026, 9, 5),
-            Location = "Seeded Sofia Club",
-            Time = new TimeOnly(20, 30),
-            NumberOfSongs = 2
-        });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureConcertSongsAsync(AppDbContext dbContext)
-    {
-        var concert = await dbContext.Concerts.FirstAsync(
-            concert => concert.Location == "Seeded Sofia Club");
-        var songs = await dbContext.Singles
-            .Where(single => single.SongName == "Seeded First Single"
-                || single.SongName == "Seeded Second Single")
-            .OrderBy(single => single.SongName)
-            .ToListAsync();
-
-        foreach (var song in songs.Select((song, index) => new { Song = song, Index = index }))
-        {
-            var exists = await dbContext.ConcertSongs.AnyAsync(concertSong =>
-                concertSong.ConcertId == concert.ConcertId
-                && concertSong.SongId == song.Song.SongId);
-
-            if (exists)
-            {
-                continue;
-            }
-
-            dbContext.ConcertSongs.Add(new ConcertSong
-            {
-                ConcertId = concert.ConcertId,
-                SongId = song.Song.SongId,
-                DisplayOrder = song.Index + 1
-            });
-        }
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureNewsAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.News.AnyAsync(news => news.Title == "Seeded News Post"))
-        {
-            return;
-        }
-
-        dbContext.News.Add(new News
-        {
-            Title = "Seeded News Post",
-            Content = "This is seeded test news content for the public site.",
-            PublicationDate = UtcDate(2026, 6, 7),
-            Author = "Paralyze Admin"
-        });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureTimeLinesAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.TimeLines.AnyAsync(timeLine => timeLine.Event == "SEEDED MILESTONE"))
-        {
-            return;
-        }
-
-        dbContext.TimeLines.Add(new TimeLine
-        {
-            Date = UtcDate(2024, 12, 27),
-            Event = "SEEDED MILESTONE",
-            Description = "Seeded timeline data for testing the history page.",
-            Location = "Sofia"
-        });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureMembersAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.Members.AnyAsync(member => member.Name == "Seeded Vocalist"))
-        {
-            return;
-        }
-
-        dbContext.Members.AddRange(
-            new Members
-            {
-                Name = "Seeded Vocalist",
-                Instrument = "Vocals",
-                PhotoUrl = "/BUntitled.png"
-            },
-            new Members
-            {
-                Name = "Seeded Guitarist",
-                Instrument = "Guitar",
-                PhotoUrl = "/BUntitled.png"
-            });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureGalleryAsync(AppDbContext dbContext)
-    {
-        if (await dbContext.Gallery.AnyAsync(gallery => gallery.Title == "Seeded Gallery Image"))
-        {
-            return;
-        }
-
-        dbContext.Gallery.Add(new Gallery
-        {
-            Title = "Seeded Gallery Image",
-            Description = "Seeded gallery item for testing image content.",
-            ImageUrl = "/BUntitled.png"
-        });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureAdminRequestsAsync(
-        AppDbContext dbContext,
-        string contentAdminId,
-        string superAdminId)
-    {
-        if (await dbContext.AdminRequests.AnyAsync(request => request.RequestCode == "AREQ-000001"))
-        {
-            return;
-        }
-
-        dbContext.AdminRequests.Add(new AdminRequest
-        {
-            RequestCode = "AREQ-000001",
-            UserId = contentAdminId,
-            Status = AdminRequestStatus.Approved,
-            Message = "Seeded admin access request.",
-            RequestedAtUtc = UtcDate(2026, 6, 1),
-            ReviewedBySuperAdminId = superAdminId,
-            ReviewedAtUtc = UtcDate(2026, 6, 2),
-            ReviewNote = "Seeded approval."
-        });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static async Task EnsureContentChangeRequestsAsync(
-        AppDbContext dbContext,
-        string contentAdminId,
-        string superAdminId)
-    {
-        if (await dbContext.ContentChangeRequests.AnyAsync(
-            request => request.ChangeCode == "CHG-000001"))
-        {
-            return;
-        }
-
-        dbContext.ContentChangeRequests.AddRange(
-            new ContentChangeRequest
-            {
-                ChangeCode = "CHG-000001",
-                RequestedByUserId = contentAdminId,
-                ContentType = "News",
-                TargetEntityId = null,
-                Action = ContentChangeAction.Create,
-                Status = ContentChangeStatus.Approved,
-                PayloadJson = "{\"title\":\"Seeded request news\",\"content\":\"Seeded approved content change.\"}",
-                Message = "Seeded approved content change request.",
-                RequestedAtUtc = UtcDate(2026, 6, 3),
-                ReviewedBySuperAdminId = superAdminId,
-                ReviewedAtUtc = UtcDate(2026, 6, 4),
-                ReviewNote = "Seeded content approval."
-            },
-            new ContentChangeRequest
-            {
-                ChangeCode = "CHG-000002",
-                RequestedByUserId = contentAdminId,
-                ContentType = "Gallery",
-                TargetEntityId = null,
-                Action = ContentChangeAction.Create,
-                Status = ContentChangeStatus.Pending,
-                PayloadJson = "{\"title\":\"Seeded pending gallery\",\"imageUrl\":\"/BUntitled.png\"}",
-                Message = "Seeded pending content change request.",
-                RequestedAtUtc = UtcDate(2026, 6, 5)
-            });
-
-        await dbContext.SaveChangesAsync();
-    }
-
-    private static DateTime UtcDate(int year, int month, int day)
-    {
-        return new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
     }
 
     private static string FormatErrors(IdentityResult result)

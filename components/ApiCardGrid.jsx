@@ -58,8 +58,9 @@ function toCards(contentType, rows) {
   }
 }
 
-export default function ApiCardGrid({ contentType, fallbackCards }) {
-  const [cards, setCards] = useState(fallbackCards);
+export default function ApiCardGrid({ contentType, emptyMessage = "No content has been published yet." }) {
+  const [cards, setCards] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let ignore = false;
@@ -67,14 +68,20 @@ export default function ApiCardGrid({ contentType, fallbackCards }) {
     async function loadCards() {
       try {
         const response = await fetch(`${API_BASE}/api/content/${contentType}`);
-        if (!response.ok) return;
+        if (!response.ok) {
+          return;
+        }
 
         const rows = await response.json();
-        if (!ignore && rows.length) {
+        if (!ignore) {
           setCards(toCards(contentType, rows));
         }
       } catch {
-        // Keep the static fallback when the API is offline.
+        // Leave the page empty when the API is offline.
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
       }
     }
 
@@ -83,6 +90,14 @@ export default function ApiCardGrid({ contentType, fallbackCards }) {
       ignore = true;
     };
   }, [contentType]);
+
+  if (isLoading) {
+    return <p className="content-empty-state">Loading content...</p>;
+  }
+
+  if (!cards.length) {
+    return <p className="content-empty-state">{emptyMessage}</p>;
+  }
 
   return <CardGrid cards={cards} />;
 }

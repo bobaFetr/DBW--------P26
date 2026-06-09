@@ -1466,6 +1466,16 @@ footer {
   color: var(--text-muted);
 }
 
+.content-empty-state {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 22px;
+  padding: 18px;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 8px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .admin-export {
   margin-top: 22px;
   padding: 24px;
