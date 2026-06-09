@@ -176,6 +176,10 @@ nav button.active,
   top: 72px;
   left: 12px;
   right: 12px;
+  max-height: calc(100dvh - 96px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: rgba(17, 17, 17, 0.98);
   border: 2px solid var(--accent);
   border-radius: 16px;
@@ -1722,6 +1726,12 @@ footer {
   #menu-overlay.active {
     opacity: 1;
     visibility: visible;
+  }
+
+  #mobile-menu {
+    top: 90px;
+    max-height: calc(100dvh - 178px - env(safe-area-inset-bottom));
+    padding-bottom: 18px;
   }
 
   .page-intro,
