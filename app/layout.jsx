@@ -37,6 +37,9 @@ export default function RootLayout({ children }) {
           Skip to content
         </a>
         <SiteHeader />
+        <p className="Website_Beta_Warning" role="status">
+          Warning the system is still under testing.The data you're seeing is not real.
+        </p>
         <NowPlayingBar />
         <main id="main-content">{children}</main>
         <SiteFooter />
