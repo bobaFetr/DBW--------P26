@@ -16,7 +16,7 @@ function loadAdminDraftModule() {
   };
 
   vm.runInNewContext(
-    `${source}\nmodule.exports = { displayImageInputValue, isImageDataUrl, normalizeDraft };`,
+    `${source}\nmodule.exports = { displayImageInputValue, isImageDataUrl, isMediaDataUrl, normalizeDraft };`,
     context,
     { filename: sourcePath }
   );
@@ -61,9 +61,25 @@ test("normalizeDraft still upgrades manually typed image domains", () => {
   assert.equal(result.photoUrl, "https://example.com/photo.jpg");
 });
 
+test("normalizeDraft upgrades manually typed media domains", () => {
+  const { normalizeDraft } = loadAdminDraftModule();
+
+  const result = normalizeDraft(
+    {
+      fields: [{ key: "imageUrl", type: "media" }]
+    },
+    {
+      imageUrl: "example.com/live.mp4"
+    }
+  );
+
+  assert.equal(result.imageUrl, "https://example.com/live.mp4");
+});
+
 test("displayImageInputValue keeps uploaded data out of the visible text input", () => {
   const { displayImageInputValue } = loadAdminDraftModule();
 
   assert.equal(displayImageInputValue("data:image/png;base64,AQIDBA=="), "");
+  assert.equal(displayImageInputValue("data:video/mp4;base64,AQIDBA=="), "");
   assert.equal(displayImageInputValue("https://example.com/photo.jpg"), "https://example.com/photo.jpg");
 });

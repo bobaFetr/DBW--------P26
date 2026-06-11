@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { safeImageUrl } from "../../components/securityUrls";
+import { isVideoUrl, safeMediaUrl } from "../../components/securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
@@ -37,7 +37,8 @@ export default function GalleryGrid() {
               id: String(row.id),
               caption: row.title,
               category: row.description,
-              imageUrl: safeImageUrl(row.imageUrl),
+              mediaUrl: safeMediaUrl(row.imageUrl),
+              isVideo: isVideoUrl(row.imageUrl),
               className:
                 index % 3 === 0
                   ? "gallery-item gallery-item-tall"
@@ -114,8 +115,10 @@ export default function GalleryGrid() {
             onClick={() => setActiveIndex(index)}
             onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveIndex(index); } }}
           >
-            {item.imageUrl ? (
-              <img className="gallery-thumb-img" src={item.imageUrl} alt={item.caption} />
+            {item.mediaUrl && item.isVideo ? (
+              <video className="gallery-thumb-img gallery-thumb-video" src={item.mediaUrl} muted playsInline preload="metadata" />
+            ) : item.mediaUrl ? (
+              <img className="gallery-thumb-img" src={item.mediaUrl} alt={item.caption} />
             ) : null}
             <div className="gallery-caption">{item.caption}</div>
           </div>
@@ -145,8 +148,10 @@ export default function GalleryGrid() {
               ✕
             </button>
             <div className="lightbox-media">
-              {activeItem.imageUrl ? (
-                <img src={activeItem.imageUrl} alt={activeItem.caption} />
+              {activeItem.mediaUrl && activeItem.isVideo ? (
+                <video src={activeItem.mediaUrl} controls playsInline preload="metadata" />
+              ) : activeItem.mediaUrl ? (
+                <img src={activeItem.mediaUrl} alt={activeItem.caption} />
               ) : (
                 "PARALYZE"
               )}

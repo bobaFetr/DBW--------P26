@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { displayImageInputValue, normalizeDraft } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
-import { safeImageUrl } from "./securityUrls";
+import { safeImageUrl, safeMediaUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
@@ -134,11 +134,11 @@ const COLLECTIONS = [
     idKey: "id",
     fields: [
       { key: "title", label: "Title", required: true },
-      { key: "imageUrl", label: "Image", required: true, type: "image" },
+      { key: "imageUrl", label: "Media", required: true, type: "media" },
       { key: "description", label: "Description", type: "textarea", emptyValue: "" }
     ],
     title: (record) => record.title,
-    meta: () => "Image uploaded",
+    meta: () => "Media uploaded",
     detail: (record) => record.description
   }
 ];
@@ -361,18 +361,19 @@ export default function AdminDashboard() {
     }));
   }
 
-  async function uploadImage(field, file) {
+  async function uploadMedia(field, file) {
     if (!file) return;
 
     setError("");
     setUploadingField(field);
 
     try {
+      const isVideo = file.type.startsWith("video/");
       const formData = new FormData();
       formData.append("file", file);
       const csrfToken = await getCsrfToken();
 
-      const response = await fetch(`${API_BASE}/api/uploads/images`, {
+      const response = await fetch(`${API_BASE}/api/uploads/${isVideo ? "videos" : "images"}`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -387,13 +388,14 @@ export default function AdminDashboard() {
 
       const result = await response.json();
       const uploadedUrl = result.url ?? result.Url;
-      if (!safeImageUrl(uploadedUrl)) {
-        throw new Error("Upload did not return a usable image URL.");
+      const safeUrl = isVideo ? safeMediaUrl(uploadedUrl) : safeImageUrl(uploadedUrl);
+      if (!safeUrl) {
+        throw new Error(`Upload did not return a usable ${isVideo ? "video" : "image"} URL.`);
       }
 
       updateDraft(field, uploadedUrl);
     } catch (err) {
-      setError(err.message || "Image upload failed.");
+      setError(err.message || "Media upload failed.");
     } finally {
       setUploadingField("");
     }
@@ -624,26 +626,45 @@ export default function AdminDashboard() {
                       rows={4}
                       required={field.required}
                     />
-                  ) : field.type === "image" ? (
+                  ) : field.type === "image" || field.type === "media" ? (
                     <>
                       <input
                         type="text"
                         inputMode="url"
                         value={displayImageInputValue(activeDraft[field.key])}
                         onChange={(event) => updateDraft(field.key, event.target.value)}
-                        placeholder="https://example.com/image.jpg"
-                        required={field.required && !safeImageUrl(activeDraft[field.key])}
+                        placeholder={field.type === "media" ? "https://example.com/media.mp4" : "https://example.com/image.jpg"}
+                        required={
+                          field.required &&
+                          !(field.type === "media"
+                            ? safeMediaUrl(activeDraft[field.key])
+                            : safeImageUrl(activeDraft[field.key]))
+                        }
                       />
                       <input
                         type="file"
-                        accept="image/png,image/jpeg,image/webp,image/gif"
-                        onChange={(event) => uploadImage(field.key, event.target.files?.[0])}
+                        accept={
+                          field.type === "media"
+                            ? "image/png,image/jpeg,image/webp,image/gif,video/mp4,video/webm,video/quicktime"
+                            : "image/png,image/jpeg,image/webp,image/gif"
+                        }
+                        onChange={(event) => uploadMedia(field.key, event.target.files?.[0])}
                       />
                       {uploadingField === field.key && <small>Uploading...</small>}
-                      {safeImageUrl(activeDraft[field.key]) ? (
+                      {(field.type === "media"
+                        ? safeMediaUrl(activeDraft[field.key])
+                        : safeImageUrl(activeDraft[field.key])) ? (
                         <small>
-                          Stored image:{" "}
-                          <a href={safeImageUrl(activeDraft[field.key])} target="_blank" rel="noreferrer">
+                          Stored {field.type === "media" ? "media" : "image"}:{" "}
+                          <a
+                            href={
+                              field.type === "media"
+                                ? safeMediaUrl(activeDraft[field.key])
+                                : safeImageUrl(activeDraft[field.key])
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                          >
                             Preview
                           </a>
                         </small>

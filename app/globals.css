@@ -683,6 +683,10 @@ main {
   object-fit: cover;
 }
 
+.gallery-thumb-video {
+  background: #050505;
+}
+
 .gallery-item.alt-logo {
   background:
     linear-gradient(rgba(20, 20, 20, 0.1), rgba(20, 20, 20, 0.4)),
@@ -945,7 +949,8 @@ main {
   overflow: hidden;
 }
 
-.lightbox-media img {
+.lightbox-media img,
+.lightbox-media video {
   width: 100%;
   max-height: min(76vh, 820px);
   height: auto;

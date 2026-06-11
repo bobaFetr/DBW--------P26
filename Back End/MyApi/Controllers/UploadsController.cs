@@ -11,14 +11,23 @@ public class UploadsController : ControllerBase
 {
     private const long MaxImageBytes = 25 * 1024 * 1024;
     private const long MaxUploadRequestBytes = 30 * 1024 * 1024;
+    private const long MaxVideoBytes = 100 * 1024 * 1024;
+    private const long MaxVideoUploadRequestBytes = 105 * 1024 * 1024;
 
-    private static readonly Dictionary<string, string[]> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string[]> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         [".jpg"] = ["image/jpeg"],
         [".jpeg"] = ["image/jpeg"],
         [".png"] = ["image/png"],
         [".webp"] = ["image/webp"],
         [".gif"] = ["image/gif"]
+    };
+
+    private static readonly Dictionary<string, string[]> AllowedVideoContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [".mp4"] = ["video/mp4"],
+        [".webm"] = ["video/webm"],
+        [".mov"] = ["video/quicktime"]
     };
 
     [HttpPost("images")]
@@ -43,7 +52,7 @@ public class UploadsController : ControllerBase
         }
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-        if (!AllowedContentTypes.TryGetValue(extension, out var allowedContentTypes) ||
+        if (!AllowedImageContentTypes.TryGetValue(extension, out var allowedContentTypes) ||
             !allowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
         {
             return BadRequest("Only JPG, PNG, WEBP, and GIF image files are allowed.");
@@ -63,6 +72,59 @@ public class UploadsController : ControllerBase
         return Ok(new ImageUploadResponse(dataUrl));
     }
 
+    [HttpPost("videos")]
+    [Consumes("multipart/form-data")]
+    [EnableRateLimiting("UploadSensitive")]
+    [RequestSizeLimit(MaxVideoUploadRequestBytes)]
+    [RequestFormLimits(MultipartBodyLengthLimit = MaxVideoUploadRequestBytes)]
+    public async Task<ActionResult<MediaUploadResponse>> UploadVideo([FromForm] IFormFile? file)
+    {
+        if (file is null)
+        {
+            return BadRequest("A video file is required.");
+        }
+
+        if (file.Length == 0)
+        {
+            return BadRequest("The uploaded file is empty.");
+        }
+
+        if (file.Length > MaxVideoBytes)
+        {
+            return BadRequest("The uploaded video cannot exceed 100 MB.");
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!AllowedVideoContentTypes.TryGetValue(extension, out var allowedContentTypes) ||
+            !allowedContentTypes.Contains(file.ContentType, StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest("Only MP4, WEBM, and MOV video files are allowed.");
+        }
+
+        var header = new byte[(int)Math.Min(file.Length, 64)];
+        await using (var headerStream = file.OpenReadStream())
+        {
+            var bytesRead = await headerStream.ReadAsync(header.AsMemory(0, header.Length));
+            if (!TryValidateVideo(header.AsSpan(0, bytesRead), extension, out var validationError))
+            {
+                return BadRequest(validationError);
+            }
+        }
+
+        await using var input = file.OpenReadStream();
+        await using var buffer = new MemoryStream();
+        await input.CopyToAsync(buffer);
+        var bytes = buffer.ToArray();
+
+        if (!TryValidateVideo(bytes.AsSpan(0, Math.Min(bytes.Length, 64)), extension, out var fullContentValidationError))
+        {
+            return BadRequest(fullContentValidationError);
+        }
+
+        var dataUrl = $"data:{GetVideoMediaType(extension)};base64,{Convert.ToBase64String(bytes)}";
+        return Ok(new MediaUploadResponse(dataUrl, GetVideoMediaType(extension), "video"));
+    }
+
     private static string GetImageMediaType(string extension)
     {
         return extension switch
@@ -71,6 +133,17 @@ public class UploadsController : ControllerBase
             ".png" => "image/png",
             ".webp" => "image/webp",
             ".gif" => "image/gif",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private static string GetVideoMediaType(string extension)
+    {
+        return extension switch
+        {
+            ".mp4" => "video/mp4",
+            ".webm" => "video/webm",
+            ".mov" => "video/quicktime",
             _ => "application/octet-stream"
         };
     }
@@ -92,6 +165,44 @@ public class UploadsController : ControllerBase
 
         error = string.Empty;
         return true;
+    }
+
+    private static bool TryValidateVideo(ReadOnlySpan<byte> bytes, string extension, out string error)
+    {
+        error = "The uploaded file content does not match a supported video format.";
+
+        var isValid = extension switch
+        {
+            ".mp4" or ".mov" => HasIsoBaseMediaFileSignature(bytes),
+            ".webm" => HasWebmSignature(bytes),
+            _ => false
+        };
+
+        if (!isValid)
+        {
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    private static bool HasIsoBaseMediaFileSignature(ReadOnlySpan<byte> bytes)
+    {
+        return bytes.Length >= 12 &&
+            bytes[4] == 0x66 &&
+            bytes[5] == 0x74 &&
+            bytes[6] == 0x79 &&
+            bytes[7] == 0x70;
+    }
+
+    private static bool HasWebmSignature(ReadOnlySpan<byte> bytes)
+    {
+        return bytes.Length >= 4 &&
+            bytes[0] == 0x1A &&
+            bytes[1] == 0x45 &&
+            bytes[2] == 0xDF &&
+            bytes[3] == 0xA3;
     }
 
     private static bool TryReadDimensions(byte[] bytes, string extension, out int width, out int height)
@@ -291,3 +402,4 @@ public class UploadsController : ControllerBase
 }
 
 public record ImageUploadResponse(string Url);
+public record MediaUploadResponse(string Url, string MediaType, string Kind);

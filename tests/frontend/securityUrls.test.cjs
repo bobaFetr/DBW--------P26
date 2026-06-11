@@ -22,7 +22,7 @@ function loadSecurityUrlModule(apiBase = "http://localhost:5001") {
   };
 
   vm.runInNewContext(
-    `${source}\nmodule.exports = { safeExternalUrl, safeImageUrl };`,
+    `${source}\nmodule.exports = { safeExternalUrl, safeImageUrl, safeMediaUrl, isVideoUrl };`,
     context,
     { filename: sourcePath }
   );
@@ -57,6 +57,15 @@ test("safeImageUrl resolves uploaded assets against the API base", () => {
   assert.equal(safeImageUrl("/BUntitled.png"), "/BUntitled.png");
 });
 
+test("safeMediaUrl accepts database-stored video data URLs", () => {
+  const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule("https://api.example.com/");
+  const videoDataUrl = "data:video/mp4;base64,AQIDBA==";
+
+  assert.equal(safeMediaUrl(videoDataUrl), videoDataUrl);
+  assert.equal(isVideoUrl(videoDataUrl), true);
+  assert.equal(isVideoUrl("https://example.com/live.webm"), true);
+});
+
 test("safeImageUrl accepts only safe image URL forms", () => {
   const { safeImageUrl } = loadSecurityUrlModule();
 
@@ -68,4 +77,13 @@ test("safeImageUrl accepts only safe image URL forms", () => {
   assert.equal(safeImageUrl("data:image/svg+xml;base64,AQIDBA=="), undefined);
   assert.equal(safeImageUrl("/images/poster.png"), undefined);
   assert.equal(safeImageUrl("example.com/poster.png"), undefined);
+});
+
+test("safeMediaUrl rejects unsafe video URL forms", () => {
+  const { safeMediaUrl } = loadSecurityUrlModule();
+
+  assert.equal(safeMediaUrl("/uploads/videos/live.mp4"), undefined);
+  assert.equal(safeMediaUrl("/videos/live.mp4"), undefined);
+  assert.equal(safeMediaUrl("data:video/mp4;base64,not-base64!"), undefined);
+  assert.equal(safeMediaUrl("javascript:alert(1)"), undefined);
 });

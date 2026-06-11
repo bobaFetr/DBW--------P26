@@ -1,12 +1,18 @@
 const IMAGE_DATA_URL_PATTERN = /^data:image\/(?:jpeg|png|webp|gif);base64,/i;
+const VIDEO_DATA_URL_PATTERN = /^data:video\/(?:mp4|webm|quicktime);base64,/i;
 
 export function isImageDataUrl(value) {
   return IMAGE_DATA_URL_PATTERN.test(String(value ?? "").trim());
 }
 
+export function isMediaDataUrl(value) {
+  const raw = String(value ?? "").trim();
+  return IMAGE_DATA_URL_PATTERN.test(raw) || VIDEO_DATA_URL_PATTERN.test(raw);
+}
+
 export function displayImageInputValue(value) {
   const raw = String(value ?? "").trim();
-  return isImageDataUrl(raw) ? "" : raw;
+  return isMediaDataUrl(raw) ? "" : raw;
 }
 
 export function normalizeDraft(collection, draft) {
@@ -22,10 +28,10 @@ export function normalizeDraft(collection, draft) {
       }
 
       if (
-        (field.type === "url" || field.type === "image") &&
+        (field.type === "url" || field.type === "image" || field.type === "media") &&
         raw &&
         !/^https?:/i.test(raw) &&
-        !isImageDataUrl(raw) &&
+        !isMediaDataUrl(raw) &&
         !raw.startsWith("/")
       ) {
         return [field.key, `https://${raw}`];

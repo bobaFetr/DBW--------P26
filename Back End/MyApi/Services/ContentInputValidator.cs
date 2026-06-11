@@ -18,10 +18,12 @@ public interface IContentInputValidator
 
 public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInputValidator
 {
-    public const int MaxPayloadJsonLength = 40_000_000;
+    public const int MaxPayloadJsonLength = 150_000_000;
     private const int MaxUrlLength = 500;
     private const int MaxImageDataUrlLength = 35_000_000;
     private const int MaxImageDataBytes = 25 * 1024 * 1024;
+    private const int MaxVideoDataUrlLength = 140_000_000;
+    private const int MaxVideoDataBytes = 100 * 1024 * 1024;
 
     private static readonly string[] AllowedImageDataUrlPrefixes =
     [
@@ -29,6 +31,13 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         "data:image/png;base64,",
         "data:image/webp;base64,",
         "data:image/gif;base64,"
+    ];
+
+    private static readonly string[] AllowedVideoDataUrlPrefixes =
+    [
+        "data:video/mp4;base64,",
+        "data:video/webm;base64,",
+        "data:video/quicktime;base64,"
     ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -190,7 +199,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     {
         return ValidateRequiredText(gallery.Title, "Title", 200)
             ?? ValidateOptionalText(gallery.Description, "Description", 2_000)
-            ?? ValidateRequiredUrl(gallery.ImageUrl, "ImageUrl", allowImageDataUrl: true);
+            ?? ValidateRequiredMediaUrl(gallery.ImageUrl, "ImageUrl");
     }
 
     private static IDisposable? TryParseJsonObject(string payloadJson, out string? error)
@@ -285,6 +294,44 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
             : ValidateOptionalUrl(value, fieldName, allowImageDataUrl);
     }
 
+    private static string? ValidateRequiredMediaUrl(string? value, string fieldName)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? $"{fieldName} is required."
+            : ValidateOptionalMediaUrl(value, fieldName);
+    }
+
+    private static string? ValidateOptionalMediaUrl(string? value, string fieldName)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (value.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+        {
+            return ValidateMediaDataUrl(value, fieldName);
+        }
+
+        if (value.Length > MaxUrlLength)
+        {
+            return $"{fieldName} cannot exceed {MaxUrlLength} characters.";
+        }
+
+        if (value.StartsWith('/'))
+        {
+            return value.StartsWith("/uploads/images/", StringComparison.Ordinal)
+                || value.Equals("/BUntitled.png", StringComparison.Ordinal)
+                    ? null
+                    : $"{fieldName} must be an uploaded media path, media data URL, or HTTP(S) URL.";
+        }
+
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+            (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+                ? null
+                : $"{fieldName} must be a valid HTTP or HTTPS URL.";
+    }
+
     private static string? ValidateOptionalUrl(string? value, string fieldName, bool allowImageDataUrl = true)
     {
         if (string.IsNullOrWhiteSpace(value))
@@ -348,6 +395,50 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         catch (FormatException)
         {
             return $"{fieldName} image data must be valid base64.";
+        }
+    }
+
+    private static string? ValidateMediaDataUrl(string value, string fieldName)
+    {
+        var imageError = ValidateImageDataUrl(value, fieldName);
+        if (imageError is null)
+        {
+            return null;
+        }
+
+        return ValidateVideoDataUrl(value, fieldName);
+    }
+
+    private static string? ValidateVideoDataUrl(string value, string fieldName)
+    {
+        var prefix = AllowedVideoDataUrlPrefixes.FirstOrDefault(allowedPrefix =>
+            value.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase));
+        if (prefix is null)
+        {
+            return $"{fieldName} must be a JPEG, PNG, WEBP, GIF, MP4, WEBM, or MOV data URL.";
+        }
+
+        if (value.Length > MaxVideoDataUrlLength)
+        {
+            return $"{fieldName} video data cannot exceed {MaxVideoDataUrlLength} characters.";
+        }
+
+        var base64 = value[prefix.Length..];
+        if (string.IsNullOrWhiteSpace(base64))
+        {
+            return $"{fieldName} video data is required.";
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(base64);
+            return bytes.Length <= MaxVideoDataBytes
+                ? null
+                : $"{fieldName} video data cannot exceed 100 MB.";
+        }
+        catch (FormatException)
+        {
+            return $"{fieldName} video data must be valid base64.";
         }
     }
 }

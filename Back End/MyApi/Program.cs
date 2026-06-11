@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
 using MyApi.Services;
 using MyLibrary;
 using Npgsql;
@@ -24,7 +25,7 @@ builder.WebHost.ConfigureKestrel(options =>
     options.AddServerHeader = false;
     options.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(30);
     options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
-    options.Limits.MaxRequestBodySize = 40 * 1024 * 1024;
+    options.Limits.MaxRequestBodySize = 160 * 1024 * 1024;
     options.Limits.MinRequestBodyDataRate = new MinDataRate(bytesPerSecond: 240, gracePeriod: TimeSpan.FromSeconds(10));
     options.Limits.MinResponseDataRate = new MinDataRate(bytesPerSecond: 240, gracePeriod: TimeSpan.FromSeconds(10));
 });
@@ -123,7 +124,7 @@ builder.Services.AddAntiforgery(options =>
 });
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 30 * 1024 * 1024;
+    options.MultipartBodyLengthLimit = 105 * 1024 * 1024;
 });
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
@@ -241,6 +242,11 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+var uploadsRoot = Path.Combine(
+    app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"),
+    "uploads");
+Directory.CreateDirectory(uploadsRoot);
+
 app.Use(async (context, next) =>
 {
     context.Response.OnStarting(() =>
@@ -260,17 +266,17 @@ app.Use(async (context, next) =>
 
 app.UseStaticFiles(new StaticFileOptions
 {
+    FileProvider = new PhysicalFileProvider(uploadsRoot),
+    RequestPath = "/uploads",
     OnPrepareResponse = context =>
     {
-        if (context.Context.Request.Path.StartsWithSegments("/uploads", StringComparison.OrdinalIgnoreCase))
-        {
-            var headers = context.Context.Response.Headers;
-            headers["Content-Disposition"] = "inline";
-            headers["Cache-Control"] = "public, max-age=31536000, immutable";
-            headers.TryAdd("X-Content-Type-Options", "nosniff");
-        }
+        var headers = context.Context.Response.Headers;
+        headers["Content-Disposition"] = "inline";
+        headers["Cache-Control"] = "public, max-age=31536000, immutable";
+        headers.TryAdd("X-Content-Type-Options", "nosniff");
     }
 });
+app.UseStaticFiles();
 app.UseCors(FrontendCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();

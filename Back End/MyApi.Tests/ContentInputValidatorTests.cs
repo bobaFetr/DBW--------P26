@@ -156,6 +156,67 @@ public class ContentInputValidatorTests
     }
 
     [Fact]
+    public async Task ValidateEntityAsync_AcceptsVideoDataUrlForGallery()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Gallery
+        {
+            Title = "Live Clip",
+            ImageUrl = "data:video/mp4;base64,AQIDBA=="
+        });
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsVideoDataUrlForMemberPhoto()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Members
+        {
+            Name = "Alex",
+            Instrument = "Guitar",
+            PhotoUrl = "data:video/mp4;base64,AQIDBA=="
+        });
+
+        Assert.Equal("PhotoUrl must be a JPEG, PNG, WEBP, or GIF image data URL.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsUnsafeGalleryMediaPath()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Gallery
+        {
+            Title = "Live Clip",
+            ImageUrl = "/videos/live.mp4"
+        });
+
+        Assert.Equal("ImageUrl must be an uploaded media path, media data URL, or HTTP(S) URL.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsInvalidVideoDataUrlForGallery()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Gallery
+        {
+            Title = "Live Clip",
+            ImageUrl = "data:video/mp4;base64,not-base64!"
+        });
+
+        Assert.Equal("ImageUrl video data must be valid base64.", error);
+    }
+
+    [Fact]
     public async Task ValidateEntityAsync_RejectsSingleWithMissingAlbum()
     {
         using var dbContext = TestDb.Create();

@@ -51,6 +51,42 @@ public sealed class UploadsControllerTests
         Assert.Equal($"data:image/png;base64,{Convert.ToBase64String(CreatePngHeader(width: 2, height: 3))}", upload.Url);
     }
 
+    [Fact]
+    public async Task UploadVideo_RejectsExtensionContentTypeMismatch()
+    {
+        var file = CreateFormFile(CreateMp4Header(), "clip.mp4", "video/webm");
+
+        var response = await controller.UploadVideo(file);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(response.Result);
+        Assert.Equal("Only MP4, WEBM, and MOV video files are allowed.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task UploadVideo_RejectsFakeVideoBytes()
+    {
+        var file = CreateFormFile([1, 2, 3, 4], "clip.mp4", "video/mp4");
+
+        var response = await controller.UploadVideo(file);
+
+        var badRequest = Assert.IsType<BadRequestObjectResult>(response.Result);
+        Assert.Equal("The uploaded file content does not match a supported video format.", badRequest.Value);
+    }
+
+    [Fact]
+    public async Task UploadVideo_AcceptsValidMp4AndReturnsDataUrl()
+    {
+        var file = CreateFormFile(CreateMp4Header(), "clip.mp4", "video/mp4");
+
+        var response = await controller.UploadVideo(file);
+
+        var ok = Assert.IsType<OkObjectResult>(response.Result);
+        var upload = Assert.IsType<MediaUploadResponse>(ok.Value);
+        Assert.Equal($"data:video/mp4;base64,{Convert.ToBase64String(CreateMp4Header())}", upload.Url);
+        Assert.Equal("video/mp4", upload.MediaType);
+        Assert.Equal("video", upload.Kind);
+    }
+
     private static FormFile CreateFormFile(byte[] bytes, string fileName, string contentType)
     {
         var stream = new MemoryStream(bytes);
@@ -77,6 +113,17 @@ public sealed class UploadsControllerTests
         return bytes;
     }
 
+    private static byte[] CreateMp4Header()
+    {
+        return
+        [
+            0x00, 0x00, 0x00, 0x18,
+            0x66, 0x74, 0x79, 0x70,
+            0x69, 0x73, 0x6F, 0x6D,
+            0x00, 0x00, 0x02, 0x00
+        ];
+    }
+
     private static void WriteBigEndianInt32(byte[] bytes, int offset, int value)
     {
         bytes[offset] = (byte)(value >> 24);
@@ -84,4 +131,5 @@ public sealed class UploadsControllerTests
         bytes[offset + 2] = (byte)(value >> 8);
         bytes[offset + 3] = (byte)value;
     }
+
 }

@@ -82,3 +82,4 @@ Because this is a static Next export, this value is baked in during the Render f
 - Log in as the seeded superadmin.
 - Test content reads from the public pages.
 - Test one admin mutation and one image upload.
+- Test one gallery video upload, publish it, and confirm it plays on the gallery page.
