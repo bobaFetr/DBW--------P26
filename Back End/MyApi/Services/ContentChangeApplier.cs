@@ -137,6 +137,7 @@ public class ContentChangeApplier(
             throw new InvalidOperationException(updateValidationError);
         }
 
+        PreserveKeyValue(updated, keyPropertyName, key);
         dbContext.Entry(existing).CurrentValues.SetValues(updated);
         dbContext.Entry(existing).Property(keyPropertyName).IsModified = false;
         await dbContext.SaveChangesAsync(cancellationToken);
@@ -162,5 +163,18 @@ public class ContentChangeApplier(
         }
 
         return false;
+    }
+
+    private static void PreserveKeyValue<TEntity, TKey>(
+        TEntity entity,
+        string keyPropertyName,
+        TKey key)
+        where TEntity : class
+        where TKey : notnull
+    {
+        var keyProperty = typeof(TEntity).GetProperty(keyPropertyName)
+            ?? throw new InvalidOperationException($"Key property '{keyPropertyName}' was not found.");
+
+        keyProperty.SetValue(entity, key);
     }
 }

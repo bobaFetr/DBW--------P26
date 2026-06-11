@@ -9,7 +9,10 @@
     "dev:frontend": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "dotnet test \"Back End/MyApi.Tests/MyApi.Tests.csproj\" /m:1",
+    "test:frontend": "node --test tests/frontend/*.test.cjs"
   },
   "dependencies": {
     "next": "^15.3.0",
