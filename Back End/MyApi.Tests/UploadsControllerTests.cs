@@ -101,12 +101,39 @@ public sealed class UploadsControllerTests : IDisposable
         Assert.Equal("clip.mp4", saved.FileName);
         Assert.Equal("video/mp4", saved.ContentType);
         Assert.Equal("video", saved.Kind);
-        Assert.Equal(CreateMp4Header(), saved.Data);
+        Assert.Empty(saved.Data);
         Assert.EndsWith(saved.Id.ToString(), upload.Url);
+
+        var chunk = Assert.Single(dbContext.MediaUploadChunks);
+        Assert.Equal(saved.Id, chunk.MediaUploadId);
+        Assert.Equal(0, chunk.Sequence);
+        Assert.Equal(CreateMp4Header(), chunk.Data);
     }
 
     [Fact]
-    public async Task GetVideo_ReturnsStoredVideoFromDatabase()
+    public async Task UploadVideo_SplitsLargeVideoIntoOrderedChunks()
+    {
+        var bytes = CreateMp4LikeBytes(600_000);
+        var file = CreateFormFile(bytes, "clip.mp4", "video/mp4");
+
+        var response = await controller.UploadVideo(file);
+
+        Assert.IsType<OkObjectResult>(response.Result);
+        var saved = Assert.Single(dbContext.MediaUploads);
+        var chunks = dbContext.MediaUploadChunks
+            .Where(chunk => chunk.MediaUploadId == saved.Id)
+            .OrderBy(chunk => chunk.Sequence)
+            .Select(chunk => chunk.Data)
+            .ToList();
+        Assert.Equal(2, chunks.Count);
+
+        var streamed = await controller.GetVideo(saved.Id, CancellationToken.None);
+        var fileResult = Assert.IsType<FileContentResult>(streamed);
+        Assert.Equal(bytes, fileResult.FileContents);
+    }
+
+    [Fact]
+    public async Task GetVideo_ReturnsChunkedVideoFromDatabase()
     {
         var upload = new MediaUpload
         {
@@ -115,10 +142,17 @@ public sealed class UploadsControllerTests : IDisposable
             ContentType = "video/mp4",
             Kind = "video",
             Length = CreateMp4Header().Length,
-            Data = CreateMp4Header(),
+            Data = [],
             CreatedAtUtc = DateTime.UtcNow
         };
         dbContext.MediaUploads.Add(upload);
+        dbContext.MediaUploadChunks.Add(new MediaUploadChunk
+        {
+            Id = Guid.NewGuid(),
+            MediaUploadId = upload.Id,
+            Sequence = 0,
+            Data = CreateMp4Header()
+        });
         await dbContext.SaveChangesAsync();
 
         var response = await controller.GetVideo(upload.Id, CancellationToken.None);
@@ -169,6 +203,19 @@ public sealed class UploadsControllerTests : IDisposable
             0x69, 0x73, 0x6F, 0x6D,
             0x00, 0x00, 0x02, 0x00
         ];
+    }
+
+    private static byte[] CreateMp4LikeBytes(int length)
+    {
+        var bytes = new byte[length];
+        var header = CreateMp4Header();
+        Buffer.BlockCopy(header, 0, bytes, 0, header.Length);
+        for (var index = header.Length; index < bytes.Length; index++)
+        {
+            bytes[index] = (byte)(index % 251);
+        }
+
+        return bytes;
     }
 
     private static void WriteBigEndianInt32(byte[] bytes, int offset, int value)

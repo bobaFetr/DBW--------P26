@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -243,6 +244,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors(FrontendCorsPolicy);
+
 var uploadsRoot = Path.Combine(
     app.Environment.WebRootPath ?? Path.Combine(app.Environment.ContentRootPath, "wwwroot"),
     "uploads");
@@ -265,6 +268,25 @@ app.Use(async (context, next) =>
     await next();
 });
 
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("GlobalExceptionHandler");
+        logger.LogError(
+            exception,
+            "Unhandled API exception for {Method} {Path}",
+            context.Request.Method,
+            context.Request.Path);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "text/plain";
+        await context.Response.WriteAsync("The server could not complete this request. Check the API logs for details.");
+    });
+});
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsRoot),
@@ -278,7 +300,6 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 app.UseStaticFiles();
-app.UseCors(FrontendCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

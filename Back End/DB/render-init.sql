@@ -496,3 +496,35 @@ BEGIN
 END $EF$;
 COMMIT;
 
+START TRANSACTION;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260611174349_AddMediaUploadChunks') THEN
+    CREATE TABLE "MediaUploadChunks" (
+        "Id" uuid NOT NULL,
+        "MediaUploadId" uuid NOT NULL,
+        "Sequence" integer NOT NULL,
+        "Data" bytea NOT NULL,
+        CONSTRAINT "PK_MediaUploadChunks" PRIMARY KEY ("Id"),
+        CONSTRAINT "FK_MediaUploadChunks_MediaUploads_MediaUploadId" FOREIGN KEY ("MediaUploadId") REFERENCES "MediaUploads" ("Id") ON DELETE CASCADE
+    );
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260611174349_AddMediaUploadChunks') THEN
+    CREATE UNIQUE INDEX "IX_MediaUploadChunks_MediaUploadId_Sequence" ON "MediaUploadChunks" ("MediaUploadId", "Sequence");
+    END IF;
+END $EF$;
+
+DO $EF$
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM "__EFMigrationsHistory" WHERE "MigrationId" = '20260611174349_AddMediaUploadChunks') THEN
+    INSERT INTO "__EFMigrationsHistory" ("MigrationId", "ProductVersion")
+    VALUES ('20260611174349_AddMediaUploadChunks', '10.0.8');
+    END IF;
+END $EF$;
+COMMIT;
+

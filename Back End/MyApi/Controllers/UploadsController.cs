@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using MyLibrary;
 
 namespace MyApi.Controllers;
@@ -9,12 +10,16 @@ namespace MyApi.Controllers;
 [ApiController]
 [Route("api/uploads")]
 [Authorize(Roles = "SuperAdmin,ContentAdmin")]
-public class UploadsController(AppDbContext dbContext) : ControllerBase
+public class UploadsController(
+    AppDbContext dbContext,
+    ILogger<UploadsController>? logger = null) : ControllerBase
 {
     private const long MaxImageBytes = 25 * 1024 * 1024;
     private const long MaxUploadRequestBytes = 30 * 1024 * 1024;
     private const long MaxVideoBytes = 100 * 1024 * 1024;
     private const long MaxVideoUploadRequestBytes = 105 * 1024 * 1024;
+    private const int VideoChunkBytes = 512 * 1024;
+    private const int VideoChunkBatchSize = 4;
 
     private static readonly Dictionary<string, string[]> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -113,10 +118,25 @@ public class UploadsController(AppDbContext dbContext) : ControllerBase
             }
         }
 
-        await using var input = file.OpenReadStream();
-        await using var buffer = new MemoryStream();
-        await input.CopyToAsync(buffer);
-        var bytes = buffer.ToArray();
+        byte[] bytes;
+        try
+        {
+            await using var input = file.OpenReadStream();
+            await using var buffer = new MemoryStream();
+            await input.CopyToAsync(buffer);
+            bytes = buffer.ToArray();
+        }
+        catch (IOException ex)
+        {
+            logger?.LogWarning(
+                ex,
+                "Could not read uploaded video {FileName} with {Length} bytes.",
+                file.FileName,
+                file.Length);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                "The uploaded video could not be read. Try a smaller MP4, WEBM, or MOV file.");
+        }
 
         if (!TryValidateVideo(bytes.AsSpan(0, Math.Min(bytes.Length, 64)), extension, out var fullContentValidationError))
         {
@@ -131,12 +151,25 @@ public class UploadsController(AppDbContext dbContext) : ControllerBase
             ContentType = mediaType,
             Kind = "video",
             Length = bytes.Length,
-            Data = bytes,
+            Data = [],
             CreatedAtUtc = DateTime.UtcNow
         };
 
-        dbContext.MediaUploads.Add(upload);
-        await dbContext.SaveChangesAsync();
+        try
+        {
+            await StoreVideoAsync(upload, bytes);
+        }
+        catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException or IOException)
+        {
+            logger?.LogError(
+                ex,
+                "Could not store uploaded video {FileName} with {Length} bytes in the database.",
+                upload.FileName,
+                upload.Length);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                "The uploaded video could not be stored in the database. Try a smaller video, or check that the MediaUploads migrations have run.");
+        }
 
         return Ok(new MediaUploadResponse($"/api/uploads/videos/{upload.Id}", mediaType, "video"));
     }
@@ -156,8 +189,66 @@ public class UploadsController(AppDbContext dbContext) : ControllerBase
             return NotFound();
         }
 
+        var chunks = await dbContext.MediaUploadChunks
+            .AsNoTracking()
+            .Where(chunk => chunk.MediaUploadId == id)
+            .OrderBy(chunk => chunk.Sequence)
+            .Select(chunk => chunk.Data)
+            .ToListAsync(cancellationToken);
+
+        var data = chunks.Count > 0
+            ? CombineChunks(chunks, upload.Length)
+            : upload.Data;
+
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return File(upload.Data, upload.ContentType, enableRangeProcessing: true);
+        return File(data, upload.ContentType, enableRangeProcessing: true);
+    }
+
+    private async Task StoreVideoAsync(MediaUpload upload, byte[] bytes)
+    {
+        dbContext.MediaUploads.Add(upload);
+        await dbContext.SaveChangesAsync();
+
+        var sequence = 0;
+        for (var offset = 0; offset < bytes.Length; offset += VideoChunkBytes)
+        {
+            var chunkLength = Math.Min(VideoChunkBytes, bytes.Length - offset);
+            var chunkBytes = new byte[chunkLength];
+            Buffer.BlockCopy(bytes, offset, chunkBytes, 0, chunkLength);
+
+            dbContext.MediaUploadChunks.Add(new MediaUploadChunk
+            {
+                Id = Guid.NewGuid(),
+                MediaUploadId = upload.Id,
+                Sequence = sequence++,
+                Data = chunkBytes
+            });
+
+            if (sequence % VideoChunkBatchSize == 0)
+            {
+                await dbContext.SaveChangesAsync();
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static byte[] CombineChunks(IReadOnlyCollection<byte[]> chunks, long expectedLength)
+    {
+        if (expectedLength > int.MaxValue)
+        {
+            throw new InvalidOperationException("Stored video is too large to serve.");
+        }
+
+        var data = new byte[(int)expectedLength];
+        var offset = 0;
+        foreach (var chunk in chunks)
+        {
+            Buffer.BlockCopy(chunk, 0, data, offset, chunk.Length);
+            offset += chunk.Length;
+        }
+
+        return data;
     }
 
     private static string GetImageMediaType(string extension)

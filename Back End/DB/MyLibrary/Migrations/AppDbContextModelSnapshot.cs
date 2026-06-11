@@ -551,6 +551,30 @@ namespace MyLibrary.Migrations
                     b.ToTable("MediaUploads");
                 });
 
+            modelBuilder.Entity("MyLibrary.MediaUploadChunk", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Data")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<Guid>("MediaUploadId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MediaUploadId", "Sequence")
+                        .IsUnique();
+
+                    b.ToTable("MediaUploadChunks");
+                });
+
             modelBuilder.Entity("MyLibrary.Members", b =>
                 {
                     b.Property<int>("Id")
@@ -781,6 +805,17 @@ namespace MyLibrary.Migrations
                         .IsRequired();
 
                     b.Navigation("RequestedByUser");
+                });
+
+            modelBuilder.Entity("MyLibrary.MediaUploadChunk", b =>
+                {
+                    b.HasOne("MyLibrary.MediaUpload", "MediaUpload")
+                        .WithMany()
+                        .HasForeignKey("MediaUploadId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MediaUpload");
                 });
 
             modelBuilder.Entity("MyLibrary.Singles", b =>

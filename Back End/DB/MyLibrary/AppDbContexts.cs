@@ -19,6 +19,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Members> Members { get; set; }
     public DbSet<Gallery> Gallery { get; set; }
     public DbSet<MediaUpload> MediaUploads { get; set; }
+    public DbSet<MediaUploadChunk> MediaUploadChunks { get; set; }
 
     public DbSet<AdminProfile> AdminProfiles { get; set; }
     public DbSet<AdminRequest> AdminRequests { get; set; }
@@ -242,5 +243,19 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<MediaUpload>()
             .HasIndex(upload => upload.CreatedAtUtc);
+
+        modelBuilder.Entity<MediaUploadChunk>()
+            .HasOne(chunk => chunk.MediaUpload)
+            .WithMany()
+            .HasForeignKey(chunk => chunk.MediaUploadId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<MediaUploadChunk>()
+            .Property(chunk => chunk.Data)
+            .IsRequired();
+
+        modelBuilder.Entity<MediaUploadChunk>()
+            .HasIndex(chunk => new { chunk.MediaUploadId, chunk.Sequence })
+            .IsUnique();
     }
 }
