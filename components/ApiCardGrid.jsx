@@ -49,7 +49,6 @@ function toCards(contentType, rows) {
       return rows.map((row) => ({
         title: row.name,
         meta: row.instrument,
-        body: row.photoUrl,
         cover: safeImageUrl(row.photoUrl),
         coverAlt: row.name
       }));

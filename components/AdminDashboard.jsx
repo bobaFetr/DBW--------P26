@@ -125,7 +125,7 @@ const COLLECTIONS = [
     ],
     title: (record) => record.name,
     meta: (record) => record.instrument,
-    detail: (record) => record.photoUrl
+    detail: () => "Photo uploaded"
   },
   {
     key: "gallery",
@@ -138,7 +138,7 @@ const COLLECTIONS = [
       { key: "description", label: "Description", type: "textarea", emptyValue: "" }
     ],
     title: (record) => record.title,
-    meta: (record) => record.imageUrl,
+    meta: () => "Image uploaded",
     detail: (record) => record.description
   }
 ];
