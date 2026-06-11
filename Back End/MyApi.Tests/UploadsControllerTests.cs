@@ -1,12 +1,23 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MyApi.Controllers;
+using MyLibrary;
 
 namespace MyApi.Tests;
 
-public sealed class UploadsControllerTests
+public sealed class UploadsControllerTests : IDisposable
 {
-    private readonly UploadsController controller = new();
+    private readonly AppDbContext dbContext = TestDb.Create();
+    private readonly UploadsController controller;
+
+    public UploadsControllerTests()
+    {
+        controller = new UploadsController(dbContext);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+    }
 
     [Fact]
     public async Task UploadImage_RejectsMissingFile()
@@ -74,7 +85,7 @@ public sealed class UploadsControllerTests
     }
 
     [Fact]
-    public async Task UploadVideo_AcceptsValidMp4AndReturnsDataUrl()
+    public async Task UploadVideo_AcceptsValidMp4StoresInDatabaseAndReturnsMediaUrl()
     {
         var file = CreateFormFile(CreateMp4Header(), "clip.mp4", "video/mp4");
 
@@ -82,9 +93,45 @@ public sealed class UploadsControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(response.Result);
         var upload = Assert.IsType<MediaUploadResponse>(ok.Value);
-        Assert.Equal($"data:video/mp4;base64,{Convert.ToBase64String(CreateMp4Header())}", upload.Url);
+        Assert.StartsWith("/api/uploads/videos/", upload.Url);
         Assert.Equal("video/mp4", upload.MediaType);
         Assert.Equal("video", upload.Kind);
+
+        var saved = Assert.Single(dbContext.MediaUploads);
+        Assert.Equal("clip.mp4", saved.FileName);
+        Assert.Equal("video/mp4", saved.ContentType);
+        Assert.Equal("video", saved.Kind);
+        Assert.Equal(CreateMp4Header(), saved.Data);
+        Assert.EndsWith(saved.Id.ToString(), upload.Url);
+    }
+
+    [Fact]
+    public async Task GetVideo_ReturnsStoredVideoFromDatabase()
+    {
+        var upload = new MediaUpload
+        {
+            Id = Guid.NewGuid(),
+            FileName = "clip.mp4",
+            ContentType = "video/mp4",
+            Kind = "video",
+            Length = CreateMp4Header().Length,
+            Data = CreateMp4Header(),
+            CreatedAtUtc = DateTime.UtcNow
+        };
+        dbContext.MediaUploads.Add(upload);
+        await dbContext.SaveChangesAsync();
+
+        var response = await controller.GetVideo(upload.Id, CancellationToken.None);
+
+        var file = Assert.IsType<FileContentResult>(response);
+        Assert.Equal("video/mp4", file.ContentType);
+        Assert.True(file.EnableRangeProcessing);
+        Assert.Equal(CreateMp4Header(), file.FileContents);
+    }
+
+    public void Dispose()
+    {
+        dbContext.Dispose();
     }
 
     private static FormFile CreateFormFile(byte[] bytes, string fileName, string contentType)

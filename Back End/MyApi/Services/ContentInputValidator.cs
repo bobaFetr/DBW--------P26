@@ -18,7 +18,7 @@ public interface IContentInputValidator
 
 public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInputValidator
 {
-    public const int MaxPayloadJsonLength = 150_000_000;
+    public const int MaxPayloadJsonLength = 40_000_000;
     private const int MaxUrlLength = 500;
     private const int MaxImageDataUrlLength = 35_000_000;
     private const int MaxImageDataBytes = 25 * 1024 * 1024;
@@ -321,6 +321,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         if (value.StartsWith('/'))
         {
             return value.StartsWith("/uploads/images/", StringComparison.Ordinal)
+                || IsApiUploadedVideoPath(value)
                 || value.Equals("/BUntitled.png", StringComparison.Ordinal)
                     ? null
                     : $"{fieldName} must be an uploaded media path, media data URL, or HTTP(S) URL.";
@@ -363,6 +364,13 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
             (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
                 ? null
                 : $"{fieldName} must be a valid HTTP or HTTPS URL.";
+    }
+
+    private static bool IsApiUploadedVideoPath(string value)
+    {
+        const string prefix = "/api/uploads/videos/";
+        return value.StartsWith(prefix, StringComparison.Ordinal) &&
+            Guid.TryParse(value[prefix.Length..], out _);
     }
 
     private static string? ValidateImageDataUrl(string value, string fieldName)

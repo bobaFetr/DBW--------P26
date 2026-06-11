@@ -222,6 +222,7 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+await ApplyMigrationsAsync(app.Services);
 await DatabaseSeeder.SeedAsync(
     app.Services,
     new DatabaseSeedOptions(
@@ -287,6 +288,13 @@ app.MapGet("/health", () => Results.Ok(new { status = "ok" }))
 app.MapControllers();
 
 app.Run();
+
+static async Task ApplyMigrationsAsync(IServiceProvider services)
+{
+    await using var scope = services.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 static async Task ValidatePrincipalAsync(CookieValidatePrincipalContext context)
 {

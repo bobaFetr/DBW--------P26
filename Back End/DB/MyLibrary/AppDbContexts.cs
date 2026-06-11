@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<TimeLine> TimeLines { get; set; }
     public DbSet<Members> Members { get; set; }
     public DbSet<Gallery> Gallery { get; set; }
+    public DbSet<MediaUpload> MediaUploads { get; set; }
 
     public DbSet<AdminProfile> AdminProfiles { get; set; }
     public DbSet<AdminRequest> AdminRequests { get; set; }
@@ -219,5 +220,27 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<Gallery>()
             .Property(g => g.ImageUrl)
             .IsRequired();
+
+        modelBuilder.Entity<MediaUpload>()
+            .Property(upload => upload.FileName)
+            .IsRequired()
+            .HasMaxLength(260);
+
+        modelBuilder.Entity<MediaUpload>()
+            .Property(upload => upload.ContentType)
+            .IsRequired()
+            .HasMaxLength(120);
+
+        modelBuilder.Entity<MediaUpload>()
+            .Property(upload => upload.Kind)
+            .IsRequired()
+            .HasMaxLength(40);
+
+        modelBuilder.Entity<MediaUpload>()
+            .Property(upload => upload.Data)
+            .IsRequired();
+
+        modelBuilder.Entity<MediaUpload>()
+            .HasIndex(upload => upload.CreatedAtUtc);
     }
 }

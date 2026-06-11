@@ -156,6 +156,22 @@ public class ContentInputValidatorTests
     }
 
     [Fact]
+    public async Task ValidateEntityAsync_AcceptsDatabaseVideoPathForGallery()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+        var videoId = Guid.NewGuid();
+
+        var error = await validator.ValidateEntityAsync(new Gallery
+        {
+            Title = "Live Clip",
+            ImageUrl = $"/api/uploads/videos/{videoId}"
+        });
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateEntityAsync_AcceptsVideoDataUrlForGallery()
     {
         using var dbContext = TestDb.Create();
@@ -163,7 +179,7 @@ public class ContentInputValidatorTests
 
         var error = await validator.ValidateEntityAsync(new Gallery
         {
-            Title = "Live Clip",
+            Title = "Legacy Live Clip",
             ImageUrl = "data:video/mp4;base64,AQIDBA=="
         });
 
@@ -196,6 +212,21 @@ public class ContentInputValidatorTests
         {
             Title = "Live Clip",
             ImageUrl = "/videos/live.mp4"
+        });
+
+        Assert.Equal("ImageUrl must be an uploaded media path, media data URL, or HTTP(S) URL.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsOldUploadedVideoFilePathForGallery()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Gallery
+        {
+            Title = "Live Clip",
+            ImageUrl = "/uploads/videos/live.mp4"
         });
 
         Assert.Equal("ImageUrl must be an uploaded media path, media data URL, or HTTP(S) URL.", error);

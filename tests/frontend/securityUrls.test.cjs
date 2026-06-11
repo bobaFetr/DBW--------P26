@@ -60,9 +60,15 @@ test("safeImageUrl resolves uploaded assets against the API base", () => {
 test("safeMediaUrl accepts database-stored video data URLs", () => {
   const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule("https://api.example.com/");
   const videoDataUrl = "data:video/mp4;base64,AQIDBA==";
+  const videoPath = "/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000";
 
   assert.equal(safeMediaUrl(videoDataUrl), videoDataUrl);
+  assert.equal(
+    safeMediaUrl(videoPath),
+    "https://api.example.com/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000"
+  );
   assert.equal(isVideoUrl(videoDataUrl), true);
+  assert.equal(isVideoUrl(videoPath), true);
   assert.equal(isVideoUrl("https://example.com/live.webm"), true);
 });
 
@@ -83,6 +89,7 @@ test("safeMediaUrl rejects unsafe video URL forms", () => {
   const { safeMediaUrl } = loadSecurityUrlModule();
 
   assert.equal(safeMediaUrl("/uploads/videos/live.mp4"), undefined);
+  assert.equal(safeMediaUrl("/api/uploads/videos/not-a-guid"), undefined);
   assert.equal(safeMediaUrl("/videos/live.mp4"), undefined);
   assert.equal(safeMediaUrl("data:video/mp4;base64,not-base64!"), undefined);
   assert.equal(safeMediaUrl("javascript:alert(1)"), undefined);

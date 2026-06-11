@@ -1,13 +1,15 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
+using MyLibrary;
 
 namespace MyApi.Controllers;
 
 [ApiController]
 [Route("api/uploads")]
 [Authorize(Roles = "SuperAdmin,ContentAdmin")]
-public class UploadsController : ControllerBase
+public class UploadsController(AppDbContext dbContext) : ControllerBase
 {
     private const long MaxImageBytes = 25 * 1024 * 1024;
     private const long MaxUploadRequestBytes = 30 * 1024 * 1024;
@@ -121,8 +123,41 @@ public class UploadsController : ControllerBase
             return BadRequest(fullContentValidationError);
         }
 
-        var dataUrl = $"data:{GetVideoMediaType(extension)};base64,{Convert.ToBase64String(bytes)}";
-        return Ok(new MediaUploadResponse(dataUrl, GetVideoMediaType(extension), "video"));
+        var mediaType = GetVideoMediaType(extension);
+        var upload = new MediaUpload
+        {
+            Id = Guid.NewGuid(),
+            FileName = Path.GetFileName(file.FileName),
+            ContentType = mediaType,
+            Kind = "video",
+            Length = bytes.Length,
+            Data = bytes,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        dbContext.MediaUploads.Add(upload);
+        await dbContext.SaveChangesAsync();
+
+        return Ok(new MediaUploadResponse($"/api/uploads/videos/{upload.Id}", mediaType, "video"));
+    }
+
+    [HttpGet("videos/{id:guid}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetVideo(Guid id, CancellationToken cancellationToken)
+    {
+        var upload = await dbContext.MediaUploads
+            .AsNoTracking()
+            .FirstOrDefaultAsync(
+                item => item.Id == id && item.Kind == "video",
+                cancellationToken);
+
+        if (upload is null)
+        {
+            return NotFound();
+        }
+
+        Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        return File(upload.Data, upload.ContentType, enableRangeProcessing: true);
     }
 
     private static string GetImageMediaType(string extension)

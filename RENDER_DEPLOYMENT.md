@@ -59,6 +59,8 @@ The SQL script creates the database schema only. It does not contain public page
 
 Public albums, singles, concerts, gallery, news, members, and timeline entries are loaded from the database through the API. Add or edit that content from the admin dashboard.
 
+Gallery video uploads are stored in the database in the `MediaUploads` table. The API applies pending EF migrations on startup, so redeploying `paralyze-api` should create this table automatically. If startup migration is not allowed in an environment, rerun the idempotent `Back End/DB/render-init.sql` script manually.
+
 If an older deployment inserted demo seed rows, remove them from pgAdmin with:
 
 ```text
