@@ -218,7 +218,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
 
         modelBuilder.Entity<Gallery>()
             .Property(g => g.ImageUrl)
-            .IsRequired()
-            .HasMaxLength(500);
+            .IsRequired();
     }
 }

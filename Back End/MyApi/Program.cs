@@ -24,7 +24,7 @@ builder.WebHost.ConfigureKestrel(options =>
     options.AddServerHeader = false;
     options.Limits.KeepAliveTimeout = TimeSpan.FromSeconds(30);
     options.Limits.RequestHeadersTimeout = TimeSpan.FromSeconds(15);
-    options.Limits.MaxRequestBodySize = 5 * 1024 * 1024;
+    options.Limits.MaxRequestBodySize = 8 * 1024 * 1024;
     options.Limits.MinRequestBodyDataRate = new MinDataRate(bytesPerSecond: 240, gracePeriod: TimeSpan.FromSeconds(10));
     options.Limits.MinResponseDataRate = new MinDataRate(bytesPerSecond: 240, gracePeriod: TimeSpan.FromSeconds(10));
 });
@@ -123,7 +123,7 @@ builder.Services.AddAntiforgery(options =>
 });
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 5 * 1024 * 1024;
+    options.MultipartBodyLengthLimit = 6 * 1024 * 1024;
 });
 builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>

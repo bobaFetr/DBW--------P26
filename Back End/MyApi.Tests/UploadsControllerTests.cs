@@ -1,21 +1,12 @@
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.FileProviders;
 using MyApi.Controllers;
 
 namespace MyApi.Tests;
 
-public sealed class UploadsControllerTests : IDisposable
+public sealed class UploadsControllerTests
 {
-    private readonly string rootPath = Path.Combine(Path.GetTempPath(), $"uploads-tests-{Guid.NewGuid():N}");
-    private readonly UploadsController controller;
-
-    public UploadsControllerTests()
-    {
-        Directory.CreateDirectory(rootPath);
-        controller = new UploadsController(new TestWebHostEnvironment(rootPath));
-    }
+    private readonly UploadsController controller = new();
 
     [Fact]
     public async Task UploadImage_RejectsMissingFile()
@@ -49,7 +40,7 @@ public sealed class UploadsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task UploadImage_AcceptsValidPngAndStoresItUnderUploads()
+    public async Task UploadImage_AcceptsValidPngAndReturnsDataUrl()
     {
         var file = CreateFormFile(CreatePngHeader(width: 2, height: 3), "photo.png", "image/png");
 
@@ -57,14 +48,7 @@ public sealed class UploadsControllerTests : IDisposable
 
         var ok = Assert.IsType<OkObjectResult>(response.Result);
         var upload = Assert.IsType<ImageUploadResponse>(ok.Value);
-        Assert.StartsWith("/uploads/images/", upload.Url);
-        Assert.EndsWith(".png", upload.Url);
-
-        var storedPath = Path.Combine(
-            rootPath,
-            "wwwroot",
-            upload.Url.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-        Assert.True(File.Exists(storedPath));
+        Assert.Equal($"data:image/png;base64,{Convert.ToBase64String(CreatePngHeader(width: 2, height: 3))}", upload.Url);
     }
 
     [Fact]
@@ -78,14 +62,6 @@ public sealed class UploadsControllerTests : IDisposable
         Assert.Equal(
             "The uploaded image cannot exceed 8000px per side or 25000000 total pixels.",
             badRequest.Value);
-    }
-
-    public void Dispose()
-    {
-        if (Directory.Exists(rootPath))
-        {
-            Directory.Delete(rootPath, recursive: true);
-        }
     }
 
     private static FormFile CreateFormFile(byte[] bytes, string fileName, string contentType)
@@ -120,15 +96,5 @@ public sealed class UploadsControllerTests : IDisposable
         bytes[offset + 1] = (byte)(value >> 16);
         bytes[offset + 2] = (byte)(value >> 8);
         bytes[offset + 3] = (byte)value;
-    }
-
-    private sealed class TestWebHostEnvironment(string contentRootPath) : IWebHostEnvironment
-    {
-        public string ApplicationName { get; set; } = "MyApi.Tests";
-        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
-        public string ContentRootPath { get; set; } = contentRootPath;
-        public string EnvironmentName { get; set; } = "Development";
-        public string WebRootPath { get; set; } = Path.Combine(contentRootPath, "wwwroot");
-        public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
     }
 }

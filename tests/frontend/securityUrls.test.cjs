@@ -62,7 +62,10 @@ test("safeImageUrl accepts only safe image URL forms", () => {
 
   assert.equal(safeImageUrl("https://example.com/poster.png"), "https://example.com/poster.png");
   assert.equal(safeImageUrl("http://example.com/poster.png"), "http://example.com/poster.png");
+  assert.equal(safeImageUrl("data:image/jpeg;base64,AQIDBA=="), "data:image/jpeg;base64,AQIDBA==");
   assert.equal(safeImageUrl("javascript:alert(1)"), undefined);
+  assert.equal(safeImageUrl("data:text/html;base64,AQIDBA=="), undefined);
+  assert.equal(safeImageUrl("data:image/svg+xml;base64,AQIDBA=="), undefined);
   assert.equal(safeImageUrl("/images/poster.png"), undefined);
   assert.equal(safeImageUrl("example.com/poster.png"), undefined);
 });

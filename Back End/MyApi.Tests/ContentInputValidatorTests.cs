@@ -119,6 +119,7 @@ public class ContentInputValidatorTests
     [InlineData("/BUntitled.png")]
     [InlineData("https://example.com/member.png")]
     [InlineData("http://example.com/member.png")]
+    [InlineData("data:image/jpeg;base64,AQIDBA==")]
     public async Task ValidateEntityAsync_AcceptsAllowedImageUrls(string url)
     {
         using var dbContext = TestDb.Create();
@@ -135,8 +136,10 @@ public class ContentInputValidatorTests
     }
 
     [Theory]
-    [InlineData("/images/photo.png", "PhotoUrl must be an uploaded image path or HTTPS URL.")]
+    [InlineData("/images/photo.png", "PhotoUrl must be an uploaded image path, image data URL, or HTTP(S) URL.")]
     [InlineData("javascript:alert(1)", "PhotoUrl must be a valid HTTP or HTTPS URL.")]
+    [InlineData("data:text/html;base64,AQIDBA==", "PhotoUrl must be a JPEG, PNG, WEBP, or GIF image data URL.")]
+    [InlineData("data:image/jpeg;base64,not-base64!", "PhotoUrl image data must be valid base64.")]
     public async Task ValidateEntityAsync_RejectsUnsafeImageUrls(string url, string expected)
     {
         using var dbContext = TestDb.Create();
@@ -165,5 +168,20 @@ public class ContentInputValidatorTests
         });
 
         Assert.Equal("AlbumId '999' does not exist. Leave Album ID empty or choose an existing album.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsImageDataUrlForStreamingLinks()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Singles
+        {
+            SongName = "Signal",
+            AvailableOnYoutube = "data:image/jpeg;base64,AQIDBA=="
+        });
+
+        Assert.Equal("AvailableOnYoutube must be a valid HTTP or HTTPS URL.", error);
     }
 }

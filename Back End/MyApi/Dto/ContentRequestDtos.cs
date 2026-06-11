@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using MyApi.Services;
 using MyLibrary;
 
 namespace MyApi.Dto;
@@ -7,7 +8,7 @@ public record CreateContentChangeRequestDto(
     [Required, StringLength(80)] string ContentType,
     [StringLength(80)] string? TargetEntityId,
     ContentChangeAction Action,
-    [Required, StringLength(20000)] string PayloadJson,
+    [Required, StringLength(ContentInputValidator.MaxPayloadJsonLength)] string PayloadJson,
     [StringLength(1000)] string? Message);
 
 public record ContentChangeRequestResponse(

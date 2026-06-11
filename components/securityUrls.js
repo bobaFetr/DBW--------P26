@@ -1,4 +1,5 @@
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+const IMAGE_DATA_URL_PATTERN = /^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/i;
 
 function apiAssetUrl(path) {
   return `${API_BASE.replace(/\/$/, "")}${path}`;
@@ -34,6 +35,10 @@ export function safeImageUrl(value) {
   }
 
   if (trimmed === "/BUntitled.png") {
+    return trimmed;
+  }
+
+  if (IMAGE_DATA_URL_PATTERN.test(trimmed)) {
     return trimmed;
   }
 

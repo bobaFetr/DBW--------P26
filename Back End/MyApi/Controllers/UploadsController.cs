@@ -7,9 +7,10 @@ namespace MyApi.Controllers;
 [ApiController]
 [Route("api/uploads")]
 [Authorize(Roles = "SuperAdmin,ContentAdmin")]
-public class UploadsController(IWebHostEnvironment environment) : ControllerBase
+public class UploadsController : ControllerBase
 {
     private const long MaxImageBytes = 5 * 1024 * 1024;
+    private const long MaxUploadRequestBytes = 6 * 1024 * 1024;
     private const int MaxImageDimension = 8000;
     private const long MaxImagePixels = 25_000_000;
 
@@ -25,7 +26,7 @@ public class UploadsController(IWebHostEnvironment environment) : ControllerBase
     [HttpPost("images")]
     [Consumes("multipart/form-data")]
     [EnableRateLimiting("UploadSensitive")]
-    [RequestSizeLimit(MaxImageBytes)]
+    [RequestSizeLimit(MaxUploadRequestBytes)]
     public async Task<ActionResult<ImageUploadResponse>> UploadImage([FromForm] IFormFile? file)
     {
         if (file is null)
@@ -60,29 +61,20 @@ public class UploadsController(IWebHostEnvironment environment) : ControllerBase
             return BadRequest(validationError);
         }
 
-        var webRoot = environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot");
-        var uploadRoot = Path.GetFullPath(Path.Combine(webRoot, "uploads", "images"));
-        Directory.CreateDirectory(uploadRoot);
+        var dataUrl = $"data:{GetImageMediaType(extension)};base64,{Convert.ToBase64String(bytes)}";
+        return Ok(new ImageUploadResponse(dataUrl));
+    }
 
-        var fileName = $"{Guid.NewGuid():N}{extension}";
-        var filePath = Path.GetFullPath(Path.Combine(uploadRoot, fileName));
-        if (!filePath.StartsWith(uploadRoot + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+    private static string GetImageMediaType(string extension)
+    {
+        return extension switch
         {
-            return BadRequest("The upload path is invalid.");
-        }
-
-        await using (var stream = new FileStream(
-            filePath,
-            FileMode.CreateNew,
-            FileAccess.Write,
-            FileShare.None,
-            bufferSize: 81920,
-            useAsync: true))
-        {
-            await stream.WriteAsync(bytes);
-        }
-
-        return Ok(new ImageUploadResponse($"/uploads/images/{fileName}"));
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".gif" => "image/gif",
+            _ => "application/octet-stream"
+        };
     }
 
     private static bool TryValidateImage(byte[] bytes, string extension, out string error)

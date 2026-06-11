@@ -18,7 +18,18 @@ public interface IContentInputValidator
 
 public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInputValidator
 {
-    private const int MaxPayloadJsonLength = 20_000;
+    public const int MaxPayloadJsonLength = 7_500_000;
+    private const int MaxUrlLength = 500;
+    private const int MaxImageDataUrlLength = 7_100_000;
+    private const int MaxImageDataBytes = 5 * 1024 * 1024;
+
+    private static readonly string[] AllowedImageDataUrlPrefixes =
+    [
+        "data:image/jpeg;base64,",
+        "data:image/png;base64,",
+        "data:image/webp;base64,",
+        "data:image/gif;base64,"
+    ];
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -144,8 +155,8 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         }
 
         return ValidateRequiredText(single.SongName, "SongName", 200)
-            ?? ValidateOptionalUrl(single.AvailableOnYoutube, "AvailableOnYoutube")
-            ?? ValidateOptionalUrl(single.AvailableOnSpotify, "AvailableOnSpotify");
+            ?? ValidateOptionalUrl(single.AvailableOnYoutube, "AvailableOnYoutube", allowImageDataUrl: false)
+            ?? ValidateOptionalUrl(single.AvailableOnSpotify, "AvailableOnSpotify", allowImageDataUrl: false);
     }
 
     private static string? ValidateConcert(Concerts concert)
@@ -172,14 +183,14 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     {
         return ValidateRequiredText(member.Name, "Name", 150)
             ?? ValidateRequiredText(member.Instrument, "Instrument", 100)
-            ?? ValidateRequiredUrl(member.PhotoUrl, "PhotoUrl");
+            ?? ValidateRequiredUrl(member.PhotoUrl, "PhotoUrl", allowImageDataUrl: true);
     }
 
     private static string? ValidateGallery(Gallery gallery)
     {
         return ValidateRequiredText(gallery.Title, "Title", 200)
             ?? ValidateOptionalText(gallery.Description, "Description", 2_000)
-            ?? ValidateRequiredUrl(gallery.ImageUrl, "ImageUrl");
+            ?? ValidateRequiredUrl(gallery.ImageUrl, "ImageUrl", allowImageDataUrl: true);
     }
 
     private static IDisposable? TryParseJsonObject(string payloadJson, out string? error)
@@ -267,23 +278,30 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         return value < 0 ? $"{fieldName} cannot be negative." : null;
     }
 
-    private static string? ValidateRequiredUrl(string? value, string fieldName)
+    private static string? ValidateRequiredUrl(string? value, string fieldName, bool allowImageDataUrl)
     {
         return string.IsNullOrWhiteSpace(value)
             ? $"{fieldName} is required."
-            : ValidateOptionalUrl(value, fieldName);
+            : ValidateOptionalUrl(value, fieldName, allowImageDataUrl);
     }
 
-    private static string? ValidateOptionalUrl(string? value, string fieldName)
+    private static string? ValidateOptionalUrl(string? value, string fieldName, bool allowImageDataUrl = true)
     {
         if (string.IsNullOrWhiteSpace(value))
         {
             return null;
         }
 
-        if (value.Length > 500)
+        if (value.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
         {
-            return $"{fieldName} cannot exceed 500 characters.";
+            return allowImageDataUrl
+                ? ValidateImageDataUrl(value, fieldName)
+                : $"{fieldName} must be a valid HTTP or HTTPS URL.";
+        }
+
+        if (value.Length > MaxUrlLength)
+        {
+            return $"{fieldName} cannot exceed {MaxUrlLength} characters.";
         }
 
         if (value.StartsWith('/'))
@@ -291,12 +309,45 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
             return value.StartsWith("/uploads/images/", StringComparison.Ordinal)
                 || value.Equals("/BUntitled.png", StringComparison.Ordinal)
                     ? null
-                    : $"{fieldName} must be an uploaded image path or HTTPS URL.";
+                    : $"{fieldName} must be an uploaded image path, image data URL, or HTTP(S) URL.";
         }
 
         return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
             (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
                 ? null
                 : $"{fieldName} must be a valid HTTP or HTTPS URL.";
+    }
+
+    private static string? ValidateImageDataUrl(string value, string fieldName)
+    {
+        var prefix = AllowedImageDataUrlPrefixes.FirstOrDefault(allowedPrefix =>
+            value.StartsWith(allowedPrefix, StringComparison.OrdinalIgnoreCase));
+        if (prefix is null)
+        {
+            return $"{fieldName} must be a JPEG, PNG, WEBP, or GIF image data URL.";
+        }
+
+        if (value.Length > MaxImageDataUrlLength)
+        {
+            return $"{fieldName} image data cannot exceed {MaxImageDataUrlLength} characters.";
+        }
+
+        var base64 = value[prefix.Length..];
+        if (string.IsNullOrWhiteSpace(base64))
+        {
+            return $"{fieldName} image data is required.";
+        }
+
+        try
+        {
+            var bytes = Convert.FromBase64String(base64);
+            return bytes.Length <= MaxImageDataBytes
+                ? null
+                : $"{fieldName} image data cannot exceed 5 MB.";
+        }
+        catch (FormatException)
+        {
+            return $"{fieldName} image data must be valid base64.";
+        }
     }
 }
