@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { displayImageInputValue, normalizeDraft } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
 import { safeImageUrl } from "./securityUrls";
 
@@ -163,37 +164,6 @@ function normalizeAction(action) {
 function formatDate(value) {
   if (!value) return "";
   return String(value).slice(0, 10);
-}
-
-function normalizeDraft(collection, draft) {
-  return Object.fromEntries(
-    collection.fields.map((field) => {
-      const raw = String(draft[field.key] ?? "").trim();
-      if (field.type === "number") {
-        if (!raw && field.nullable) {
-          return [field.key, null];
-        }
-
-        return [field.key, raw ? Number(raw) : 0];
-      }
-
-      if (
-        (field.type === "url" || field.type === "image") &&
-        raw &&
-        !/^https?:/i.test(raw) &&
-        !/^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(raw) &&
-        !raw.startsWith("/")
-      ) {
-        return [field.key, `https://${raw}`];
-      }
-
-      if (raw) {
-        return [field.key, raw];
-      }
-
-      return [field.key, field.emptyValue ?? null];
-    })
-  );
 }
 
 function isUnsafeMethod(method = "GET") {
@@ -416,7 +386,12 @@ export default function AdminDashboard() {
       }
 
       const result = await response.json();
-      updateDraft(field, result.url);
+      const uploadedUrl = result.url ?? result.Url;
+      if (!safeImageUrl(uploadedUrl)) {
+        throw new Error("Upload did not return a usable image URL.");
+      }
+
+      updateDraft(field, uploadedUrl);
     } catch (err) {
       setError(err.message || "Image upload failed.");
     } finally {
@@ -654,10 +629,10 @@ export default function AdminDashboard() {
                       <input
                         type="text"
                         inputMode="url"
-                        value={activeDraft[field.key] ?? ""}
+                        value={displayImageInputValue(activeDraft[field.key])}
                         onChange={(event) => updateDraft(field.key, event.target.value)}
                         placeholder="https://example.com/image.jpg"
-                        required={field.required}
+                        required={field.required && !safeImageUrl(activeDraft[field.key])}
                       />
                       <input
                         type="file"
