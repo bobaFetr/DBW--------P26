@@ -51,19 +51,6 @@ public sealed class UploadsControllerTests
         Assert.Equal($"data:image/png;base64,{Convert.ToBase64String(CreatePngHeader(width: 2, height: 3))}", upload.Url);
     }
 
-    [Fact]
-    public async Task UploadImage_RejectsOversizedDimensions()
-    {
-        var file = CreateFormFile(CreatePngHeader(width: 8001, height: 1), "huge.png", "image/png");
-
-        var response = await controller.UploadImage(file);
-
-        var badRequest = Assert.IsType<BadRequestObjectResult>(response.Result);
-        Assert.Equal(
-            "The uploaded image cannot exceed 8000px per side or 25000000 total pixels.",
-            badRequest.Value);
-    }
-
     private static FormFile CreateFormFile(byte[] bytes, string fileName, string contentType)
     {
         var stream = new MemoryStream(bytes);

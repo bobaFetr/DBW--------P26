@@ -9,10 +9,8 @@ namespace MyApi.Controllers;
 [Authorize(Roles = "SuperAdmin,ContentAdmin")]
 public class UploadsController : ControllerBase
 {
-    private const long MaxImageBytes = 5 * 1024 * 1024;
-    private const long MaxUploadRequestBytes = 6 * 1024 * 1024;
-    private const int MaxImageDimension = 8000;
-    private const long MaxImagePixels = 25_000_000;
+    private const long MaxImageBytes = 25 * 1024 * 1024;
+    private const long MaxUploadRequestBytes = 30 * 1024 * 1024;
 
     private static readonly Dictionary<string, string[]> AllowedContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -41,7 +39,7 @@ public class UploadsController : ControllerBase
 
         if (file.Length > MaxImageBytes)
         {
-            return BadRequest("The uploaded image cannot exceed 5 MB.");
+            return BadRequest("The uploaded image cannot exceed 25 MB.");
         }
 
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
@@ -89,13 +87,6 @@ public class UploadsController : ControllerBase
         if (width <= 0 || height <= 0)
         {
             error = "The uploaded image dimensions are invalid.";
-            return false;
-        }
-
-        if (width > MaxImageDimension || height > MaxImageDimension ||
-            (long)width * height > MaxImagePixels)
-        {
-            error = $"The uploaded image cannot exceed {MaxImageDimension}px per side or {MaxImagePixels} total pixels.";
             return false;
         }
 

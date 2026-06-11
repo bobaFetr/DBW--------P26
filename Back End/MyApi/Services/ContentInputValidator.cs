@@ -18,10 +18,10 @@ public interface IContentInputValidator
 
 public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInputValidator
 {
-    public const int MaxPayloadJsonLength = 7_500_000;
+    public const int MaxPayloadJsonLength = 40_000_000;
     private const int MaxUrlLength = 500;
-    private const int MaxImageDataUrlLength = 7_100_000;
-    private const int MaxImageDataBytes = 5 * 1024 * 1024;
+    private const int MaxImageDataUrlLength = 35_000_000;
+    private const int MaxImageDataBytes = 25 * 1024 * 1024;
 
     private static readonly string[] AllowedImageDataUrlPrefixes =
     [
@@ -343,7 +343,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
             var bytes = Convert.FromBase64String(base64);
             return bytes.Length <= MaxImageDataBytes
                 ? null
-                : $"{fieldName} image data cannot exceed 5 MB.";
+                : $"{fieldName} image data cannot exceed 25 MB.";
         }
         catch (FormatException)
         {

@@ -177,7 +177,13 @@ function normalizeDraft(collection, draft) {
         return [field.key, raw ? Number(raw) : 0];
       }
 
-      if ((field.type === "url" || field.type === "image") && raw && !/^https?:/i.test(raw) && !raw.startsWith("/")) {
+      if (
+        (field.type === "url" || field.type === "image") &&
+        raw &&
+        !/^https?:/i.test(raw) &&
+        !/^data:image\/(?:jpeg|png|webp|gif);base64,/i.test(raw) &&
+        !raw.startsWith("/")
+      ) {
         return [field.key, `https://${raw}`];
       }
 
@@ -661,9 +667,9 @@ export default function AdminDashboard() {
                       {uploadingField === field.key && <small>Uploading...</small>}
                       {safeImageUrl(activeDraft[field.key]) ? (
                         <small>
-                          Stored URL:{" "}
+                          Stored image:{" "}
                           <a href={safeImageUrl(activeDraft[field.key])} target="_blank" rel="noreferrer">
-                            {activeDraft[field.key]}
+                            Preview
                           </a>
                         </small>
                       ) : null}
