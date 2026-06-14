@@ -13,14 +13,14 @@ export default function AboutPage() {
         This page gives the project a dedicated space for identity, influences, and
         the overall feeling behind the band.
       </PageIntro>
+
       <section className="split-panel">
         <div>
           <h2 className="section-title">Core Idea</h2>
-          
         </div>
-          <span>PARALYZE</span>
-        </div>
-      
+
+        <span>PARALYZE</span>
+      </section>
     </>
   );
 }
