@@ -18,11 +18,6 @@ export default function AboutPage() {
           <h2 className="section-title">Core Idea</h2>
           
         </div>
-        <div
-          className="image-panel image-panel-about"
-          role="img"
-          aria-label="Paralyze monochrome performance artwork placeholder"
-        >
           <span>PARALYZE</span>
         </div>
       
