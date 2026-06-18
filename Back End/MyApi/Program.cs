@@ -218,6 +218,24 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ApiAntiforgeryFilter>();
 });
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(entry => entry.Value?.Errors.Count > 0)
+            .SelectMany(entry => entry.Value!.Errors.Select(error => new IdentityError
+            {
+                Code = entry.Key,
+                Description = string.IsNullOrWhiteSpace(error.ErrorMessage)
+                    ? "The submitted value is invalid."
+                    : error.ErrorMessage
+            }))
+            .ToArray();
+
+        return new BadRequestObjectResult(errors);
+    };
+});
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
