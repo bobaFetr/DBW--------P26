@@ -166,6 +166,57 @@ function formatDate(value) {
   return String(value).slice(0, 10);
 }
 
+function recordToDraft(collection, record) {
+  return Object.fromEntries(
+    collection.fields.map((field) => {
+      const value = record[field.key];
+      if (field.type === "date") {
+        return [field.key, formatDate(value)];
+      }
+
+      return [field.key, value ?? ""];
+    })
+  );
+}
+
+function safeParsePayload(payloadJson) {
+  if (!payloadJson) return null;
+
+  try {
+    return JSON.parse(payloadJson);
+  } catch {
+    return null;
+  }
+}
+
+function formatPreviewValue(value) {
+  if (value === null || value === undefined || value === "") return "Empty";
+  if (typeof value === "string" && value.startsWith("data:")) return "Uploaded media";
+  if (typeof value === "object") return JSON.stringify(value);
+  return String(value);
+}
+
+function getChangedFields(collection, current, payload) {
+  if (!payload) return [];
+
+  return collection.fields
+    .map((field) => {
+      const beforeValue = current?.[field.key] ?? "";
+      const afterValue = payload[field.key] ?? "";
+      const before = field.type === "date" ? formatDate(beforeValue) : beforeValue;
+      const after = field.type === "date" ? formatDate(afterValue) : afterValue;
+
+      return {
+        key: field.key,
+        label: field.label,
+        before,
+        after,
+        changed: String(before ?? "") !== String(after ?? "")
+      };
+    })
+    .filter((field) => field.changed);
+}
+
 function isUnsafeMethod(method = "GET") {
   return !["GET", "HEAD", "OPTIONS", "TRACE"].includes(method.toUpperCase());
 }
@@ -231,6 +282,7 @@ export default function AdminDashboard() {
   const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
   const [kickConfirmation, setKickConfirmation] = useState(null);
   const [kickPassword, setKickPassword] = useState("");
+  const [editingRecord, setEditingRecord] = useState(null);
   const [reviewNote, setReviewNote] = useState("");
   const [uploadingField, setUploadingField] = useState("");
   const [notice, setNotice] = useState("");
@@ -247,6 +299,7 @@ export default function AdminDashboard() {
 
   const activeRecords = records[activeCollection.key] ?? [];
   const activeDraft = drafts[activeCollection.key] ?? emptyDraft(activeCollection);
+  const isEditing = editingRecord?.collectionKey === activeCollection.key;
   const visibleRequests = contentRequests;
   const pendingRequests = contentRequests.filter(
     (request) => normalizeStatus(request.status) === "Pending"
@@ -361,6 +414,33 @@ export default function AdminDashboard() {
     }));
   }
 
+  function beginEditRecord(record) {
+    setError("");
+    setNotice("");
+    setEditingRecord({
+      collectionKey: activeCollection.key,
+      id: record[activeCollection.idKey],
+      title: activeCollection.title(record)
+    });
+    setDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [activeCollection.key]: recordToDraft(activeCollection, record)
+    }));
+  }
+
+  function cancelEditRecord() {
+    if (!editingRecord) return;
+
+    setDrafts((currentDrafts) => ({
+      ...currentDrafts,
+      [editingRecord.collectionKey]: emptyDraft(
+        COLLECTIONS.find((collection) => collection.key === editingRecord.collectionKey)
+          ?? activeCollection
+      )
+    }));
+    setEditingRecord(null);
+  }
+
   async function uploadMedia(field, file) {
     if (!file) return;
 
@@ -401,7 +481,7 @@ export default function AdminDashboard() {
     }
   }
 
-  async function addContent(event) {
+  async function saveContent(event) {
     event.preventDefault();
     setError("");
     setNotice("");
@@ -414,7 +494,13 @@ export default function AdminDashboard() {
     if (hasMissingRequired) return;
 
     try {
-      if (isSuperAdmin) {
+      if (isSuperAdmin && isEditing) {
+        await apiFetch(`/api/content/${activeCollection.key}/${editingRecord.id}`, {
+          method: "PUT",
+          body: JSON.stringify(cleanedDraft)
+        });
+        setNotice(`${activeCollection.label} was updated on the site.`);
+      } else if (isSuperAdmin) {
         await apiFetch(`/api/content/${activeCollection.key}`, {
           method: "POST",
           body: JSON.stringify(cleanedDraft)
@@ -425,10 +511,10 @@ export default function AdminDashboard() {
           method: "POST",
           body: JSON.stringify({
             contentType: activeCollection.key,
-            targetEntityId: null,
-            action: CONTENT_ACTION.Create,
+            targetEntityId: isEditing ? String(editingRecord.id) : null,
+            action: isEditing ? CONTENT_ACTION.Update : CONTENT_ACTION.Create,
             payloadJson: JSON.stringify(cleanedDraft),
-            message: `Create ${activeCollection.label} content`
+            message: `${isEditing ? "Update" : "Create"} ${activeCollection.label} content`
           })
         });
         setNotice(`${activeCollection.label} change request was sent for super admin approval.`);
@@ -438,6 +524,7 @@ export default function AdminDashboard() {
         ...currentDrafts,
         [activeCollection.key]: emptyDraft(activeCollection)
       }));
+      setEditingRecord(null);
       await refreshDashboard();
     } catch (err) {
       setError(err.message);
@@ -593,7 +680,10 @@ export default function AdminDashboard() {
                 key={collection.key}
                 type="button"
                 className={collection.key === activeKey ? "active" : undefined}
-                onClick={() => setActiveKey(collection.key)}
+                onClick={() => {
+                  setActiveKey(collection.key);
+                  setEditingRecord(null);
+                }}
               >
                 <span>{collection.label}</span>
                 <small>{records[collection.key]?.length ?? 0}</small>
@@ -612,7 +702,16 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            <form className="admin-form" onSubmit={addContent}>
+            {isEditing && (
+              <div className="admin-edit-banner">
+                <span>Editing {editingRecord.title}</span>
+                <button type="button" onClick={cancelEditRecord}>
+                  Cancel Edit
+                </button>
+              </div>
+            )}
+
+            <form className="admin-form" onSubmit={saveContent}>
               {activeCollection.fields.map((field) => (
                 <label
                   className={field.type === "textarea" ? "admin-form-wide" : undefined}
@@ -682,8 +781,19 @@ export default function AdminDashboard() {
               ))}
               <div className="admin-actions">
                 <button type="submit">
-                  {isSuperAdmin ? "Publish Approved Row" : "Submit Change Request"}
+                  {isEditing
+                    ? isSuperAdmin
+                      ? "Update Row"
+                      : "Submit Update Request"
+                    : isSuperAdmin
+                      ? "Publish Approved Row"
+                      : "Submit Change Request"}
                 </button>
+                {isEditing && (
+                  <button type="button" onClick={cancelEditRecord}>
+                    Cancel
+                  </button>
+                )}
               </div>
             </form>
 
@@ -700,13 +810,16 @@ export default function AdminDashboard() {
                       <p>{activeCollection.detail(record)}</p>
                       <small>Visible on public site</small>
                     </div>
-                    {isSuperAdmin && (
-                      <div className="admin-record-actions">
+                    <div className="admin-record-actions">
+                      <button type="button" onClick={() => beginEditRecord(record)}>
+                        Edit
+                      </button>
+                      {isSuperAdmin && (
                         <button type="button" onClick={() => removePublicRecord(record)}>
                           Remove
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </article>
                 ))
               ) : (
@@ -741,8 +854,17 @@ export default function AdminDashboard() {
                 const collection = COLLECTIONS.find(
                   (item) => item.key === String(request.contentType).toLowerCase()
                 );
-                const payload = JSON.parse(request.payloadJson);
+                const payload = safeParsePayload(request.payloadJson);
                 const status = normalizeStatus(request.status);
+                const action = normalizeAction(request.action);
+                const targetRecord = collection && request.targetEntityId
+                  ? (records[collection.key] ?? []).find(
+                      (record) => String(record[collection.idKey]) === String(request.targetEntityId)
+                    )
+                  : null;
+                const changedFields = collection && action === "Update"
+                  ? getChangedFields(collection, targetRecord, payload)
+                  : [];
 
                 return (
                   <article className="admin-record" key={request.id}>
@@ -752,10 +874,40 @@ export default function AdminDashboard() {
                         <span className={`status-${status.toLowerCase()}`}>{status}</span>
                       </div>
                       <p className="meta">
-                        {normalizeAction(request.action)} {request.contentType} by{" "}
+                        {action} {request.contentType} by{" "}
                         {request.requestedByUserName ?? request.requestedByUserId}
                       </p>
-                      <p>{collection?.title(payload) ?? request.message}</p>
+                      <p>{payload && collection?.title(payload) ? collection.title(payload) : request.message}</p>
+                      {action === "Update" && (
+                        <div className="admin-change-preview">
+                          {changedFields.length ? (
+                            changedFields.map((field) => (
+                              <div className="admin-change-row" key={field.key}>
+                                <span>{field.label}</span>
+                                <del>{formatPreviewValue(field.before)}</del>
+                                <strong>{formatPreviewValue(field.after)}</strong>
+                              </div>
+                            ))
+                          ) : (
+                            <small>No field differences detected.</small>
+                          )}
+                        </div>
+                      )}
+                      {action === "Create" && payload && collection && (
+                        <div className="admin-change-preview">
+                          {collection.fields.map((field) => (
+                            <div className="admin-change-row" key={field.key}>
+                              <span>{field.label}</span>
+                              <strong>{formatPreviewValue(payload[field.key])}</strong>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {action === "Delete" && targetRecord && (
+                        <div className="admin-change-preview">
+                          <small>Will remove {collection?.title(targetRecord)} from the public site.</small>
+                        </div>
+                      )}
                       {request.reviewNote ? <small>{request.reviewNote}</small> : null}
                     </div>
                     <div className="admin-record-actions">

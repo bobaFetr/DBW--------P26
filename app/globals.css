@@ -1386,6 +1386,41 @@ footer {
   border-bottom: 2px solid rgba(255, 255, 255, 0.18);
 }
 
+.admin-edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.admin-edit-banner span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.admin-edit-banner button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.admin-edit-banner button:hover {
+  background: var(--accent);
+  color: #000;
+}
+
 .admin-form label {
   display: grid;
   gap: 8px;
@@ -1469,6 +1504,44 @@ footer {
 
 .admin-record p {
   line-height: 1.6;
+}
+
+.admin-change-preview {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.admin-change-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  color: var(--text-muted);
+}
+
+.admin-change-row span,
+.admin-change-row strong,
+.admin-change-row del {
+  overflow-wrap: anywhere;
+}
+
+.admin-change-row span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.admin-change-row strong {
+  color: var(--text-main);
+}
+
+.admin-change-row del {
+  color: #b9b9b9;
+  text-decoration-thickness: 2px;
 }
 
 .admin-record-actions {
@@ -1988,6 +2061,10 @@ footer {
   .admin-record-actions button {
     flex: 1 1 130px;
     min-height: 44px;
+  }
+
+  .admin-change-row {
+    grid-template-columns: 1fr;
   }
 
   .admin-record {
