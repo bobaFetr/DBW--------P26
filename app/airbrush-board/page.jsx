@@ -4,7 +4,7 @@ import AirbrushBoard from "./AirbrushBoard";
 export const metadata = {
   title: "Airbrush Board",
   description:
-    "Prototype virtual air brush painting board for sketching ideas directly in the browser."
+    "Virtual air brush painting board."
 };
 
 export default function AirbrushBoardPage() {
