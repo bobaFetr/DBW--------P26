@@ -7,6 +7,7 @@ import AdminLogin from "./AdminLogin";
 import { safeImageUrl, safeMediaUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+const KICKED_CONTENT_ADMIN_MESSAGE = "You can no longer prime Milf.";
 
 const CONTENT_ACTION = {
   Create: 1,
@@ -33,6 +34,14 @@ const ACTION_LABELS = {
   Update: "Update",
   Delete: "Delete"
 };
+
+class ApiError extends Error {
+  constructor(message, status) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
 
 const COLLECTIONS = [
   {
@@ -279,7 +288,7 @@ async function apiFetch(path, options = {}) {
       if (text) message = text;
     }
 
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   if (response.status === 204) {
@@ -306,6 +315,7 @@ export default function AdminDashboard() {
   const [uploadingField, setUploadingField] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [forcedLogoutNotice, setForcedLogoutNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
   const isSuperAdmin = session?.roles?.includes("SuperAdmin");
@@ -331,6 +341,67 @@ export default function AdminDashboard() {
   useEffect(() => {
     void boot();
   }, []);
+
+  useEffect(() => {
+    if (!session?.roles?.includes("ContentAdmin") || session.roles.includes("SuperAdmin")) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+
+    async function verifyContentAdminAccess() {
+      try {
+        const user = await apiFetch("/api/auth/me");
+        if (isCancelled) return;
+
+        if (!user.roles?.includes("ContentAdmin") || user.roles?.includes("SuperAdmin")) {
+          handleContentAdminKickout();
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          handleAdminAccessError(err);
+        }
+      }
+    }
+
+    const intervalId = window.setInterval(verifyContentAdminAccess, 10000);
+    return () => {
+      isCancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [session?.userId, session?.roles]);
+
+  function resetAdminState() {
+    setSession(null);
+    setContentRequests([]);
+    setAdminProfiles([]);
+    setAdminRequests([]);
+    setAuditLogs([]);
+    setSelectedAuditUserId("");
+    setKickConfirmation(null);
+    setKickPassword("");
+  }
+
+  function handleContentAdminKickout() {
+    resetAdminState();
+    setError("");
+    setNotice("");
+    setForcedLogoutNotice(KICKED_CONTENT_ADMIN_MESSAGE);
+  }
+
+  function handleAdminAccessError(err) {
+    if (
+      session?.roles?.includes("ContentAdmin") &&
+      !session?.roles?.includes("SuperAdmin") &&
+      err instanceof ApiError &&
+      (err.status === 401 || err.status === 403)
+    ) {
+      handleContentAdminKickout();
+      return true;
+    }
+
+    return false;
+  }
 
   async function boot() {
     setIsLoading(true);
@@ -382,6 +453,7 @@ export default function AdminDashboard() {
   }
 
   async function login(identifier, password) {
+    setForcedLogoutNotice("");
     const user = await apiFetch("/api/auth/login", {
       method: "POST",
       body: JSON.stringify({ email: identifier, password })
@@ -401,26 +473,13 @@ export default function AdminDashboard() {
       method: "POST",
       body: JSON.stringify(payload)
     });
-    setSession(null);
-    setContentRequests([]);
-    setAdminProfiles([]);
-    setAdminRequests([]);
-    setAuditLogs([]);
-    setSelectedAuditUserId("");
-    setKickConfirmation(null);
-    setKickPassword("");
+    resetAdminState();
   }
 
   async function logout() {
     await apiFetch("/api/auth/logout", { method: "POST" });
-    setSession(null);
-    setContentRequests([]);
-    setAdminProfiles([]);
-    setAdminRequests([]);
-    setAuditLogs([]);
-    setSelectedAuditUserId("");
-    setKickConfirmation(null);
-    setKickPassword("");
+    resetAdminState();
+    setForcedLogoutNotice("");
   }
 
   function updateDraft(field, value) {
@@ -515,7 +574,9 @@ export default function AdminDashboard() {
 
       updateDraft(field, uploadedUrl);
     } catch (err) {
-      setError(err.message || "Media upload failed.");
+      if (!handleAdminAccessError(err)) {
+        setError(err.message || "Media upload failed.");
+      }
     } finally {
       setUploadingField("");
     }
@@ -573,62 +634,100 @@ export default function AdminDashboard() {
       setEditingRecord(null);
       await refreshDashboard();
     } catch (err) {
-      setError(err.message);
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
     }
   }
 
   async function approveRequest(requestId) {
     if (!isSuperAdmin) return;
 
-    await apiFetch(`/api/content-requests/${requestId}/approve`, {
-      method: "POST",
-      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved for public site" })
-    });
-    setReviewNote("");
-    await refreshDashboard();
+    try {
+      await apiFetch(`/api/content-requests/${requestId}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved for public site" })
+      });
+      setReviewNote("");
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   async function denyRequest(requestId) {
     if (!isSuperAdmin) return;
 
-    await apiFetch(`/api/content-requests/${requestId}/deny`, {
-      method: "POST",
-      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
-    });
-    setReviewNote("");
-    await refreshDashboard();
+    try {
+      await apiFetch(`/api/content-requests/${requestId}/deny`, {
+        method: "POST",
+        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
+      });
+      setReviewNote("");
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   async function cancelRequest(requestId) {
-    await apiFetch(`/api/content-requests/${requestId}/cancel`, { method: "POST" });
-    await refreshDashboard();
+    try {
+      await apiFetch(`/api/content-requests/${requestId}/cancel`, { method: "POST" });
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   async function removePublicRecord(record) {
     if (!isSuperAdmin) return;
 
-    await apiFetch(`/api/content/${activeCollection.key}/${record[activeCollection.idKey]}`, {
-      method: "DELETE"
-    });
-    await refreshDashboard();
+    try {
+      await apiFetch(`/api/content/${activeCollection.key}/${record[activeCollection.idKey]}`, {
+        method: "DELETE"
+      });
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   async function approveAdminRequest(requestId) {
-    await apiFetch(`/api/content-admin-requests/${requestId}/approve`, {
-      method: "POST",
-      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved as content admin" })
-    });
-    setReviewNote("");
-    await refreshDashboard();
+    try {
+      await apiFetch(`/api/content-admin-requests/${requestId}/approve`, {
+        method: "POST",
+        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved as content admin" })
+      });
+      setReviewNote("");
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   async function denyAdminRequest(requestId) {
-    await apiFetch(`/api/content-admin-requests/${requestId}/deny`, {
-      method: "POST",
-      body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
-    });
-    setReviewNote("");
-    await refreshDashboard();
+    try {
+      await apiFetch(`/api/content-admin-requests/${requestId}/deny`, {
+        method: "POST",
+        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
+      });
+      setReviewNote("");
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   function beginKickContentAdmin(profile) {
@@ -659,13 +758,21 @@ export default function AdminDashboard() {
       cancelKickContentAdmin();
       await refreshDashboard();
     } catch (err) {
-      setError(err.message);
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
     }
   }
 
   async function loadAudit(userId) {
-    setSelectedAuditUserId(userId);
-    setAuditLogs(await apiFetch(`/api/content-admins/${userId}/audit`));
+    try {
+      setSelectedAuditUserId(userId);
+      setAuditLogs(await apiFetch(`/api/content-admins/${userId}/audit`));
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
   }
 
   if (isLoading) {
@@ -673,7 +780,13 @@ export default function AdminDashboard() {
   }
 
   if (!session || !isAdmin) {
-    return <AdminLogin onLogin={login} onRegisterContentAdmin={registerContentAdmin} />;
+    return (
+      <AdminLogin
+        onLogin={login}
+        onRegisterContentAdmin={registerContentAdmin}
+        initialNotice={forcedLogoutNotice}
+      />
+    );
   }
 
   return (

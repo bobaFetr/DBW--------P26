@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-export default function AdminLogin({ onLogin, onRegisterContentAdmin }) {
+export default function AdminLogin({ onLogin, onRegisterContentAdmin, initialNotice = "" }) {
   const [mode, setMode] = useState("login");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(initialNotice);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(event) {
@@ -40,6 +40,10 @@ export default function AdminLogin({ onLogin, onRegisterContentAdmin }) {
   }
 
   const isLogin = mode === "login";
+
+  useEffect(() => {
+    setNotice(initialNotice);
+  }, [initialNotice]);
 
   return (
     <section className="admin-login-wrap">
