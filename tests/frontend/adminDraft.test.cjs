@@ -93,9 +93,9 @@ test("normalizeDraft stores album song rows as JSON", () => {
     },
     {
       trackListJson: [
-        { songName: "Intro", duration: "1:5" },
+        { songName: "Intro", duration: "1:5", text: "Opening words" },
         { songName: "Closer", duration: "4:02" },
-        { songName: "", duration: "" }
+        { songName: "", duration: "", text: "" }
       ]
     }
   );
@@ -103,8 +103,8 @@ test("normalizeDraft stores album song rows as JSON", () => {
   assert.equal(
     result.trackListJson,
     JSON.stringify([
-      { songName: "Intro", duration: "1:05" },
-      { songName: "Closer", duration: "4:02" }
+      { songName: "Intro", duration: "1:05", text: "Opening words" },
+      { songName: "Closer", duration: "4:02", text: "" }
     ])
   );
 });
@@ -113,7 +113,7 @@ test("parseSongRows reads saved album song JSON", () => {
   const { parseSongRows } = loadAdminDraftModule();
 
   assert.equal(
-    JSON.stringify(parseSongRows('[{"songName":"Intro","duration":"1:05"}]')),
-    JSON.stringify([{ songName: "Intro", duration: "1:05" }])
+    JSON.stringify(parseSongRows('[{"songName":"Intro","duration":"1:05","text":"Opening words"}]')),
+    JSON.stringify([{ songName: "Intro", duration: "1:05", text: "Opening words" }])
   );
 });

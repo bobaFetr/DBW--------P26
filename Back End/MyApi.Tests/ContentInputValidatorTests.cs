@@ -125,7 +125,7 @@ public class ContentInputValidatorTests
             Title = "Debut",
             TrackListJson = """
                 [
-                  { "songName": "Intro", "duration": "1:05" },
+                  { "songName": "Intro", "duration": "1:05", "text": "Opening words" },
                   { "songName": "Closer", "duration": "4:02" }
                 ]
                 """,
@@ -165,6 +165,22 @@ public class ContentInputValidatorTests
         });
 
         Assert.Equal("SongName is required.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsAlbumTrackListWithTooLongText()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            TrackListJson = $$"""[{ "songName": "Intro", "duration": "1:05", "text": "{{new string('x', 5_001)}}" }]""",
+            NumberOfSongs = 1
+        });
+
+        Assert.Equal("Text cannot exceed 5000 characters.", error);
     }
 
     [Theory]

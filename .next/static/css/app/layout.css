@@ -1513,6 +1513,11 @@ footer {
   align-items: center;
 }
 
+.admin-song-row textarea {
+  grid-column: 1 / -1;
+  min-height: 92px;
+}
+
 .admin-song-rows button,
 .admin-song-row button {
   min-height: 42px;
@@ -1701,18 +1706,71 @@ footer {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
 }
 
+.track-row-wrap {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.track-row-wrap:last-child {
+  border-bottom: 0;
+}
+
 .track-row {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
+  grid-template-columns: 48px 1fr auto auto;
   grid-gap: 16px;
   gap: 16px;
   align-items: center;
   padding: 15px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-.track-row:last-child {
-  border-bottom: 0;
+.track-text-link {
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font: inherit;
+  font-weight: bold;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  white-space: nowrap;
+}
+
+.track-text-link:hover,
+.track-text-link:focus-visible {
+  color: var(--red);
+}
+
+.song-text-page {
+  padding: 26px;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.03)
+  );
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+}
+
+.song-text-page h2 {
+  color: var(--accent);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  margin: 8px 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.song-text-body {
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.song-text-body p {
+  margin: 0;
+  color: var(--text-main);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .track-number,
@@ -2194,6 +2252,11 @@ footer {
     grid-template-columns: 38px 1fr auto;
     gap: 10px;
     padding: 14px;
+  }
+
+  .track-text-link {
+    grid-column: 2 / -1;
+    justify-self: start;
   }
 
   .single-detail {

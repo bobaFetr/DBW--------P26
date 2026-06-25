@@ -335,6 +335,9 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
                 var duration = row.TryGetProperty("duration", out var durationElement)
                     ? durationElement.GetString()
                     : null;
+                var text = row.TryGetProperty("text", out var textElement)
+                    ? textElement.GetString()
+                    : null;
 
                 var songNameError = ValidateRequiredText(songName, "SongName", 200);
                 if (songNameError is not null)
@@ -350,6 +353,12 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
                 if (!TrackDurationPattern.IsMatch(duration))
                 {
                     return "Duration must use minutes:seconds format.";
+                }
+
+                var textError = ValidateOptionalText(text, "Text", 5_000);
+                if (textError is not null)
+                {
+                    return textError;
                 }
             }
 

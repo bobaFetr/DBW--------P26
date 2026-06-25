@@ -24,9 +24,10 @@ export function normalizeDraft(collection, draft) {
         const normalizedRows = rows
           .map((row) => ({
             songName: String(row?.songName ?? "").trim(),
-            duration: normalizeDuration(row?.duration)
+            duration: normalizeDuration(row?.duration),
+            text: String(row?.text ?? "").trim()
           }))
-          .filter((row) => row.songName || row.duration);
+          .filter((row) => row.songName || row.duration || row.text);
 
         return [
           field.key,
@@ -66,7 +67,8 @@ export function parseSongRows(value) {
   if (Array.isArray(value)) {
     return value.map((row) => ({
       songName: String(row?.songName ?? ""),
-      duration: String(row?.duration ?? "")
+      duration: String(row?.duration ?? ""),
+      text: String(row?.text ?? "")
     }));
   }
 

@@ -435,7 +435,7 @@ export default function AdminDashboard() {
 
   function addSongRow(field) {
     const currentRows = parseSongRows(activeDraft[field]);
-    updateDraft(field, [...currentRows, { songName: "", duration: "" }]);
+    updateDraft(field, [...currentRows, { songName: "", duration: "", text: "" }]);
   }
 
   function updateSongRow(field, index, key, value) {
@@ -831,19 +831,27 @@ export default function AdminDashboard() {
                             }
                             placeholder="Song name"
                           />
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            value={row.duration}
+	                          <input
+	                            type="text"
+	                            inputMode="numeric"
+	                            value={row.duration}
                             onChange={(event) =>
                               updateSongRow(field.key, index, "duration", event.target.value)
                             }
                             placeholder="3:45"
-                            pattern="\d{1,3}:[0-5]\d"
-                          />
-                          <button type="button" onClick={() => removeSongRow(field.key, index)}>
-                            Delete row
-                          </button>
+	                            pattern="\d{1,3}:[0-5]\d"
+	                          />
+	                          <textarea
+	                            value={row.text}
+	                            onChange={(event) =>
+	                              updateSongRow(field.key, index, "text", event.target.value)
+	                            }
+	                            placeholder="Song text (optional)"
+	                            rows={3}
+	                          />
+	                          <button type="button" onClick={() => removeSongRow(field.key, index)}>
+	                            Delete row
+	                          </button>
                         </div>
                       ))}
                       <button type="button" onClick={() => addSongRow(field.key)}>

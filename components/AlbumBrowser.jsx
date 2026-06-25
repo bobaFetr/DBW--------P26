@@ -32,6 +32,7 @@ function albumCards(albums) {
 export default function AlbumBrowser({ emptyMessage = "No albums have been published yet." }) {
   const searchParams = useSearchParams();
   const selectedAlbumId = searchParams.get("albumId");
+  const selectedSongNumber = searchParams.get("song");
   const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -91,6 +92,40 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
 
     const songs = parseSongRows(selectedAlbum.trackListJson);
     const cover = safeImageUrl(selectedAlbum.photoUrl);
+    const selectedSongIndex = Number(selectedSongNumber) - 1;
+    const selectedSong = Number.isInteger(selectedSongIndex) && selectedSongIndex >= 0
+      ? songs[selectedSongIndex]
+      : null;
+
+    if (selectedSongNumber) {
+      if (!selectedSong?.text?.trim()) {
+        return (
+          <section className="album-detail">
+            <p className="content-empty-state">Song text was not found.</p>
+            <Link className="action-link" href={`/albums/?albumId=${selectedAlbum.albumId}`}>
+              <span>Back to album</span>
+            </Link>
+          </section>
+        );
+      }
+
+      return (
+        <section className="album-detail song-text-detail">
+          <Link className="action-link album-back-link" href={`/albums/?albumId=${selectedAlbum.albumId}`}>
+            <span>Back to album</span>
+          </Link>
+
+          <div className="song-text-page">
+            <p className="meta">{selectedAlbum.title}</p>
+            <h2>{selectedSong.songName}</h2>
+            <p className="meta">{selectedSong.duration}</p>
+            <div className="song-text-body">
+              <p>{selectedSong.text}</p>
+            </div>
+          </div>
+        </section>
+      );
+    }
 
     return (
       <section className="album-detail">
@@ -118,15 +153,29 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
 
         <section className="track-list" aria-label={`${selectedAlbum.title} songs`}>
           {songs.length ? (
-            songs.map((song, index) => (
-              <div className="track-row" key={`${song.songName}-${index}`}>
-                <span className="track-number">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span className="track-title">{song.songName}</span>
-                <span className="track-duration">{song.duration}</span>
-              </div>
-            ))
+            songs.map((song, index) => {
+              const hasText = Boolean(song.text?.trim());
+
+              return (
+                <article className="track-row-wrap" key={`${song.songName}-${index}`}>
+                  <div className="track-row">
+                    <span className="track-number">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="track-title">{song.songName}</span>
+                    <span className="track-duration">{song.duration}</span>
+                    {hasText ? (
+                      <Link
+                        className="track-text-link"
+                        href={`/albums/?albumId=${selectedAlbum.albumId}&song=${index + 1}`}
+                      >
+                        Song text
+                      </Link>
+                    ) : null}
+                  </div>
+                </article>
+              );
+            })
           ) : (
             <p className="content-empty-state">No songs have been added for this album yet.</p>
           )}
