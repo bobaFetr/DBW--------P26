@@ -175,6 +175,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .IsRequired()
             .HasMaxLength(200);
 
+        modelBuilder.Entity<Singles>()
+            .Property(s => s.Description)
+            .HasColumnType("text");
+
         modelBuilder.Entity<Albums>()
             .Property(a => a.Title)
             .IsRequired()

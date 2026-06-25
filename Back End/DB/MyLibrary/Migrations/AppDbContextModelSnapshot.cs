@@ -655,6 +655,9 @@ namespace MyLibrary.Migrations
                     b.Property<string>("AvailableOnYoutube")
                         .HasColumnType("text");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
                     b.Property<string>("PhotoUrl")
                         .HasColumnType("text");
 

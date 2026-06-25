@@ -80,6 +80,7 @@ const COLLECTIONS = [
       { key: "songName", label: "Song name", required: true },
       { key: "photoUrl", label: "Photo", type: "image" },
       { key: "releaseDate", label: "Release date", type: "date" },
+      { key: "description", label: "Text", type: "textarea", emptyValue: "" },
       { key: "availableOnYoutube", label: "YouTube URL", type: "url" },
       { key: "availableOnSpotify", label: "Spotify URL", type: "url" },
       { key: "albumId", label: "Album ID", type: "number", nullable: true }

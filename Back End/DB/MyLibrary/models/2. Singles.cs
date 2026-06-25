@@ -18,6 +18,8 @@ public class Singles
 
     public string? PhotoUrl { get; set; }
 
+    public string? Description { get; set; }
+
     public int? AlbumId { get; set; }
 
     public Albums? Album { get; set; }

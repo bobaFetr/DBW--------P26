@@ -171,6 +171,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
 
         return ValidateRequiredText(single.SongName, "SongName", 200)
             ?? ValidateOptionalUrl(single.PhotoUrl, "PhotoUrl", allowImageDataUrl: true)
+            ?? ValidateOptionalText(single.Description, "Description", 5_000)
             ?? ValidateOptionalUrl(single.AvailableOnYoutube, "AvailableOnYoutube", allowImageDataUrl: false)
             ?? ValidateOptionalUrl(single.AvailableOnSpotify, "AvailableOnSpotify", allowImageDataUrl: false);
     }

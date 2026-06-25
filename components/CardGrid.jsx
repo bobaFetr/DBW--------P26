@@ -34,7 +34,7 @@ export default function CardGrid({ cards }) {
                 ) : null}
               </div>
               {card.meta ? <p className="meta">{card.meta}</p> : null}
-              {card.body ? <p>{card.body}</p> : null}
+              {card.body ? <p className="card-copy">{card.body}</p> : null}
               {href && isExternalHref(href) ? (
                 <a className="action-link" href={href} target="_blank" rel="noreferrer">
                   <span>{card.linkLabel ?? "View"}</span>

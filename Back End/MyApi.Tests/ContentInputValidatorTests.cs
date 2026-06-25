@@ -316,6 +316,21 @@ public class ContentInputValidatorTests
     }
 
     [Fact]
+    public async Task ValidateEntityAsync_AcceptsSingleDescription()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Singles
+        {
+            SongName = "Signal",
+            Description = "A short text about the single."
+        });
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateEntityAsync_RejectsImageDataUrlForStreamingLinks()
     {
         using var dbContext = TestDb.Create();
