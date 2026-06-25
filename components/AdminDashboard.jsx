@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { displayImageInputValue, normalizeDraft, normalizeDuration, parseSongRows } from "./adminDraft";
+import { displayImageInputValue, normalizeDraft, parseSongRows } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
 import { safeImageUrl, safeMediaUrl } from "./securityUrls";
 
@@ -442,7 +442,7 @@ export default function AdminDashboard() {
     const nextRows = parseSongRows(activeDraft[field]);
     nextRows[index] = {
       ...(nextRows[index] ?? { songName: "", duration: "" }),
-      [key]: key === "duration" ? normalizeDuration(value) : value
+      [key]: value
     };
     updateDraft(field, nextRows);
   }
