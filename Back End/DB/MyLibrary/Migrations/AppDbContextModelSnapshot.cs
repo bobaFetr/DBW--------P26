@@ -293,6 +293,9 @@ namespace MyLibrary.Migrations
                     b.Property<int>("NumberOfSongs")
                         .HasColumnType("integer");
 
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("text");
+
                     b.Property<DateTime?>("ReleaseDate")
                         .HasColumnType("timestamp with time zone");
 
@@ -647,6 +650,9 @@ namespace MyLibrary.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("AvailableOnYoutube")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhotoUrl")
                         .HasColumnType("text");
 
                     b.Property<DateTime?>("ReleaseDate")

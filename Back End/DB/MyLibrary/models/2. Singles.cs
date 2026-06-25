@@ -16,6 +16,8 @@ public class Singles
 
     public string? AvailableOnSpotify { get; set; }
 
+    public string? PhotoUrl { get; set; }
+
     public int? AlbumId { get; set; }
 
     public Albums? Album { get; set; }

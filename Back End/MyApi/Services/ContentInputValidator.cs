@@ -152,6 +152,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     private static string? ValidateAlbum(Albums album)
     {
         return ValidateRequiredText(album.Title, "Title", 200)
+            ?? ValidateOptionalUrl(album.PhotoUrl, "PhotoUrl", allowImageDataUrl: true)
             ?? ValidateNonNegative(album.NumberOfSongs, "NumberOfSongs");
     }
 
@@ -164,6 +165,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         }
 
         return ValidateRequiredText(single.SongName, "SongName", 200)
+            ?? ValidateOptionalUrl(single.PhotoUrl, "PhotoUrl", allowImageDataUrl: true)
             ?? ValidateOptionalUrl(single.AvailableOnYoutube, "AvailableOnYoutube", allowImageDataUrl: false)
             ?? ValidateOptionalUrl(single.AvailableOnSpotify, "AvailableOnSpotify", allowImageDataUrl: false);
     }

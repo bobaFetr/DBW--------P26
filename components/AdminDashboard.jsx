@@ -57,6 +57,7 @@ const COLLECTIONS = [
     idKey: "albumId",
     fields: [
       { key: "title", label: "Title", required: true },
+      { key: "photoUrl", label: "Photo", type: "image" },
       { key: "releaseDate", label: "Release date", type: "date" },
       { key: "numberOfSongs", label: "Number of songs", type: "number" }
     ],
@@ -71,6 +72,7 @@ const COLLECTIONS = [
     idKey: "songId",
     fields: [
       { key: "songName", label: "Song name", required: true },
+      { key: "photoUrl", label: "Photo", type: "image" },
       { key: "releaseDate", label: "Release date", type: "date" },
       { key: "availableOnYoutube", label: "YouTube URL", type: "url" },
       { key: "availableOnSpotify", label: "Spotify URL", type: "url" },

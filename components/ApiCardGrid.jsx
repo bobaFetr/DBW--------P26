@@ -17,7 +17,9 @@ function toCards(contentType, rows) {
         title: row.title,
         badge: "Album",
         meta: dateOnly(row.releaseDate) || "Release date TBA",
-        body: `${row.numberOfSongs || 0} songs`
+        body: `${row.numberOfSongs || 0} songs`,
+        cover: safeImageUrl(row.photoUrl),
+        coverAlt: row.title
       }));
     case "singles":
       return rows.map((row, index) => ({
@@ -29,6 +31,8 @@ function toCards(contentType, rows) {
           [row.availableOnYoutube && "YouTube", row.availableOnSpotify && "Spotify"]
             .filter(Boolean)
             .join(" / ") || "Streaming links pending",
+        cover: safeImageUrl(row.photoUrl),
+        coverAlt: row.songName,
         href: safeExternalUrl(row.availableOnYoutube || row.availableOnSpotify),
         linkLabel: row.availableOnYoutube ? "Listen on YouTube" : "Listen"
       }));

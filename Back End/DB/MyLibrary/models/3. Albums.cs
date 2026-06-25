@@ -12,6 +12,8 @@ public class Albums
     [Required]
     public string Title { get; set; } = string.Empty;
 
+    public string? PhotoUrl { get; set; }
+
     public int NumberOfSongs { get; set; }
 
     public ICollection<Singles> Singles { get; set; } = new List<Singles>();
