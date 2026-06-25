@@ -692,6 +692,10 @@ main {
   object-fit: cover;
 }
 
+.gallery-thumb-video {
+  background: #050505;
+}
+
 .gallery-item.alt-logo {
   background:
     linear-gradient(rgba(20, 20, 20, 0.1), rgba(20, 20, 20, 0.4)),
@@ -960,7 +964,8 @@ main {
   overflow: hidden;
 }
 
-.lightbox-media img {
+.lightbox-media img,
+.lightbox-media video {
   width: 100%;
   max-height: min(76vh, 820px);
   height: auto;
@@ -1402,6 +1407,41 @@ footer {
   border-bottom: 2px solid rgba(255, 255, 255, 0.18);
 }
 
+.admin-edit-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-muted);
+}
+
+.admin-edit-banner span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.admin-edit-banner button {
+  min-height: 38px;
+  padding: 8px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.admin-edit-banner button:hover {
+  background: var(--accent);
+  color: #000;
+}
+
 .admin-form label {
   display: grid;
   grid-gap: 8px;
@@ -1450,6 +1490,38 @@ footer {
   grid-column: 1 / -1;
 }
 
+.admin-song-rows {
+  display: grid;
+  grid-gap: 10px;
+  gap: 10px;
+}
+
+.admin-song-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(110px, 0.4fr) auto;
+  grid-gap: 10px;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-song-rows button,
+.admin-song-row button {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.admin-song-rows button:hover,
+.admin-song-row button:hover {
+  background: var(--accent);
+  color: #000;
+}
+
 .admin-actions button,
 .admin-record-actions button {
   min-height: 42px;
@@ -1490,6 +1562,46 @@ footer {
   line-height: 1.6;
 }
 
+.admin-change-preview {
+  display: grid;
+  grid-gap: 8px;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.admin-change-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1fr) minmax(0, 1fr);
+  grid-gap: 10px;
+  gap: 10px;
+  align-items: start;
+  color: var(--text-muted);
+}
+
+.admin-change-row span,
+.admin-change-row strong,
+.admin-change-row del {
+  overflow-wrap: anywhere;
+}
+
+.admin-change-row span {
+  color: var(--accent);
+  font-weight: bold;
+}
+
+.admin-change-row strong {
+  color: var(--text-main);
+}
+
+.admin-change-row del {
+  color: #b9b9b9;
+  text-decoration-thickness: 2px;
+}
+
 .admin-record-actions {
   align-content: start;
   justify-content: flex-end;
@@ -1511,6 +1623,100 @@ footer {
   border-radius: 8px;
   color: var(--text-muted);
   text-align: center;
+}
+
+.album-detail {
+  width: min(90%, 1100px);
+  margin: 32px auto;
+}
+
+.album-back-link {
+  margin-bottom: 18px;
+}
+
+.album-summary {
+  display: grid;
+  grid-template-columns: minmax(240px, 360px) 1fr;
+  grid-gap: 24px;
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 22px;
+}
+
+.album-cover-large {
+  aspect-ratio: 1;
+  min-height: 260px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.12), transparent 42%),
+    linear-gradient(140deg, #080808 0%, #1a1a1a 50%, #2e2e2e 100%);
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 1.4rem;
+  letter-spacing: 3px;
+  text-align: center;
+}
+
+.album-cover-large img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.album-summary h2 {
+  color: var(--accent);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  margin: 8px 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.album-summary p {
+  color: var(--text-main);
+  line-height: 1.7;
+}
+
+.track-list {
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.32);
+  border-radius: 8px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.03)
+  );
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
+}
+
+.track-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  grid-gap: 16px;
+  gap: 16px;
+  align-items: center;
+  padding: 15px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.track-row:last-child {
+  border-bottom: 0;
+}
+
+.track-number,
+.track-duration {
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.track-title {
+  min-width: 0;
+  color: var(--accent);
+  font-weight: bold;
+  overflow-wrap: anywhere;
 }
 
 .admin-export {
@@ -1903,6 +2109,20 @@ footer {
     text-align: center;
   }
 
+  .album-detail {
+    width: min(100% - 32px, 1100px);
+  }
+
+  .album-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .track-row {
+    grid-template-columns: 38px 1fr auto;
+    gap: 10px;
+    padding: 14px;
+  }
+
   .admin-login-wrap {
     align-items: flex-start;
     min-height: auto;
@@ -1998,6 +2218,10 @@ footer {
     gap: 14px;
   }
 
+  .admin-song-row {
+    grid-template-columns: 1fr;
+  }
+
   .admin-form label,
   .admin-review-note,
   .admin-kick-confirmation label {
@@ -2016,6 +2240,10 @@ footer {
   .admin-record-actions button {
     flex: 1 1 130px;
     min-height: 44px;
+  }
+
+  .admin-change-row {
+    grid-template-columns: 1fr;
   }
 
   .admin-record {

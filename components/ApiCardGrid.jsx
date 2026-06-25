@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import CardGrid from "./CardGrid";
+import { parseSongRows } from "./adminDraft";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
@@ -17,7 +18,7 @@ function toCards(contentType, rows) {
         title: row.title,
         badge: "Album",
         meta: dateOnly(row.releaseDate) || "Release date TBA",
-        body: `${row.numberOfSongs || 0} songs`,
+        body: albumBody(row),
         cover: safeImageUrl(row.photoUrl),
         coverAlt: row.title
       }));
@@ -59,6 +60,15 @@ function toCards(contentType, rows) {
     default:
       return [];
   }
+}
+
+function albumBody(row) {
+  const songs = parseSongRows(row.trackListJson);
+  if (!songs.length) {
+    return `${row.numberOfSongs || 0} songs`;
+  }
+
+  return songs.map((song) => `${song.songName} (${song.duration})`).join(" / ");
 }
 
 export default function ApiCardGrid({ contentType, emptyMessage = "No content has been published yet." }) {

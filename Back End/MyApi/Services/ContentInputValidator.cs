@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MyLibrary;
 
@@ -24,6 +25,9 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     private const int MaxImageDataBytes = 25 * 1024 * 1024;
     private const int MaxVideoDataUrlLength = 140_000_000;
     private const int MaxVideoDataBytes = 100 * 1024 * 1024;
+    private const int MaxAlbumTrackRows = 100;
+    private const int MaxAlbumTrackListJsonLength = 20_000;
+    private static readonly Regex TrackDurationPattern = new(@"^\d{1,3}:[0-5]\d$", RegexOptions.Compiled);
 
     private static readonly string[] AllowedImageDataUrlPrefixes =
     [
@@ -153,6 +157,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     {
         return ValidateRequiredText(album.Title, "Title", 200)
             ?? ValidateOptionalUrl(album.PhotoUrl, "PhotoUrl", allowImageDataUrl: true)
+            ?? ValidateAlbumTrackList(album.TrackListJson)
             ?? ValidateNonNegative(album.NumberOfSongs, "NumberOfSongs");
     }
 
@@ -287,6 +292,72 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     private static string? ValidateNonNegative(int value, string fieldName)
     {
         return value < 0 ? $"{fieldName} cannot be negative." : null;
+    }
+
+    private static string? ValidateAlbumTrackList(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (value.Length > MaxAlbumTrackListJsonLength)
+        {
+            return $"TrackListJson cannot exceed {MaxAlbumTrackListJsonLength} characters.";
+        }
+
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            if (document.RootElement.ValueKind != JsonValueKind.Array)
+            {
+                return "TrackListJson must be a JSON array.";
+            }
+
+            var count = 0;
+            foreach (var row in document.RootElement.EnumerateArray())
+            {
+                count++;
+                if (count > MaxAlbumTrackRows)
+                {
+                    return $"TrackListJson cannot contain more than {MaxAlbumTrackRows} songs.";
+                }
+
+                if (row.ValueKind != JsonValueKind.Object)
+                {
+                    return "Each album song row must be a JSON object.";
+                }
+
+                var songName = row.TryGetProperty("songName", out var songNameElement)
+                    ? songNameElement.GetString()
+                    : null;
+                var duration = row.TryGetProperty("duration", out var durationElement)
+                    ? durationElement.GetString()
+                    : null;
+
+                var songNameError = ValidateRequiredText(songName, "SongName", 200);
+                if (songNameError is not null)
+                {
+                    return songNameError;
+                }
+
+                if (string.IsNullOrWhiteSpace(duration))
+                {
+                    return "Duration is required.";
+                }
+
+                if (!TrackDurationPattern.IsMatch(duration))
+                {
+                    return "Duration must use minutes:seconds format.";
+                }
+            }
+
+            return null;
+        }
+        catch (JsonException)
+        {
+            return "TrackListJson must contain valid JSON.";
+        }
     }
 
     private static string? ValidateRequiredUrl(string? value, string fieldName, bool allowImageDataUrl)

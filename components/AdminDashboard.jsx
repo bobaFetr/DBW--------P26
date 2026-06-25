@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { displayImageInputValue, normalizeDraft } from "./adminDraft";
+import { displayImageInputValue, normalizeDraft, normalizeDuration, parseSongRows } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
 import { safeImageUrl, safeMediaUrl } from "./securityUrls";
 
@@ -59,11 +59,17 @@ const COLLECTIONS = [
       { key: "title", label: "Title", required: true },
       { key: "photoUrl", label: "Photo", type: "image" },
       { key: "releaseDate", label: "Release date", type: "date" },
+      { key: "trackListJson", label: "Songs", type: "songRows", emptyValue: null },
       { key: "numberOfSongs", label: "Number of songs", type: "number" }
     ],
     title: (record) => record.title,
     meta: (record) => formatDate(record.releaseDate) || "Release date TBA",
-    detail: (record) => `${record.numberOfSongs || "0"} songs`
+    detail: (record) => {
+      const songs = parseSongRows(record.trackListJson);
+      return songs.length
+        ? `${songs.length} songs: ${songs.map((song) => `${song.songName} (${song.duration})`).join(", ")}`
+        : `${record.numberOfSongs || "0"} songs`;
+    }
   },
   {
     key: "singles",
@@ -146,7 +152,9 @@ const COLLECTIONS = [
 ];
 
 function emptyDraft(collection) {
-  return Object.fromEntries(collection.fields.map((field) => [field.key, ""]));
+  return Object.fromEntries(
+    collection.fields.map((field) => [field.key, field.type === "songRows" ? [] : ""])
+  );
 }
 
 function createInitialDrafts() {
@@ -176,6 +184,10 @@ function recordToDraft(collection, record) {
         return [field.key, formatDate(value)];
       }
 
+      if (field.type === "songRows") {
+        return [field.key, parseSongRows(value)];
+      }
+
       return [field.key, value ?? ""];
     })
   );
@@ -194,6 +206,10 @@ function safeParsePayload(payloadJson) {
 function formatPreviewValue(value) {
   if (value === null || value === undefined || value === "") return "Empty";
   if (typeof value === "string" && value.startsWith("data:")) return "Uploaded media";
+  const songRows = parseSongRows(value);
+  if (songRows.length) {
+    return songRows.map((song) => `${song.songName} (${song.duration})`).join(", ");
+  }
   if (typeof value === "object") return JSON.stringify(value);
   return String(value);
 }
@@ -416,6 +432,27 @@ export default function AdminDashboard() {
     }));
   }
 
+  function addSongRow(field) {
+    const currentRows = parseSongRows(activeDraft[field]);
+    updateDraft(field, [...currentRows, { songName: "", duration: "" }]);
+  }
+
+  function updateSongRow(field, index, key, value) {
+    const nextRows = parseSongRows(activeDraft[field]);
+    nextRows[index] = {
+      ...(nextRows[index] ?? { songName: "", duration: "" }),
+      [key]: key === "duration" ? normalizeDuration(value) : value
+    };
+    updateDraft(field, nextRows);
+  }
+
+  function removeSongRow(field, index) {
+    updateDraft(
+      field,
+      parseSongRows(activeDraft[field]).filter((_, rowIndex) => rowIndex !== index)
+    );
+  }
+
   function beginEditRecord(record) {
     setError("");
     setNotice("");
@@ -489,6 +526,12 @@ export default function AdminDashboard() {
     setNotice("");
 
     const cleanedDraft = normalizeDraft(activeCollection, activeDraft);
+    if (activeCollection.key === "albums") {
+      const songs = parseSongRows(cleanedDraft.trackListJson);
+      if (songs.length) {
+        cleanedDraft.numberOfSongs = songs.length;
+      }
+    }
     const hasMissingRequired = activeCollection.fields.some(
       (field) => field.required && !cleanedDraft[field.key]
     );
@@ -716,7 +759,11 @@ export default function AdminDashboard() {
             <form className="admin-form" onSubmit={saveContent}>
               {activeCollection.fields.map((field) => (
                 <label
-                  className={field.type === "textarea" ? "admin-form-wide" : undefined}
+                  className={
+                    field.type === "textarea" || field.type === "songRows"
+                      ? "admin-form-wide"
+                      : undefined
+                  }
                   key={field.key}
                 >
                   <span>{field.label}</span>
@@ -771,6 +818,37 @@ export default function AdminDashboard() {
                         </small>
                       ) : null}
                     </>
+                  ) : field.type === "songRows" ? (
+                    <div className="admin-song-rows">
+                      {parseSongRows(activeDraft[field.key]).map((row, index) => (
+                        <div className="admin-song-row" key={`${field.key}-${index}`}>
+                          <input
+                            type="text"
+                            value={row.songName}
+                            onChange={(event) =>
+                              updateSongRow(field.key, index, "songName", event.target.value)
+                            }
+                            placeholder="Song name"
+                          />
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={row.duration}
+                            onChange={(event) =>
+                              updateSongRow(field.key, index, "duration", event.target.value)
+                            }
+                            placeholder="3:45"
+                            pattern="\d{1,3}:[0-5]\d"
+                          />
+                          <button type="button" onClick={() => removeSongRow(field.key, index)}>
+                            Delete row
+                          </button>
+                        </div>
+                      ))}
+                      <button type="button" onClick={() => addSongRow(field.key)}>
+                        Add a song row
+                      </button>
+                    </div>
                   ) : (
                     <input
                       type={field.type ?? "text"}

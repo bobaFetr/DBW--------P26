@@ -14,6 +14,8 @@ public class Albums
 
     public string? PhotoUrl { get; set; }
 
+    public string? TrackListJson { get; set; }
+
     public int NumberOfSongs { get; set; }
 
     public ICollection<Singles> Singles { get; set; } = new List<Singles>();

@@ -16,7 +16,7 @@ function loadAdminDraftModule() {
   };
 
   vm.runInNewContext(
-    `${source}\nmodule.exports = { displayImageInputValue, isImageDataUrl, isMediaDataUrl, normalizeDraft };`,
+    `${source}\nmodule.exports = { displayImageInputValue, isImageDataUrl, isMediaDataUrl, normalizeDraft, normalizeDuration, parseSongRows };`,
     context,
     { filename: sourcePath }
   );
@@ -82,4 +82,38 @@ test("displayImageInputValue keeps uploaded data out of the visible text input",
   assert.equal(displayImageInputValue("data:image/png;base64,AQIDBA=="), "");
   assert.equal(displayImageInputValue("data:video/mp4;base64,AQIDBA=="), "");
   assert.equal(displayImageInputValue("https://example.com/photo.jpg"), "https://example.com/photo.jpg");
+});
+
+test("normalizeDraft stores album song rows as JSON", () => {
+  const { normalizeDraft } = loadAdminDraftModule();
+
+  const result = normalizeDraft(
+    {
+      fields: [{ key: "trackListJson", type: "songRows" }]
+    },
+    {
+      trackListJson: [
+        { songName: "Intro", duration: "1:5" },
+        { songName: "Closer", duration: "4:02" },
+        { songName: "", duration: "" }
+      ]
+    }
+  );
+
+  assert.equal(
+    result.trackListJson,
+    JSON.stringify([
+      { songName: "Intro", duration: "1:05" },
+      { songName: "Closer", duration: "4:02" }
+    ])
+  );
+});
+
+test("parseSongRows reads saved album song JSON", () => {
+  const { parseSongRows } = loadAdminDraftModule();
+
+  assert.equal(
+    JSON.stringify(parseSongRows('[{"songName":"Intro","duration":"1:05"}]')),
+    JSON.stringify([{ songName: "Intro", duration: "1:05" }])
+  );
 });

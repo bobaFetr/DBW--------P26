@@ -304,6 +304,9 @@ namespace MyLibrary.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<string>("TrackListJson")
+                        .HasColumnType("text");
+
                     b.HasKey("AlbumId");
 
                     b.ToTable("Albums");

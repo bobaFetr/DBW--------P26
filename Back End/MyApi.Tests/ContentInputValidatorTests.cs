@@ -114,6 +114,59 @@ public class ContentInputValidatorTests
         Assert.Equal("NumberOfSongs cannot be negative.", error);
     }
 
+    [Fact]
+    public async Task ValidateEntityAsync_AcceptsAlbumTrackList()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            TrackListJson = """
+                [
+                  { "songName": "Intro", "duration": "1:05" },
+                  { "songName": "Closer", "duration": "4:02" }
+                ]
+                """,
+            NumberOfSongs = 2
+        });
+
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsAlbumTrackListWithInvalidDuration()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            TrackListJson = """[{ "songName": "Intro", "duration": "1:75" }]""",
+            NumberOfSongs = 1
+        });
+
+        Assert.Equal("Duration must use minutes:seconds format.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsAlbumTrackListWithoutSongName()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            TrackListJson = """[{ "songName": "", "duration": "1:05" }]""",
+            NumberOfSongs = 1
+        });
+
+        Assert.Equal("SongName is required.", error);
+    }
+
     [Theory]
     [InlineData("/uploads/images/photo.png")]
     [InlineData("/BUntitled.png")]
