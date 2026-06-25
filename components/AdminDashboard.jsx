@@ -8,6 +8,7 @@ import { safeImageUrl, safeMediaUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 const KICKED_CONTENT_ADMIN_MESSAGE = "You can no longer prime Milf.";
+const ADMIN_SESSION_ROLE_KEY = "paralyze.adminSessionRole";
 
 const CONTENT_ACTION = {
   Create: 1,
@@ -298,6 +299,29 @@ async function apiFetch(path, options = {}) {
   return response.json();
 }
 
+function readStoredAdminRole() {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(ADMIN_SESSION_ROLE_KEY) ?? "";
+}
+
+function storeAdminRole(user) {
+  if (typeof window === "undefined") return;
+
+  const roles = user?.roles ?? [];
+  if (roles.includes("SuperAdmin")) {
+    window.localStorage.setItem(ADMIN_SESSION_ROLE_KEY, "SuperAdmin");
+  } else if (roles.includes("ContentAdmin")) {
+    window.localStorage.setItem(ADMIN_SESSION_ROLE_KEY, "ContentAdmin");
+  } else {
+    window.localStorage.removeItem(ADMIN_SESSION_ROLE_KEY);
+  }
+}
+
+function clearStoredAdminRole() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(ADMIN_SESSION_ROLE_KEY);
+}
+
 export default function AdminDashboard() {
   const [session, setSession] = useState(null);
   const [activeKey, setActiveKey] = useState(COLLECTIONS[0].key);
@@ -384,6 +408,7 @@ export default function AdminDashboard() {
 
   function handleContentAdminKickout() {
     resetAdminState();
+    clearStoredAdminRole();
     setError("");
     setNotice("");
     setForcedLogoutNotice(KICKED_CONTENT_ADMIN_MESSAGE);
@@ -409,10 +434,19 @@ export default function AdminDashboard() {
 
     try {
       const user = await apiFetch("/api/auth/me");
+      storeAdminRole(user);
       setSession(user);
       await refreshDashboard(user);
-    } catch {
+    } catch (err) {
       setSession(null);
+      if (
+        readStoredAdminRole() === "ContentAdmin" &&
+        err instanceof ApiError &&
+        (err.status === 401 || err.status === 403)
+      ) {
+        clearStoredAdminRole();
+        setForcedLogoutNotice(KICKED_CONTENT_ADMIN_MESSAGE);
+      }
       await loadContentRows();
     } finally {
       setIsLoading(false);
@@ -465,6 +499,7 @@ export default function AdminDashboard() {
     }
 
     setSession(user);
+    storeAdminRole(user);
     await refreshDashboard(user);
   }
 
@@ -474,11 +509,13 @@ export default function AdminDashboard() {
       body: JSON.stringify(payload)
     });
     resetAdminState();
+    clearStoredAdminRole();
   }
 
   async function logout() {
     await apiFetch("/api/auth/logout", { method: "POST" });
     resetAdminState();
+    clearStoredAdminRole();
     setForcedLogoutNotice("");
   }
 
