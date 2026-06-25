@@ -47,7 +47,7 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="footer-col">
+        {/* <div className="footer-col">
           <h4>Booking</h4>
           <address>
             <p>For show bookings, press inquiries, and collaborations:</p>
@@ -60,7 +60,7 @@ export default function SiteFooter() {
               Show Schedule
             </Link>
           </div>
-        </div>
+        </div> */}
 
         <div className="footer-col">
           <h4>Merch</h4>
@@ -72,7 +72,7 @@ export default function SiteFooter() {
           </div>
         </div>
 
-        <div className="footer-col footer-newsletter">
+        {/* <div className="footer-col footer-newsletter">
           <h4>Stay Updated</h4>
           <p>Get notified about new releases, shows, and drops.</p>
           {submitted ? (
@@ -92,7 +92,7 @@ export default function SiteFooter() {
               <button type="submit">Join</button>
             </form>
           )}
-        </div>
+        </div> */}
       </div>
 
       <div className="footer-bottom">
