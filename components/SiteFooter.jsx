@@ -62,7 +62,7 @@ export default function SiteFooter() {
           </div>
         </div> */}
 
-        <div className="footer-col">
+        {/* <div className="footer-col">
           <h4>Merch</h4>
           <p>Shirts, physical releases, and limited drops available now.</p>
           <div style={{ marginTop: "16px" }}>
@@ -70,7 +70,7 @@ export default function SiteFooter() {
               Shop Merch →
             </Link>
           </div>
-        </div>
+        </div> */}
 
         {/* <div className="footer-col footer-newsletter">
           <h4>Stay Updated</h4>
