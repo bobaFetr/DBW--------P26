@@ -342,6 +342,13 @@ main {
   text-decoration: none;
 }
 
+.reset-action {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font: inherit;
+}
+
 .action-link button,
 .action-link span {
   display: inline-flex;
