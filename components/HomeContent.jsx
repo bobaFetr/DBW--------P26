@@ -12,7 +12,7 @@ const COLLECTIONS = [
   { key: "concerts", label: "Concerts" },
   { key: "news", label: "News" },
   { key: "members", label: "Members" },
-  { key: "timeline", label: "Timeline" }
+  { key: "timeline", label: "Timeline Events" }
 ];
 
 function dateOnly(value) {
