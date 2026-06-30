@@ -908,6 +908,9 @@ export default function AdminDashboard() {
             )}
 
             <form className="admin-form" onSubmit={saveContent}>
+              <p className="admin-required-note">
+                Fields marked <span>Required</span> must be filled in before saving.
+              </p>
               {activeCollection.fields.map((field) => (
                 <label
                   className={
@@ -917,7 +920,10 @@ export default function AdminDashboard() {
                   }
                   key={field.key}
                 >
-                  <span>{field.label}</span>
+                  <span className="admin-field-label">
+                    <span>{field.label}</span>
+                    {field.required && <span className="admin-required-badge">Required</span>}
+                  </span>
                   {field.type === "textarea" ? (
                     <textarea
                       value={activeDraft[field.key] ?? ""}

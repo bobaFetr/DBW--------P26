@@ -1423,6 +1423,28 @@ footer {
   border-bottom: 2px solid rgba(255, 255, 255, 0.18);
 }
 
+.admin-required-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.admin-required-note span,
+.admin-required-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .admin-edit-banner {
   display: flex;
   align-items: center;
@@ -1464,6 +1486,18 @@ footer {
   gap: 8px;
   color: var(--text-muted);
   font-weight: bold;
+}
+
+.admin-field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.admin-field-label > span:first-child {
+  overflow-wrap: anywhere;
 }
 
 .admin-form input,
