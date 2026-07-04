@@ -435,3 +435,12 @@ FodyWeavers.xsd
 secrets.json
 appsettings.Local.json
 appsettings.*.Local.json
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
