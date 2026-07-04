@@ -42,23 +42,6 @@ const ALL_NAV_ITEMS = [
   ...NAV_GROUPS.flatMap((g) => g.items)
 ];
 
-const LEGACY_PATHS = {
-  "/index.html": "home",
-  "/mainPage.html": "home",
-  "/logoinheader.html": "home",
-  "/About.html": "about",
-  "/Concerts.html": "concerts",
-  "/Albums.html": "albums",
-  "/Singles.html": "singles",
-  "/Merch.html": "merch",
-  "/News.html": "news",
-  "/Timeline.html": "timeline",
-  "/members.html": "members",
-  "/Gallery.html": "gallery",
-  "/AirBrushBoard.html": "airbrush-board",
-  "/admin.html": "admin"
-};
-
 function normalizePath(pathname) {
   if (!pathname || pathname === "/") {
     return "/";
@@ -73,10 +56,6 @@ export default function SiteHeader() {
 
   const activeKey = useMemo(() => {
     const normalizedPath = normalizePath(pathname);
-    if (LEGACY_PATHS[normalizedPath]) {
-      return LEGACY_PATHS[normalizedPath];
-    }
-
     return ALL_NAV_ITEMS.find((item) => item.href === normalizedPath)?.key ?? "home";
   }, [pathname]);
 
