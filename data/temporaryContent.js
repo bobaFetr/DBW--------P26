@@ -15,15 +15,14 @@ export const temporaryContent = {
     // }
   ],
   singles: [
-    // {
-    //   songId: 1,
-    //   songName: "Single title",
-    //   releaseDate: "2026-01-01",
-    //   availableOnYoutube: "https://youtube.com/",
-    //   availableOnSpotify: "https://open.spotify.com/",
-    //   photoUrl: "/single-cover.jpg",
-    //   description: "Short description"
-    // }
+    {
+      songId: 1,
+      songName: "Coma Distraction - instrumental",
+      releaseDate: "13-07-2026",
+      availableOnYoutube: "https://youtu.be/t2w8rrT-EUk?si=TeDFE7V4i9gbQm8g",
+      photoUrl: "",
+      description: "..."
+    }
   ],
   concerts: [
     // {
