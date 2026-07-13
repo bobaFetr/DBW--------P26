@@ -20,7 +20,7 @@ export const temporaryContent = {
       songName: "Coma Distraction - instrumental",
       releaseDate: "13-07-2026",
       availableOnYoutube: "https://youtu.be/t2w8rrT-EUk?si=TeDFE7V4i9gbQm8g",
-      photoUrl: "",
+      photoUrl: "/public/singles/coma-distraction-instrumental.jpg",
       description: "..."
     }
   ],
