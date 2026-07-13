@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
-import { safeExternalUrl } from "./securityUrls";
+import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 
 const COLLECTIONS = [
   { key: "albums", label: "Albums" },
@@ -46,6 +46,8 @@ function buildLatestCards(data) {
         [latestSingle.availableOnYoutube && "YouTube", latestSingle.availableOnSpotify && "Spotify"]
           .filter(Boolean)
           .join(" / ") || "Streaming links pending",
+      cover: safeImageUrl(latestSingle.photoUrl),
+      coverAlt: latestSingle.songName,
       href: safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify),
       linkLabel: latestSingle.availableOnYoutube ? "Listen on YouTube" : "Listen"
     });

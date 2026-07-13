@@ -50,13 +50,19 @@ export const temporaryContent = {
     //   photoUrl: "/member-photo.jpg"
     // }
   ],
-  timeline: [
-    // {
-    //   id: 1,
-    //   date: "2026-01-01",
-    //   event: "Timeline event",
-    //   description: "What happened",
-    //   location: "Optional location"
-    // }
+  timeline: [{
+      id: 1,
+      date: "13.07.2026",
+      event: "Coma Distraction - instrumental was released.",
+      description: "",
+      location: ""
+    },
+    {
+      id: 1,
+      date: "February 2026",
+      event: "Paralyze was created.",
+      description: "",
+      location: ""
+    }
   ]
 };
