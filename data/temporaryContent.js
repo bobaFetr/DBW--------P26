@@ -59,7 +59,7 @@ export const temporaryContent = {
     },
     {
       id: 1,
-      date: "February 2026",
+      date: "20.02.2026",
       event: "Paralyze was created.",
       description: "",
       location: ""
