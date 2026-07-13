@@ -55,6 +55,10 @@ test("safeImageUrl resolves uploaded assets against the API base", () => {
     "https://api.example.com/uploads/images/poster.png"
   );
   assert.equal(safeImageUrl("/BUntitled.png"), "/BUntitled.png");
+  assert.equal(
+    safeImageUrl("/singles/coma-distraction-instrumental.jpg"),
+    "/singles/coma-distraction-instrumental.jpg"
+  );
 });
 
 test("safeMediaUrl accepts database-stored video data URLs", () => {
@@ -81,7 +85,9 @@ test("safeImageUrl accepts only safe image URL forms", () => {
   assert.equal(safeImageUrl("javascript:alert(1)"), undefined);
   assert.equal(safeImageUrl("data:text/html;base64,AQIDBA=="), undefined);
   assert.equal(safeImageUrl("data:image/svg+xml;base64,AQIDBA=="), undefined);
-  assert.equal(safeImageUrl("/images/poster.png"), undefined);
+  assert.equal(safeImageUrl("/images/poster.png"), "/images/poster.png");
+  assert.equal(safeImageUrl("/api/content/news.png"), undefined);
+  assert.equal(safeImageUrl("//example.com/poster.png"), undefined);
   assert.equal(safeImageUrl("example.com/poster.png"), undefined);
 });
 

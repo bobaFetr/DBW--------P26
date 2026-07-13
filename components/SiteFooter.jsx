@@ -25,7 +25,7 @@ export default function SiteFooter() {
           </p>
           <div className="footer-streaming-links" style={{ marginTop: "16px" }}>
             <a
-              href="https://www.youtube.com/@deathbywish"
+              href="https://www.youtube.com/@ParalyZeofficial"
               target="_blank"
               rel="noreferrer"
               className="footer-pill"
