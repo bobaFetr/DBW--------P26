@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl } from "./securityUrls";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 export default function NowPlayingBar() {
   const [release, setRelease] = useState(null);
@@ -14,10 +13,7 @@ export default function NowPlayingBar() {
 
     async function loadLatestRelease() {
       try {
-        const response = await fetch(`${API_BASE}/api/content/singles`);
-        if (!response.ok) return;
-
-        const rows = await response.json();
+        const rows = await loadPublicContent("singles");
         const latestSingle = rows[0];
         if (!latestSingle || ignore) return;
 

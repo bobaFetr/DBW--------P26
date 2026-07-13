@@ -4,9 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
+import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -41,12 +40,7 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
 
     async function loadSingles() {
       try {
-        const response = await fetch(`${API_BASE}/api/content/singles`);
-        if (!response.ok) {
-          return;
-        }
-
-        const rows = await response.json();
+        const rows = await loadPublicContent("singles");
         if (!ignore) {
           setSingles(rows);
         }

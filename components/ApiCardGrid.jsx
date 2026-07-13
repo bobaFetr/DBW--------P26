@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import CardGrid from "./CardGrid";
 import { parseSongRows } from "./adminDraft";
+import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -80,12 +79,7 @@ export default function ApiCardGrid({ contentType, emptyMessage = "No content ha
 
     async function loadCards() {
       try {
-        const response = await fetch(`${API_BASE}/api/content/${contentType}`);
-        if (!response.ok) {
-          return;
-        }
-
-        const rows = await response.json();
+        const rows = await loadPublicContent(contentType);
         if (!ignore) {
           setCards(toCards(contentType, rows));
         }

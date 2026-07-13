@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
+import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl } from "./securityUrls";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 const COLLECTIONS = [
   { key: "albums", label: "Albums" },
@@ -88,12 +87,7 @@ export default function HomeContent() {
       try {
         const entries = await Promise.all(
           COLLECTIONS.map(async (collection) => {
-            const response = await fetch(`${API_BASE}/api/content/${collection.key}`);
-            if (!response.ok) {
-              return [collection.key, []];
-            }
-
-            return [collection.key, await response.json()];
+            return [collection.key, await loadPublicContent(collection.key)];
           })
         );
 

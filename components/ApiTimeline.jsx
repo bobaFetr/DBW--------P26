@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+import { loadPublicContent } from "./publicContent";
 
 function formatDate(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -14,12 +13,9 @@ export default function ApiTimeline() {
 
   const loadTimeline = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/content/timeline`, {
+      const rows = await loadPublicContent("timeline", {
         cache: "no-store"
       });
-      if (!response.ok) return;
-
-      const rows = await response.json();
       setItems(
         rows.map((row) => ({
           date: formatDate(row.date),
