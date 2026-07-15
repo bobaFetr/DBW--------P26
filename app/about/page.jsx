@@ -9,16 +9,16 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <>
-      <PageIntro title="About Paralyze">
+      {/* <PageIntro title="About Paralyze">
         This page gives the project a dedicated space for identity, influences, and
         the overall feeling behind the band.
-      </PageIntro>
+      </PageIntro> */}
 
       <section className="split-panel">
         <div>
-          <h2 className="section-title">Core Idea</h2>
+          <h2 className="section-title">Introduction</h2>
         </div>
-
+      <p>The band is A sexual musical project inspired by the color scheme: purple, black, gray, white. The industrial project goes with homosexual tendencies, hidden behind drums, guitar and synthesizers.</p>
         <span>PARALYZE</span>
       </section>
     </>
