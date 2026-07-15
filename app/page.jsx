@@ -6,7 +6,7 @@ export default function HomePage() {
     <>
       <section className="hero">
         <div className="hero-inner">
-          <span className="eyebrow">Death By Wish is dead</span>
+          {/* <span className="eyebrow">Death By Wish is dead</span> */}
           <h2>Paralyze</h2>
           <p>
             Goth metal band Sofia from Bulgaria.
@@ -15,9 +15,9 @@ export default function HomePage() {
             <Link className="action-link primary" href="/singles">
               <span>Listen Now</span>
             </Link>
-            <Link className="action-link urgent" href="/concerts">
+            {/* <Link className="action-link urgent" href="/concerts">
               <span>Book A Show</span>
-            </Link>
+            </Link> */}
           </div>
         </div>
       </section>
