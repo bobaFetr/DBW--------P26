@@ -11,8 +11,7 @@ export default function TimelinePage() {
   return (
     <>
       <PageIntro title="Timeline">
-        This project archive tracks the milestones that shaped the path into the
-        current Paralyze direction.
+        This page tracks the events of ParalyZe's history.
       </PageIntro>
       <ApiTimeline />
     </>
