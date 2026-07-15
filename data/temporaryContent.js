@@ -43,11 +43,17 @@ export const temporaryContent = {
     // }
   ],
   members: [
+    {
+      id: 1,
+      name: "Project Owner",
+      instrument: "Vocalist",
+      photoUrl: "/memberPhotos/746002094_1464879828730969_2724179439735480166_n.jpg"
+    },
     // {
-    //   id: 1,
+    //   id: 2,
     //   name: "Member name",
     //   instrument: "Instrument",
-    //   photoUrl: "/member-photo.jpg"
+    //   photoUrl: ""
     // }
   ],
   timeline: [{
