@@ -25,7 +25,7 @@ export default function HomePage() {
       <HomeContent />
 
       <section className="cta-strip">
-        <h2 className="section-title">Explore The World</h2>
+        <h2 className="section-title">Explore The site</h2>
         <p>Music, live shows, the band story, and everything in between.</p>
         <div className="cta-actions">
           <Link className="action-link" href="/albums">
