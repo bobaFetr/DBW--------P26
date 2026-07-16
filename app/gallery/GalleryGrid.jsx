@@ -1,13 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { isVideoUrl, safeMediaUrl } from "../../components/securityUrls";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 export default function GalleryGrid() {
   const [items, setItems] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
 
   const isOpen = activeIndex !== null;
@@ -21,47 +17,6 @@ export default function GalleryGrid() {
   const next = useCallback(() => {
     setActiveIndex((i) => (i < items.length - 1 ? i + 1 : 0));
   }, [items.length]);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadGallery() {
-      try {
-        const response = await fetch(`${API_BASE}/api/content/gallery`);
-        if (!response.ok) return;
-
-        const rows = await response.json();
-        if (!ignore) {
-          setItems(
-            rows.map((row, index) => ({
-              id: String(row.id),
-              caption: row.title,
-              category: row.description,
-              mediaUrl: safeMediaUrl(row.imageUrl),
-              isVideo: isVideoUrl(row.imageUrl),
-              className:
-                index % 3 === 0
-                  ? "gallery-item gallery-item-tall"
-                  : index % 3 === 1
-                    ? "gallery-item photo gallery-item-wide"
-                    : "gallery-item alt-logo gallery-item-square"
-            }))
-          );
-        }
-      } catch {
-        // Leave the gallery empty when the API is offline.
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadGallery();
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -100,8 +55,7 @@ export default function GalleryGrid() {
 
   return (
     <>
-      {isLoading ? <p className="content-empty-state">Loading gallery...</p> : null}
-      {!isLoading && !items.length ? (
+      {!items.length ? (
         <p className="content-empty-state">No gallery items have been published yet.</p>
       ) : null}
       <div className="gallery-masonry">

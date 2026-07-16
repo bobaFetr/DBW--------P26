@@ -1071,12 +1071,6 @@ main {
   padding: 6px 14px 2px;
 }
 
-/* ─── Mobile Bottom Quick-Nav ──────────────────────────────────────────── */
-
-.mobile-bottom-nav {
-  display: none;
-}
-
 /* ─── Primary / Secondary action variants ─────────────────────────────── */
 
 .action-link.primary span {
@@ -2110,7 +2104,7 @@ footer {
 
   #mobile-menu {
     top: 90px;
-    max-height: calc(100dvh - 178px - env(safe-area-inset-bottom));
+    max-height: calc(100dvh - 108px - env(safe-area-inset-bottom));
     padding-bottom: 18px;
   }
 
@@ -2180,56 +2174,8 @@ footer {
     grid-template-columns: 1fr;
   }
 
-  .mobile-bottom-nav {
-    display: flex;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 950;
-    background: rgba(17, 17, 17, 0.97);
-    border-top: 1px solid rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(10px);
-    padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
-    justify-content: flex-start;
-    align-items: center;
-    gap: 6px;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: thin;
-  }
-
-  .mobile-bottom-nav a {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 7px 10px;
-    border-radius: 10px;
-    text-decoration: none;
-    color: var(--text-muted);
-    font-size: 0.58rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    transition: var(--transition-fast);
-    min-width: 64px;
-    flex: 0 0 auto;
-    overflow-wrap: anywhere;
-  }
-
-  .mobile-bottom-nav a:hover,
-  .mobile-bottom-nav a[aria-current="page"] {
-    color: var(--accent);
-    background: rgba(255, 255, 255, 0.07);
-  }
-
-  .mobile-bottom-nav .bn-icon {
-    font-size: 1.18rem;
-    line-height: 1;
-  }
-
   main {
-    padding-bottom: 72px;
+    padding-bottom: 30px;
   }
 
   .footer-inner {
@@ -2422,9 +2368,32 @@ footer {
   }
 
   #mobile-menu {
-    top: 70px;
+    top: 86px;
     left: 10px;
     right: 10px;
+    max-height: calc(100dvh - 104px - env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 340px) {
+  .mobile-brand span {
+    font-size: 1.25rem;
+  }
+
+  .mobile-header-bar {
+    grid-template-columns: 46px 1fr 46px;
+    padding: 0 8px;
+  }
+
+  #menu-btn,
+  .mobile-spacer {
+    width: 40px;
+    height: 40px;
+  }
+
+  .mobile-brand img {
+    width: 34px;
+    height: 34px;
   }
 }
 

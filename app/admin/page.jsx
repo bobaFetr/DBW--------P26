@@ -1,10 +1,10 @@
-import AdminDashboard from "../../components/AdminDashboard";
+import { notFound } from "next/navigation";
 
 export const metadata = {
-  title: "Admin",
-  description: "Paralyze admin dashboard for site content drafts."
+  title: "Page Not Found",
+  description: "The requested Paralyze page could not be found."
 };
 
 export default function AdminPage() {
-  return <AdminDashboard />;
+  notFound();
 }

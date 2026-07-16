@@ -38,12 +38,12 @@ services:
     buildCommand: npm ci && npm run build
     staticPublishPath: ./out
     envVars:
-      - key: NEXT_PUBLIC_API_BASE_URL
-        value: https://paralyze-api.onrender.com
+      - key: NEXT_PUBLIC_CONTENT_SOURCE
+        value: temporary
     headers:
       - path: "/*"
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob: http: https:; media-src 'self' data: blob: http: https:; connect-src 'self' https://paralyze-api.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
       - path: "/*"
         name: X-Content-Type-Options
         value: nosniff

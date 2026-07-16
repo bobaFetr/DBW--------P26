@@ -103,7 +103,6 @@ export default function SiteFooter() {
           <Link href="/airbrush-board">Airbrush Board</Link>
           <Link href="/timeline">Timeline</Link>
           <Link href="/privacy-policy">Privacy Policy</Link>
-          <a href="/admin" style={{ opacity: 0.4 }}>Admin</a>
         </div>
       </div>
     </footer>

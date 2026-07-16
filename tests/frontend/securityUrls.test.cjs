@@ -4,7 +4,7 @@ const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
 
-function loadSecurityUrlModule(apiBase = "http://localhost:5001") {
+function loadSecurityUrlModule() {
   const sourcePath = path.join(__dirname, "..", "..", "components", "securityUrls.js");
   const source = fs
     .readFileSync(sourcePath, "utf8")
@@ -13,11 +13,6 @@ function loadSecurityUrlModule(apiBase = "http://localhost:5001") {
   const context = {
     module: { exports: {} },
     exports: {},
-    process: {
-      env: {
-        NEXT_PUBLIC_API_BASE_URL: apiBase
-      }
-    },
     URL
   };
 
@@ -47,13 +42,10 @@ test("safeExternalUrl upgrades bare domains and rejects unsafe schemes", () => {
   assert.equal(safeExternalUrl("   "), undefined);
 });
 
-test("safeImageUrl resolves uploaded assets against the API base", () => {
-  const { safeImageUrl } = loadSecurityUrlModule("https://api.example.com/");
+test("safeImageUrl accepts only public static image paths", () => {
+  const { safeImageUrl } = loadSecurityUrlModule();
 
-  assert.equal(
-    safeImageUrl("/uploads/images/poster.png"),
-    "https://api.example.com/uploads/images/poster.png"
-  );
+  assert.equal(safeImageUrl("/uploads/images/poster.png"), undefined);
   assert.equal(safeImageUrl("/BUntitled.png"), "/BUntitled.png");
   assert.equal(
     safeImageUrl("/singles/coma-distraction-instrumental.jpg"),
@@ -62,17 +54,14 @@ test("safeImageUrl resolves uploaded assets against the API base", () => {
 });
 
 test("safeMediaUrl accepts database-stored video data URLs", () => {
-  const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule("https://api.example.com/");
+  const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule();
   const videoDataUrl = "data:video/mp4;base64,AQIDBA==";
   const videoPath = "/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000";
 
   assert.equal(safeMediaUrl(videoDataUrl), videoDataUrl);
-  assert.equal(
-    safeMediaUrl(videoPath),
-    "https://api.example.com/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000"
-  );
+  assert.equal(safeMediaUrl(videoPath), undefined);
   assert.equal(isVideoUrl(videoDataUrl), true);
-  assert.equal(isVideoUrl(videoPath), true);
+  assert.equal(isVideoUrl(videoPath), false);
   assert.equal(isVideoUrl("https://example.com/live.webm"), true);
 });
 

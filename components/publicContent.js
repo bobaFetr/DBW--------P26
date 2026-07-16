@@ -1,7 +1,5 @@
 import { temporaryContent } from "../data/temporaryContent";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
-const CONTENT_SOURCE = process.env.NEXT_PUBLIC_CONTENT_SOURCE ?? "backend";
 const TEMPORARY_CONTENT_TYPES = new Set([
   "albums",
   "singles",
@@ -12,21 +10,15 @@ const TEMPORARY_CONTENT_TYPES = new Set([
 ]);
 
 export function isTemporaryContentEnabled(contentType) {
-  return CONTENT_SOURCE.toLowerCase() === "temporary" &&
-    TEMPORARY_CONTENT_TYPES.has(contentType);
+  return TEMPORARY_CONTENT_TYPES.has(contentType);
 }
 
-export async function loadPublicContent(contentType, fetchOptions) {
+export async function loadPublicContent(contentType) {
   if (isTemporaryContentEnabled(contentType)) {
     return orderRows(contentType, temporaryContent[contentType] ?? []);
   }
 
-  const response = await fetch(`${API_BASE}/api/content/${contentType}`, fetchOptions);
-  if (!response.ok) {
-    return [];
-  }
-
-  return response.json();
+  return [];
 }
 
 function orderRows(contentType, rows) {
