@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
@@ -32,41 +32,12 @@ function singleCards(singles) {
 export default function SingleBrowser({ emptyMessage = "No singles have been published yet." }) {
   const searchParams = useSearchParams();
   const selectedSingleId = searchParams.get("singleId");
-  const [singles, setSingles] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadSingles() {
-      try {
-        const rows = await loadPublicContent("singles");
-        if (!ignore) {
-          setSingles(rows);
-        }
-      } catch {
-        // Leave the page empty when the API is offline.
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadSingles();
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const singles = useMemo(() => loadPublicContent("singles"), []);
 
   const selectedSingle = useMemo(
     () => singles.find((single) => String(single.songId) === String(selectedSingleId)),
     [singles, selectedSingleId]
   );
-
-  if (isLoading) {
-    return <p className="content-empty-state">Loading singles...</p>;
-  }
 
   if (!singles.length) {
     return <p className="content-empty-state">{emptyMessage}</p>;

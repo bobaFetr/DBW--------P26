@@ -1,6 +1,4 @@
-// Temporary public content.
-// Set NEXT_PUBLIC_CONTENT_SOURCE=temporary to use this file on the public site.
-// Set NEXT_PUBLIC_CONTENT_SOURCE=backend to use the database/admin system.
+// Public site content. Edit this file to update the static website.
 export const temporaryContent = {
   albums: [
     // {
@@ -58,14 +56,14 @@ export const temporaryContent = {
   ],
   timeline: [{
       id: 1,
-      date: "13.07.2026",
+      date: "2026-07-13",
       event: "Coma Distraction - instrumental was released.",
       description: "",
       location: ""
     },
     {
-      id: 1,
-      date: "20.02.2026",
+      id: 2,
+      date: "2026-02-20",
       event: "Paralyze was created.",
       description: "",
       location: ""

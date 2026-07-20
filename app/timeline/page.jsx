@@ -1,5 +1,5 @@
 import PageIntro from "../../components/PageIntro";
-import ApiTimeline from "../../components/ApiTimeline";
+import Timeline from "../../components/Timeline";
 
 export const metadata = {
   title: "Timeline",
@@ -13,7 +13,7 @@ export default function TimelinePage() {
       <PageIntro title="Timeline">
         This page tracks the events of ParalyZe's history.
       </PageIntro>
-      <ApiTimeline />
+      <Timeline />
     </>
   );
 }

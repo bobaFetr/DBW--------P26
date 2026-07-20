@@ -53,7 +53,7 @@ test("safeImageUrl accepts only public static image paths", () => {
   );
 });
 
-test("safeMediaUrl accepts database-stored video data URLs", () => {
+test("safeMediaUrl accepts embedded video data URLs", () => {
   const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule();
   const videoDataUrl = "data:video/mp4;base64,AQIDBA==";
   const videoPath = "/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000";
@@ -65,11 +65,11 @@ test("safeMediaUrl accepts database-stored video data URLs", () => {
   assert.equal(isVideoUrl("https://example.com/live.webm"), true);
 });
 
-test("safeImageUrl accepts only safe image URL forms", () => {
+test("safeImageUrl accepts only static-site image URL forms", () => {
   const { safeImageUrl } = loadSecurityUrlModule();
 
-  assert.equal(safeImageUrl("https://example.com/poster.png"), "https://example.com/poster.png");
-  assert.equal(safeImageUrl("http://example.com/poster.png"), "http://example.com/poster.png");
+  assert.equal(safeImageUrl("https://example.com/poster.png"), undefined);
+  assert.equal(safeImageUrl("http://example.com/poster.png"), undefined);
   assert.equal(safeImageUrl("data:image/jpeg;base64,AQIDBA=="), "data:image/jpeg;base64,AQIDBA==");
   assert.equal(safeImageUrl("javascript:alert(1)"), undefined);
   assert.equal(safeImageUrl("data:text/html;base64,AQIDBA=="), undefined);

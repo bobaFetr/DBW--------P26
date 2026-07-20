@@ -1,9 +1,23 @@
-# Wall Tagging Page Idea
+# Paralyze Website
 
-This project should include a page with a shared wall for tagging.
+This is a frontend-only static Next.js website. Public content is stored in
+`data/temporaryContent.js`; edit that file to update albums, singles, concerts,
+gallery items, news, members, and timeline entries.
 
-## Concept
+## Local development
 
-- Everyone can draw on the wall.
-- All drawings remain visible for one week.
-- After one week, the backend automatically resets the wall and clears all drawings.
+```bash
+npm install
+npm run dev
+```
+
+## Build and test
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+The production build is exported as static files in `out/` and can be hosted on
+any static web host.

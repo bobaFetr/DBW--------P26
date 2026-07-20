@@ -1,9 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { loadPublicContent } from "../../components/publicContent";
+import { isVideoUrl, safeMediaUrl } from "../../components/securityUrls";
 
 export default function GalleryGrid() {
-  const [items, setItems] = useState([]);
+  const items = loadPublicContent("gallery").map((item) => {
+    const mediaUrl = safeMediaUrl(item.mediaUrl);
+    return {
+      ...item,
+      mediaUrl,
+      isVideo: isVideoUrl(mediaUrl),
+      className: item.className || "gallery-item"
+    };
+  });
   const [activeIndex, setActiveIndex] = useState(null);
 
   const isOpen = activeIndex !== null;

@@ -1,38 +1,15 @@
-"use client";
-
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl } from "./securityUrls";
 
 export default function NowPlayingBar() {
-  const [release, setRelease] = useState(null);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadLatestRelease() {
-      try {
-        const rows = await loadPublicContent("singles");
-        const latestSingle = rows[0];
-        if (!latestSingle || ignore) return;
-
-        setRelease({
-          title: latestSingle.songName,
-          href:
-            safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify) ||
-            "/singles"
-        });
-      } catch {
-        // Hide the latest release bar when the API is offline.
+  const latestSingle = loadPublicContent("singles")[0];
+  const release = latestSingle
+    ? {
+        title: latestSingle.songName,
+        href: safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify) || "/singles"
       }
-    }
-
-    void loadLatestRelease();
-    return () => {
-      ignore = true;
-    };
-  }, []);
+    : null;
 
   if (!release) {
     return null;

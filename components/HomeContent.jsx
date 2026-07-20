@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
@@ -79,55 +76,21 @@ function buildLatestCards(data) {
 }
 
 export default function HomeContent() {
-  const [data, setData] = useState({});
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadHomeContent() {
-      try {
-        const entries = await Promise.all(
-          COLLECTIONS.map(async (collection) => {
-            return [collection.key, await loadPublicContent(collection.key)];
-          })
-        );
-
-        if (!ignore) {
-          setData(Object.fromEntries(entries));
-        }
-      } catch {
-        if (!ignore) {
-          setData({});
-        }
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadHomeContent();
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const stats = useMemo(
-    () => COLLECTIONS.map((collection) => ({
-      label: collection.label,
-      value: data[collection.key]?.length ?? 0
-    })),
-    [data]
+  const data = Object.fromEntries(
+    COLLECTIONS.map((collection) => [collection.key, loadPublicContent(collection.key)])
   );
-  const latestCards = useMemo(() => buildLatestCards(data), [data]);
+  const stats = COLLECTIONS.map((collection) => ({
+    label: collection.label,
+    value: data[collection.key].length
+  }));
+  const latestCards = buildLatestCards(data);
 
   return (
     <>
       <div className="release-stats">
         {stats.map((stat) => (
           <div key={stat.label} className="release-stat">
-            <strong>{isLoading ? "..." : stat.value}</strong>
+            <strong>{stat.value}</strong>
             <span>{stat.label}</span>
           </div>
         ))}
@@ -137,9 +100,8 @@ export default function HomeContent() {
         <h2 className="section-title">Latest From Paralyze</h2>
       </section>
 
-      {isLoading ? <p className="content-empty-state">Loading latest content...</p> : null}
-      {!isLoading && latestCards.length ? <CardGrid cards={latestCards} /> : null}
-      {!isLoading && !latestCards.length ? (
+      {latestCards.length ? <CardGrid cards={latestCards} /> : null}
+      {!latestCards.length ? (
         <p className="content-empty-state">No featured content has been published yet.</p>
       ) : null}
     </>

@@ -1,4 +1,4 @@
-import ApiCardGrid from "../../components/ApiCardGrid";
+import ContentCardGrid from "../../components/ContentCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 export const metadata = {
@@ -13,7 +13,7 @@ export default function MembersPage() {
         This page is ready for the full lineup, roles, and short individual
         introductions.
       </PageIntro>
-      <ApiCardGrid contentType="members" emptyMessage="No members have been published yet." />
+      <ContentCardGrid contentType="members" emptyMessage="No members have been published yet." />
     </>
   );
 }

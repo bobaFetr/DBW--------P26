@@ -1,7 +1,0 @@
-<Solution>
-  <Folder Name="/DB/">
-    <Project Path="DB/MyLibrary/MyLibrary.csproj" />
-  </Folder>
-  <Project Path="MyApi.Tests/MyApi.Tests.csproj" />
-  <Project Path="MyApi/MyApi.csproj" />
-</Solution>

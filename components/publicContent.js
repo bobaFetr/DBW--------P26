@@ -4,17 +4,18 @@ const TEMPORARY_CONTENT_TYPES = new Set([
   "albums",
   "singles",
   "concerts",
+  "gallery",
   "news",
   "members",
   "timeline"
 ]);
 
-export function isTemporaryContentEnabled(contentType) {
+export function isPublicContentType(contentType) {
   return TEMPORARY_CONTENT_TYPES.has(contentType);
 }
 
-export async function loadPublicContent(contentType) {
-  if (isTemporaryContentEnabled(contentType)) {
+export function loadPublicContent(contentType) {
+  if (isPublicContentType(contentType)) {
     return orderRows(contentType, temporaryContent[contentType] ?? []);
   }
 

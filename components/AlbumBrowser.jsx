@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import CardGrid from "./CardGrid";
-import { parseSongRows } from "./adminDraft";
+import { parseSongRows } from "./trackList";
 import { loadPublicContent } from "./publicContent";
 import { safeImageUrl } from "./securityUrls";
 
@@ -32,41 +32,12 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
   const searchParams = useSearchParams();
   const selectedAlbumId = searchParams.get("albumId");
   const selectedSongNumber = searchParams.get("song");
-  const [albums, setAlbums] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    let ignore = false;
-
-    async function loadAlbums() {
-      try {
-        const rows = await loadPublicContent("albums");
-        if (!ignore) {
-          setAlbums(rows);
-        }
-      } catch {
-        // Leave the page empty when the API is offline.
-      } finally {
-        if (!ignore) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadAlbums();
-    return () => {
-      ignore = true;
-    };
-  }, []);
+  const albums = useMemo(() => loadPublicContent("albums"), []);
 
   const selectedAlbum = useMemo(
     () => albums.find((album) => String(album.albumId) === String(selectedAlbumId)),
     [albums, selectedAlbumId]
   );
-
-  if (isLoading) {
-    return <p className="content-empty-state">Loading albums...</p>;
-  }
 
   if (!albums.length) {
     return <p className="content-empty-state">{emptyMessage}</p>;

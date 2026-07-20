@@ -1,4 +1,4 @@
-import ApiCardGrid from "../../components/ApiCardGrid";
+import ContentCardGrid from "../../components/ContentCardGrid";
 import PageIntro from "../../components/PageIntro";
 
 export const metadata = {
@@ -12,7 +12,7 @@ export default function ConcertsPage() {
       <PageIntro title="Concerts">
         Live performances, upcoming shows, and booking information.
       </PageIntro>
-      <ApiCardGrid contentType="concerts" emptyMessage="No concerts have been published yet." />
+      <ContentCardGrid contentType="concerts" emptyMessage="No concerts have been published yet." />
     </>
   );
 }

@@ -35,12 +35,7 @@ export function safeImageUrl(value) {
     return trimmed;
   }
 
-  try {
-    const url = new URL(trimmed);
-    return ["http:", "https:"].includes(url.protocol) ? url.href : undefined;
-  } catch {
-    return undefined;
-  }
+  return undefined;
 }
 
 export function safeMediaUrl(value) {
