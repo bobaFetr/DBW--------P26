@@ -1,4 +1,3 @@
-import Link from "next/link";
 import PageIntro from "../components/PageIntro";
 
 export const metadata = {
@@ -20,15 +19,15 @@ export default function NotFoundPage() {
           jump into the band sections that are currently available.
         </p>
         <div className="cta-actions">
-          <Link className="action-link primary" href="/">
+          <a className="action-link primary" href="/">
             <span>Go Home</span>
-          </Link>
-          <Link className="action-link" href="/singles">
+          </a>
+          <a className="action-link" href="/singles/">
             <span>Singles</span>
-          </Link>
-          <Link className="action-link" href="/news">
+          </a>
+          <a className="action-link" href="/news/">
             <span>News</span>
-          </Link>
+          </a>
         </div>
       </section>
     </>

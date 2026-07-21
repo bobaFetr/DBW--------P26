@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 export default function SiteFooter() {
@@ -33,13 +32,13 @@ export default function SiteFooter() {
               YouTube
             </a>
             <a
-              href="/singles"
+              href="/singles/"
               className="footer-pill"
             >
               Spotify
             </a>
             <a
-              href="/albums"
+              href="/albums/"
               className="footer-pill"
             >
               Bandcamp
@@ -98,10 +97,10 @@ export default function SiteFooter() {
       <div className="footer-bottom">
         <p>&copy; 2026 Paralyze. All rights reserved.</p>
         <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", justifyContent: "center" }}>
-          <Link href="/about">About</Link>
-          <Link href="/news">News</Link>
-          <Link href="/airbrush-board">Airbrush Board</Link>
-          <Link href="/timeline">Timeline</Link>
+          <a href="/about/">About</a>
+          <a href="/news/">News</a>
+          <a href="/airbrush-board/">Airbrush Board</a>
+          <a href="/timeline/">Timeline</a>
           <a href="/privacy-policy/">Privacy Policy</a>
         </div>
       </div>

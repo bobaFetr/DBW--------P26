@@ -1,4 +1,3 @@
-import Link from "next/link";
 import HomeContent from "../components/HomeContent";
 
 export default function HomePage() {
@@ -12,9 +11,9 @@ export default function HomePage() {
             Goth metal band Sofia from Bulgaria.
           </p>
           <div className="hero-actions">
-            <Link className="action-link primary" href="/singles">
+            <a className="action-link primary" href="/singles/">
               <span>Listen Now</span>
-            </Link>
+            </a>
             {/* <Link className="action-link urgent" href="/concerts">
               <span>Book A Show</span>
             </Link> */}
@@ -28,15 +27,15 @@ export default function HomePage() {
         <h2 className="section-title">Explore The site</h2>
         <p>Music, live shows, the band story, and everything in between.</p>
         <div className="cta-actions">
-          <Link className="action-link" href="/albums">
+          <a className="action-link" href="/albums/">
             <span>Browse Releases</span>
-          </Link>
-          <Link className="action-link" href="/members">
+          </a>
+          <a className="action-link" href="/members/">
             <span>Meet The Band</span>
-          </Link>
-          <Link className="action-link" href="/timeline">
+          </a>
+          <a className="action-link" href="/timeline/">
             <span>View Timeline</span>
-          </Link>
+          </a>
         </div>
       </section>
     </>

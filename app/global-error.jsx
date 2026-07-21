@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import "./globals.css";
 
 export default function GlobalErrorPage({ error, reset }) {
@@ -29,9 +28,9 @@ export default function GlobalErrorPage({ error, reset }) {
               <button className="action-link reset-action" type="button" onClick={reset}>
                 <span>Reload Site</span>
               </button>
-              <Link className="action-link primary" href="/">
+              <a className="action-link primary" href="/">
                 <span>Go Home</span>
-              </Link>
+              </a>
             </div>
           </section>
         </main>

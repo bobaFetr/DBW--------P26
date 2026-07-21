@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 
 function isExternalHref(href) {
@@ -40,9 +39,9 @@ export default function CardGrid({ cards }) {
                   <span>{card.linkLabel ?? "View"}</span>
                 </a>
               ) : href ? (
-                  <Link className="action-link" href={href}>
+                  <a className="action-link" href={href}>
                     <span>{card.linkLabel ?? "View"}</span>
-                  </Link>
+                  </a>
                 ) : null}
             </div>
           </article>

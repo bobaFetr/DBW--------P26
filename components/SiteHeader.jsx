@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -8,31 +7,31 @@ const NAV_GROUPS = [
   {
     label: "Music",
     items: [
-      { key: "albums", href: "/albums", label: "Albums" },
-      { key: "singles", href: "/singles", label: "Singles" }
+      { key: "albums", href: "/albums/", label: "Albums" },
+      { key: "singles", href: "/singles/", label: "Singles" }
     ]
   },
   {
     label: "Live",
     items: [
-      { key: "concerts", href: "/concerts", label: "Concerts" }
+      { key: "concerts", href: "/concerts/", label: "Concerts" }
     ]
   },
   {
     label: "Media",
     items: [
-      { key: "gallery", href: "/gallery", label: "Gallery" },
-      { key: "airbrush-board", href: "/airbrush-board", label: "Airbrush Board" },
-      { key: "news", href: "/news", label: "News" }
+      { key: "gallery", href: "/gallery/", label: "Gallery" },
+      { key: "airbrush-board", href: "/airbrush-board/", label: "Airbrush Board" },
+      { key: "news", href: "/news/", label: "News" }
     ]
   },
   {
     label: "Band",
     items: [
-      { key: "about", href: "/about", label: "About" },
-      { key: "members", href: "/members", label: "Members" },
-      { key: "timeline", href: "/timeline", label: "Timeline" },
-      { key: "merch", href: "/merch", label: "Merch" }
+      { key: "about", href: "/about/", label: "About" },
+      { key: "members", href: "/members/", label: "Members" },
+      { key: "timeline", href: "/timeline/", label: "Timeline" },
+      { key: "merch", href: "/merch/", label: "Merch" }
     ]
   }
 ];
@@ -56,7 +55,7 @@ export default function SiteHeader() {
 
   const activeKey = useMemo(() => {
     const normalizedPath = normalizePath(pathname);
-    return ALL_NAV_ITEMS.find((item) => item.href === normalizedPath)?.key ?? "home";
+    return ALL_NAV_ITEMS.find((item) => normalizePath(item.href) === normalizedPath)?.key ?? "home";
   }, [pathname]);
 
   useEffect(() => {
@@ -99,10 +98,10 @@ export default function SiteHeader() {
         >
           &#9776;
         </button>
-        <Link href="/" className="mobile-brand" onClick={closeMobileMenu}>
+        <a href="/" className="mobile-brand" onClick={closeMobileMenu}>
           <img src="/logo.ico" alt="Paralyze logo" />
           <span>PARALYZE</span>
-        </Link>
+        </a>
         <div className="mobile-spacer" aria-hidden="true" />
       </div>
 
@@ -118,21 +117,21 @@ export default function SiteHeader() {
         aria-label="Mobile navigation"
         aria-hidden={!menuOpen}
       >
-        <Link
+        <a
           href="/"
           aria-current={activeKey === "home" ? "page" : undefined}
           className={activeKey === "home" ? "active" : undefined}
           onClick={closeMobileMenu}
         >
           Home
-        </Link>
+        </a>
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mobile-menu-group">
             <span className="mobile-menu-group-label">{group.label}</span>
             {group.items.map((item) => {
               const isActive = item.key === activeKey;
               return (
-                <Link
+                <a
                   key={item.key}
                   href={item.href}
                   aria-current={isActive ? "page" : undefined}
@@ -140,7 +139,7 @@ export default function SiteHeader() {
                   onClick={closeMobileMenu}
                 >
                   {item.label}
-                </Link>
+                </a>
               );
             })}
           </div>
@@ -151,21 +150,21 @@ export default function SiteHeader() {
         <h1>PARALYZE</h1>
         <nav className="desktop-menu" aria-label="Primary navigation">
           <div className="header-logo">
-            <Link href="/">
+            <a href="/">
               <img src="/logo.ico" alt="Paralyze logo" />
-            </Link>
+            </a>
           </div>
           <div className="menu-links">
-            <Link href="/" aria-current={activeKey === "home" ? "page" : undefined}>
+            <a href="/" aria-current={activeKey === "home" ? "page" : undefined}>
               <span className={`nav-button${activeKey === "home" ? " active" : ""}`}>Home</span>
-            </Link>
+            </a>
             {NAV_GROUPS.map((group, groupIndex) => (
               <span key={group.label} style={{ display: "contents" }}>
                 {groupIndex > 0 && <span className="nav-sep" aria-hidden="true" />}
                 {group.items.map((item) => {
                   const isActive = item.key === activeKey;
                   return (
-                    <Link
+                    <a
                       key={item.key}
                       href={item.href}
                       aria-current={isActive ? "page" : undefined}
@@ -173,7 +172,7 @@ export default function SiteHeader() {
                       <span className={`nav-button${isActive ? " active" : ""}`}>
                         {item.label}
                       </span>
-                    </Link>
+                    </a>
                   );
                 })}
               </span>

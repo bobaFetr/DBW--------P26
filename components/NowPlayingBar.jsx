@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl } from "./securityUrls";
 

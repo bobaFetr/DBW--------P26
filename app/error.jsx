@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 
 export default function ErrorPage({ error, reset }) {
   return (
@@ -25,12 +24,12 @@ export default function ErrorPage({ error, reset }) {
           <button className="action-link reset-action" type="button" onClick={reset}>
             <span>Try Again</span>
           </button>
-          <Link className="action-link primary" href="/">
+          <a className="action-link primary" href="/">
             <span>Go Home</span>
-          </Link>
-          <Link className="action-link" href="/concerts">
+          </a>
+          <a className="action-link" href="/concerts/">
             <span>Concerts</span>
-          </Link>
+          </a>
         </div>
       </section>
     </>

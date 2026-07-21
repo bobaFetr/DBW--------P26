@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import CardGrid from "./CardGrid";
@@ -48,9 +47,9 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
       return (
         <section className="single-detail">
           <p className="content-empty-state">Single was not found.</p>
-          <Link className="action-link" href="/singles/">
+          <a className="action-link" href="/singles/">
             <span>Back to singles</span>
-          </Link>
+          </a>
         </section>
       );
     }
@@ -61,9 +60,9 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
 
     return (
       <section className="single-detail">
-        <Link className="action-link single-back-link" href="/singles/">
+        <a className="action-link single-back-link" href="/singles/">
           <span>Back to singles</span>
-        </Link>
+        </a>
 
         <section className="single-summary">
           {cover ? (
