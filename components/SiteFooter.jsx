@@ -102,7 +102,7 @@ export default function SiteFooter() {
           <Link href="/news">News</Link>
           <Link href="/airbrush-board">Airbrush Board</Link>
           <Link href="/timeline">Timeline</Link>
-          <Link href="/privacy-policy">Privacy Policy</Link>
+          <a href="/privacy-policy/">Privacy Policy</a>
         </div>
       </div>
     </footer>
