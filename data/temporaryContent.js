@@ -16,7 +16,7 @@ export const temporaryContent = {
 {
       songId: 1,
       songName: "Spineless love - Instrumental",
-      releaseDate: "2026-07-24",
+      releaseDate: "2026-07-26",
       availableOnYoutube: "https://youtu.be/1YdheCxpDfQ?is=HEdwoePWLlAW4PKg",
       photoUrl: "",
       description: ""
