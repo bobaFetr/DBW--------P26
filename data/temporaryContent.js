@@ -13,6 +13,14 @@ export const temporaryContent = {
     // }
   ],
   singles: [
+{
+      songId: 1,
+      songName: "Spineless love - Instrumental",
+      releaseDate: "2026-07-24",
+      availableOnYoutube: "https://youtu.be/t2w8rrT-EUk?si=TeDFE7V4i9gbQm8g",
+      photoUrl: "",
+      description: ""
+    },
     {
       songId: 1,
       songName: "Coma Distraction - instrumental",
