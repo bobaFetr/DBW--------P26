@@ -63,6 +63,12 @@ export const temporaryContent = {
     // }
   ],
   timeline: [{
+ id: 1,
+      date: "2026-07-26",
+      event: "Spineless love - instrumental was released.",
+      description: "",
+      location: ""
+    },
       id: 1,
       date: "2026-07-13",
       event: "Coma Distraction - instrumental was released.",
