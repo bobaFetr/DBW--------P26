@@ -17,12 +17,12 @@ export const temporaryContent = {
       songId: 1,
       songName: "Spineless love - Instrumental",
       releaseDate: "2026-07-26",
-      availableOnYoutube: "https://youtu.be/1YdheCxpDfQ?is=HEdwoePWLlAW4PKg",
+      availableOnYoutube: "https://youtu.be/1YdheCxpDfQ?si=HEdwoePWLlAW4PKg",
       photoUrl: "",
       description: ""
     },
     {
-      songId: 1,
+      songId: 2,
       songName: "Coma Distraction - instrumental",
       releaseDate: "2026-07-13",
       availableOnYoutube: "https://youtu.be/t2w8rrT-EUk?si=TeDFE7V4i9gbQm8g",
@@ -69,14 +69,15 @@ export const temporaryContent = {
       description: "",
       location: ""
     },
-      id: 1,
+    {
+      id: 2,
       date: "2026-07-13",
       event: "Coma Distraction - instrumental was released.",
       description: "",
       location: ""
     },
     {
-      id: 2,
+      id: 3,
       date: "2026-02-20",
       event: "Paralyze was created.",
       description: "",
