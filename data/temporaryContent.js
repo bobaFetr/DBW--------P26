@@ -69,6 +69,7 @@ export const temporaryContent = {
       description: "",
       location: ""
     },
+    {
       id: 2,
       date: "2026-07-13",
       event: "Coma Distraction - instrumental was released.",
