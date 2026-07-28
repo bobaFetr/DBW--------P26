@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 
 const NAV_GROUPS = [
   {
@@ -51,99 +51,35 @@ function normalizePath(pathname) {
 
 export default function SiteHeader() {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const activeKey = useMemo(() => {
     const normalizedPath = normalizePath(pathname);
     return ALL_NAV_ITEMS.find((item) => normalizePath(item.href) === normalizedPath)?.key ?? "home";
   }, [pathname]);
 
-  useEffect(() => {
-    document.body.classList.toggle("menu-open", menuOpen);
-
-    return () => {
-      document.body.classList.remove("menu-open");
-    };
-  }, [menuOpen]);
-
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  function closeMobileMenu() {
-    setMenuOpen(false);
-  }
-
   return (
     <header>
       <div className="mobile-header-bar">
-        <button
-          id="menu-btn"
-          aria-label="Open menu"
-          aria-expanded={menuOpen}
-          aria-controls="mobile-menu"
-          onClick={() => setMenuOpen((current) => !current)}
-          type="button"
-        >
-          &#9776;
-        </button>
-        <a href="/" className="mobile-brand" onClick={closeMobileMenu}>
+        <a href="/" className="mobile-brand">
           <img src="/logo.ico" alt="Paralyze logo" />
           <span>PARALYZE</span>
         </a>
-        <div className="mobile-spacer" aria-hidden="true" />
       </div>
 
-      <div
-        id="menu-overlay"
-        className={menuOpen ? "active" : ""}
-        onClick={closeMobileMenu}
-      />
-
-      <nav
-        id="mobile-menu"
-        className={menuOpen ? "active" : ""}
-        aria-label="Mobile navigation"
-        aria-hidden={!menuOpen}
-      >
-        <a
-          href="/"
-          aria-current={activeKey === "home" ? "page" : undefined}
-          className={activeKey === "home" ? "active" : undefined}
-          onClick={closeMobileMenu}
-        >
-          Home
-        </a>
-        {NAV_GROUPS.map((group) => (
-          <div key={group.label} className="mobile-menu-group">
-            <span className="mobile-menu-group-label">{group.label}</span>
-            {group.items.map((item) => {
-              const isActive = item.key === activeKey;
-              return (
-                <a
-                  key={item.key}
-                  href={item.href}
-                  aria-current={isActive ? "page" : undefined}
-                  className={isActive ? "active" : undefined}
-                  onClick={closeMobileMenu}
-                >
-                  {item.label}
-                </a>
-              );
-            })}
-          </div>
-        ))}
+      <nav className="mobile-bottom-menu" aria-label="Mobile navigation">
+        {ALL_NAV_ITEMS.map((item) => {
+          const isActive = item.key === activeKey;
+          return (
+            <a
+              key={item.key}
+              href={item.href}
+              aria-current={isActive ? "page" : undefined}
+              className={isActive ? "active" : undefined}
+            >
+              {item.label}
+            </a>
+          );
+        })}
       </nav>
 
       <div className="header-content">
