@@ -38,6 +38,13 @@ test("CSP does not allow arbitrary inline scripts or styles", () => {
   const policy = renderHeader("Content-Security-Policy");
 
   assert.match(policy, /(?:^|; )script-src 'self'(?:;|$)/);
-  assert.match(policy, /(?:^|; )style-src 'self'(?:;|$)/);
+  assert.match(
+    policy,
+    /(?:^|; )style-src 'self' https:\/\/fonts\.cdnfonts\.com(?:;|$)/
+  );
+  assert.match(
+    policy,
+    /(?:^|; )font-src 'self' https:\/\/fonts\.cdnfonts\.com(?:;|$)/
+  );
   assert.doesNotMatch(policy, /unsafe-inline|sha256-/);
 });
