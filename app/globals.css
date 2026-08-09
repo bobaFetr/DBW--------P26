@@ -1719,3 +1719,28 @@ footer {
     display: none !important;
   }
 }
+
+.nav-group {
+  display: contents;
+}
+
+.footer-streaming-links-spaced {
+  margin-top: 16px;
+}
+
+.footer-bottom-links {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lightbox-category {
+  margin-left: 10px;
+  opacity: 0.5;
+  font-size: 0.82rem;
+}
+
+body.lightbox-open {
+  overflow: hidden;
+}

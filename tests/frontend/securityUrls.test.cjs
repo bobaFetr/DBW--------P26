@@ -17,7 +17,7 @@ function loadSecurityUrlModule() {
   };
 
   vm.runInNewContext(
-    `${source}\nmodule.exports = { safeExternalUrl, safeImageUrl, safeMediaUrl, isVideoUrl };`,
+    `${source}\nmodule.exports = { safeExternalUrl, safeInternalUrl, safeImageUrl, safeMediaUrl, isVideoUrl };`,
     context,
     { filename: sourcePath }
   );
@@ -25,12 +25,21 @@ function loadSecurityUrlModule() {
   return context.module.exports;
 }
 
-test("safeExternalUrl accepts web and mail links", () => {
+test("safeExternalUrl accepts secure web and mail links", () => {
   const { safeExternalUrl } = loadSecurityUrlModule();
 
   assert.equal(safeExternalUrl("https://example.com/path"), "https://example.com/path");
-  assert.equal(safeExternalUrl("http://example.com/path"), "http://example.com/path");
+  assert.equal(safeExternalUrl("http://example.com/path"), undefined);
   assert.equal(safeExternalUrl("mailto:band@example.com"), "mailto:band@example.com");
+});
+
+test("safeInternalUrl accepts same-origin paths and rejects protocol-relative paths", () => {
+  const { safeInternalUrl } = loadSecurityUrlModule();
+
+  assert.equal(safeInternalUrl("/albums/?song=1#player"), "/albums/?song=1#player");
+  assert.equal(safeInternalUrl("//example.com/path"), undefined);
+  assert.equal(safeInternalUrl("/\\example.com/path"), undefined);
+  assert.equal(safeInternalUrl("https://example.com/path"), undefined);
 });
 
 test("safeExternalUrl upgrades bare domains and rejects unsafe schemes", () => {

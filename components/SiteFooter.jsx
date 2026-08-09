@@ -22,7 +22,7 @@ export default function SiteFooter() {
             Goth metal band  from Sofia, Bulgaria.<br/>
             Founded February 2026.
           </p>
-          <div className="footer-streaming-links" style={{ marginTop: "16px" }}>
+          <div className="footer-streaming-links footer-streaming-links-spaced">
             <a
               href="https://www.youtube.com/@ParalyZeofficial"
               target="_blank"
@@ -96,7 +96,7 @@ export default function SiteFooter() {
 
       <div className="footer-bottom">
         <p>&copy; 2026 Paralyze. All rights reserved.</p>
-        <div style={{ display: "flex", gap: "18px", flexWrap: "wrap", justifyContent: "center" }}>
+        <div className="footer-bottom-links">
           <a href="/about/">About</a>
           <a href="/news/">News</a>
           <a href="/airbrush-board/">Airbrush Board</a>

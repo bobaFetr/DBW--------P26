@@ -1,4 +1,4 @@
-import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { safeExternalUrl, safeImageUrl, safeInternalUrl } from "./securityUrls";
 
 function isExternalHref(href) {
   return /^(https?:|mailto:)/i.test(href);
@@ -10,7 +10,7 @@ export default function CardGrid({ cards }) {
       <div className="card-grid">
         {cards.map((card) => {
           const cover = safeImageUrl(card.cover);
-          const href = card.href?.startsWith("/") ? card.href : safeExternalUrl(card.href);
+          const href = safeInternalUrl(card.href) ?? safeExternalUrl(card.href);
 
           return (
           <article className="card" key={card.title}>

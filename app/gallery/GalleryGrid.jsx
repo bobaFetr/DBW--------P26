@@ -38,10 +38,10 @@ export default function GalleryGrid() {
     }
 
     window.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("lightbox-open");
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      document.body.classList.remove("lightbox-open");
     };
   }, [isOpen, close, prev, next]);
 
@@ -123,7 +123,7 @@ export default function GalleryGrid() {
             <p className="lightbox-caption">
               {activeItem.caption}
               {activeItem.category && (
-                <span style={{ marginLeft: "10px", opacity: 0.5, fontSize: "0.82rem" }}>
+                <span className="lightbox-category">
                   — {activeItem.category}
                 </span>
               )}

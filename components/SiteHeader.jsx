@@ -95,7 +95,7 @@ export default function SiteHeader() {
               <span className={`nav-button${activeKey === "home" ? " active" : ""}`}>Home</span>
             </a>
             {NAV_GROUPS.map((group, groupIndex) => (
-              <span key={group.label} style={{ display: "contents" }}>
+              <span key={group.label} className="nav-group">
                 {groupIndex > 0 && <span className="nav-sep" aria-hidden="true" />}
                 {group.items.map((item) => {
                   const isActive = item.key === activeKey;

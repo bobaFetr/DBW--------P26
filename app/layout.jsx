@@ -28,9 +28,6 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <head>
-        <link href="https://fonts.cdnfonts.com/css/ft-vortex" rel="stylesheet" />
-      </head>
       <body>
         <a className="skip-link" href="#main-content">
           Skip to content

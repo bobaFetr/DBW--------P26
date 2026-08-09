@@ -10,7 +10,7 @@ export function safeExternalUrl(value) {
 
   try {
     const url = new URL(trimmed);
-    return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
+    return ["https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
   } catch {
     try {
       const url = new URL(`https://${trimmed}`);
@@ -19,6 +19,16 @@ export function safeExternalUrl(value) {
       return undefined;
     }
   }
+}
+
+export function safeInternalUrl(value) {
+  if (!value) return undefined;
+
+  const trimmed = String(value).trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return undefined;
+  if (/[\\\u0000-\u001F\u007F]/.test(trimmed)) return undefined;
+
+  return trimmed;
 }
 
 export function safeImageUrl(value) {
