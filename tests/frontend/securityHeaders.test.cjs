@@ -33,3 +33,11 @@ test("deployment targets enforce HTTPS with HSTS", () => {
   assert.equal(renderHeader("Strict-Transport-Security"), expected);
   assert.equal(staticHeader("Strict-Transport-Security"), expected);
 });
+
+test("CSP does not allow arbitrary inline scripts or styles", () => {
+  const policy = renderHeader("Content-Security-Policy");
+
+  assert.match(policy, /(?:^|; )script-src 'self'(?:;|$)/);
+  assert.match(policy, /(?:^|; )style-src 'self'(?:;|$)/);
+  assert.doesNotMatch(policy, /unsafe-inline|sha256-/);
+});

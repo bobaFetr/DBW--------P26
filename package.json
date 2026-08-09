@@ -4,8 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/generate-csp-hashes.cjs --verify",
-    "security:csp": "next build && node scripts/generate-csp-hashes.cjs --write",
+    "build": "next build && node scripts/externalize-inline-scripts.cjs",
     "start": "next start",
     "lint": "eslint .",
     "test": "npm run test:frontend",
