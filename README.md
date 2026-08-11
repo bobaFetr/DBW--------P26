@@ -88,6 +88,7 @@ files. Preserve the configured security headers when using another host.
 
 ## Current content status
 
-The website is intentionally using temporary hardcoded content. Albums,
-concerts, news, and the gallery currently have no published entries; merch is
-marked unavailable; and the privacy-policy page still needs its final text.
+The website is intentionally using temporary hardcoded content. Singles, one
+member profile, and timeline events are currently published. Albums, concerts,
+news, and the gallery currently have no published entries; merch is marked
+unavailable; and the privacy-policy page still needs its final text.
