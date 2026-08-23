@@ -36,6 +36,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/singles/page.js"
+    ],
+    "/concerts/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/concerts/page.js"
     ]
   }
 }

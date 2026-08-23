@@ -105,6 +105,7 @@ export default function HomeContent() {
     value: data[collection.key].length
   }));
   const latestCards = buildLatestCards(data);
+  const latestReleaseIsAlbum = latestCards[0]?.badge === "Latest Album";
 
   return (
     <>
@@ -121,7 +122,9 @@ export default function HomeContent() {
         <h2 className="section-title">Latest From Paralyze</h2>
       </section>
 
-      {latestCards.length ? <CardGrid cards={latestCards} /> : null}
+      {latestCards.length ? (
+        <CardGrid cards={latestCards} className={latestReleaseIsAlbum ? "album-card-grid" : ""} />
+      ) : null}
       {!latestCards.length ? (
         <p className="content-empty-state">No featured content has been published yet.</p>
       ) : null}
