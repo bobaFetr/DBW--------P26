@@ -148,5 +148,5 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
     );
   }
 
-  return <CardGrid cards={albumCards(albums)} />;
+  return <CardGrid cards={albumCards(albums)} className="album-card-grid" />;
 }

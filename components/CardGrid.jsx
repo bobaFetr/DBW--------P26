@@ -4,10 +4,10 @@ function isExternalHref(href) {
   return /^(https?:|mailto:)/i.test(href);
 }
 
-export default function CardGrid({ cards }) {
+export default function CardGrid({ cards, className = "" }) {
   return (
     <section className="card-grid-section">
-      <div className="card-grid">
+      <div className={`card-grid${className ? ` ${className}` : ""}`}>
         {cards.map((card) => {
           const cover = safeImageUrl(card.cover);
           const href = safeInternalUrl(card.href) ?? safeExternalUrl(card.href);
