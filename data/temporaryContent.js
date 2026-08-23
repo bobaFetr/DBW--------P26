@@ -3,8 +3,8 @@ export const temporaryContent = {
   albums: [
     {
       albumId: 1,
-      title: "Album title",
-      releaseDate: "2026-01-01",
+      title: "Paralyze basement records",
+      releaseDate: "2026-08-23",
       photoUrl: "/albums/778779252_1028325763536954_561092362316461945_n.jpg",
       numberOfSongs: 10,
       trackListJson: JSON.stringify([

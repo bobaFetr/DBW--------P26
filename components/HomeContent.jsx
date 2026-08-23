@@ -29,11 +29,18 @@ function firstSorted(rows, getDate) {
 
 function buildLatestCards(data) {
   const cards = [];
+  const latestAlbum = firstSorted(data.albums ?? [], (row) => row.releaseDate);
   const latestSingle = firstSorted(data.singles ?? [], (row) => row.releaseDate);
   const latestConcert = firstSorted(data.concerts ?? [], (row) => row.date);
   const latestNews = firstSorted(data.news ?? [], (row) => row.publicationDate);
+  const latestRelease = [
+    latestSingle ? { type: "single", item: latestSingle } : null,
+    latestAlbum ? { type: "album", item: latestAlbum } : null
+  ]
+    .filter(Boolean)
+    .sort(byDateDesc((release) => release.item.releaseDate))[0];
 
-  if (latestSingle) {
+  if (latestRelease?.type === "single") {
     cards.push({
       title: latestSingle.songName,
       badge: "Latest Single",
@@ -47,6 +54,20 @@ function buildLatestCards(data) {
       coverAlt: latestSingle.songName,
       href: safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify),
       linkLabel: latestSingle.availableOnYoutube ? "Listen on YouTube" : "Listen"
+    });
+  }
+
+  if (latestRelease?.type === "album") {
+    cards.push({
+      title: latestAlbum.title,
+      badge: "Latest Album",
+      urgent: true,
+      meta: dateOnly(latestAlbum.releaseDate) || "Release date TBA",
+      body: `${latestAlbum.numberOfSongs || 0} songs`,
+      cover: safeImageUrl(latestAlbum.photoUrl),
+      coverAlt: latestAlbum.title,
+      href: `/albums/?albumId=${latestAlbum.albumId}`,
+      linkLabel: "View Album"
     });
   }
 
