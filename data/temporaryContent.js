@@ -67,22 +67,30 @@ export const temporaryContent = {
     //   photoUrl: ""
     // }
   ],
-  timeline: [{
- id: 1,
+  timeline: [
+    {
+      id: 1,
+      date: "2026-08-23",
+      event: "Paralyze basement records album was released.",
+      description: "",
+      location: ""
+    },
+    {
+      id: 2,
       date: "2026-07-26",
       event: "Spineless love - instrumental was released.",
       description: "",
       location: ""
     },
     {
-      id: 2,
+      id: 3,
       date: "2026-07-13",
       event: "Coma Distraction - instrumental was released.",
       description: "",
       location: ""
     },
     {
-      id: 3,
+      id: 4,
       date: "2026-02-20",
       event: "Paralyze was created.",
       description: "",
