@@ -1,16 +1,21 @@
 // Public site content. Edit this file to update the static website.
 export const temporaryContent = {
   albums: [
-    // {
-    //   albumId: 1,
-    //   title: "Album title",
-    //   releaseDate: "2026-01-01",
-    //   photoUrl: "/album-cover.jpg",
-    //   numberOfSongs: 10,
-    //   trackListJson: JSON.stringify([
-    //     { songName: "Song title", duration: "3:30", text: "Lyrics or notes" }
-    //   ])
-    // }
+    {
+      albumId: 1,
+      title: "Album title",
+      releaseDate: "2026-01-01",
+      photoUrl: "/albums/778779252_1028325763536954_561092362316461945_n.jpg",
+      numberOfSongs: 10,
+      trackListJson: JSON.stringify([
+        // { songName: "Song title", duration: "3:30", text: "Lyrics or notes" },
+        { songName: "Blow "},
+        { songName: "Nameless (for now)"},
+        { songName: "Nameless (for now)"},
+        { songName: "Nameless (for now)"},
+        { songName: "Nameless (for now)"},
+      ])
+    }
   ],
   singles: [
 {

@@ -37,11 +37,19 @@ export default function SiteFooter() {
             >
               Spotify
             </a>
-            <a
+            {/* <a
               href="/albums/"
               className="footer-pill"
             >
               Bandcamp
+            </a> */}
+            <a
+              href="https://www.tiktok.com/@paralyzeband?is_from_webapp=1&sender_device=pc"
+              target="_blank"
+              rel="noreferrer"
+              className="footer-pill"
+            >
+              Tik Tok
             </a>
           </div>
         </div>
