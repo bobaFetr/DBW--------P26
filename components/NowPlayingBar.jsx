@@ -18,7 +18,7 @@ export default function NowPlayingBar() {
       ? {
           title: latestAlbum.title,
           releaseDate: latestAlbum.releaseDate,
-          href: `/albums/?albumId=${latestAlbum.albumId}`,
+          href: `/albums/#albumId=${latestAlbum.albumId}`,
           linkLabel: "View Album"
         }
       : null

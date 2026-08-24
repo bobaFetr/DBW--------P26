@@ -66,7 +66,7 @@ function buildLatestCards(data) {
       body: `${latestAlbum.numberOfSongs || 0} songs`,
       cover: safeImageUrl(latestAlbum.photoUrl),
       coverAlt: latestAlbum.title,
-      href: `/albums/?albumId=${latestAlbum.albumId}`,
+      href: `/albums/#albumId=${latestAlbum.albumId}`,
       linkLabel: "View Album"
     });
   }
