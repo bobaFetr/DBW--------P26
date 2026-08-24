@@ -10,8 +10,7 @@ export default function MembersPage() {
   return (
     <>
       <PageIntro title="Members">
-        This page is ready for the full lineup, roles, and short individual
-        introductions.
+        Roles in the band.
       </PageIntro>
       <ContentCardGrid contentType="members" emptyMessage="No members have been published yet." />
     </>
