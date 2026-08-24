@@ -52,6 +52,14 @@ for (const file of htmlFiles) {
   fs.writeFileSync(file, externalized);
 }
 
+// This site uses ordinary document navigation. Publishing App Router flight
+// payloads beside the HTML lets static CDNs cache an index.txt response for an
+// index.html URL, which can expose the serialized React payload in the browser.
+const flightFiles = filesBelow(OUTPUT).filter((file) => file.endsWith(".txt"));
+for (const file of flightFiles) {
+  fs.rmSync(file);
+}
+
 console.log(
-  `Externalized ${replacements} inline script blocks into ${writtenScripts.size} same-origin files.`
+  `Externalized ${replacements} inline script blocks into ${writtenScripts.size} same-origin files; removed ${flightFiles.length} flight payloads.`
 );
