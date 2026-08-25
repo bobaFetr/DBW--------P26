@@ -31,12 +31,12 @@ export default function SiteFooter() {
             >
               YouTube
             </a>
-            <a
+            {/* <a
               href="/singles/"
               className="footer-pill"
             >
               Spotify
-            </a>
+            </a> */}
             {/* <a
               href="/albums/"
               className="footer-pill"
