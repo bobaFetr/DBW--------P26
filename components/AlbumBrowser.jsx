@@ -138,7 +138,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
                             target="_blank"
                             rel="noreferrer"
                           >
-                            This is not the real song Blow(This link is being used for testing.)
+                            This is not the real Blow song.
                           </a>
                         ) : null}
                         {hasText ? (
