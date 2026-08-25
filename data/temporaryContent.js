@@ -8,8 +8,8 @@ export const temporaryContent = {
       photoUrl: "/albums/778779252_1028325763536954_561092362316461945_n.jpg",
       numberOfSongs: 10,
       trackListJson: JSON.stringify([
-        // { songName: "Song title", duration: "3:30", text: "Lyrics or notes" },
-        { songName: "Blow "},
+        // { songName: "Song title", duration: "3:30", text: "Lyrics or notes", availableOnYoutube: "https://youtu.be/video-id" },
+        { songName: "Blow", availableOnYoutube: "https://youtu.be/t2w8rrT-EUk"},
         { songName: "Nameless (for now)"},
         { songName: "Nameless (for now)"},
         { songName: "Nameless (for now)"},
@@ -18,7 +18,7 @@ export const temporaryContent = {
     }
   ],
   singles: [
-{
+    {
       songId: 1,
       songName: "Spineless love - Instrumental",
       releaseDate: "2026-07-26",

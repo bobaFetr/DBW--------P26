@@ -3,7 +3,8 @@ export function parseSongRows(value) {
     return value.map((row) => ({
       songName: String(row?.songName ?? ""),
       duration: String(row?.duration ?? ""),
-      text: String(row?.text ?? "")
+      text: String(row?.text ?? ""),
+      availableOnYoutube: String(row?.availableOnYoutube ?? "")
     }));
   }
 

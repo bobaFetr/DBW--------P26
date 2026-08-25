@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import CardGrid from "./CardGrid";
 import { parseSongRows } from "./trackList";
 import { loadPublicContent } from "./publicContent";
-import { safeImageUrl } from "./securityUrls";
+import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 import { useHashParams } from "./useHashParams";
 
 function dateOnly(value) {
@@ -119,6 +119,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
           {songs.length ? (
             songs.map((song, index) => {
               const hasText = Boolean(song.text?.trim());
+              const youtubeUrl = safeExternalUrl(song.availableOnYoutube);
 
               return (
                 <article className="track-row-wrap" key={`${song.songName}-${index}`}>
@@ -128,13 +129,27 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
                     </span>
                     <span className="track-title">{song.songName}</span>
                     <span className="track-duration">{song.duration}</span>
-                    {hasText ? (
-                      <a
-                        className="track-text-link"
-                        href={`/albums/#albumId=${selectedAlbum.albumId}&song=${index + 1}`}
-                      >
-                        Song text
-                      </a>
+                    {hasText || youtubeUrl ? (
+                      <span className="track-links">
+                        {youtubeUrl ? (
+                          <a
+                            className="track-text-link"
+                            href={youtubeUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            This is not the real song Blow(This link is being used for testing.)
+                          </a>
+                        ) : null}
+                        {hasText ? (
+                          <a
+                            className="track-text-link"
+                            href={`/albums/#albumId=${selectedAlbum.albumId}&song=${index + 1}`}
+                          >
+                            Song text
+                          </a>
+                        ) : null}
+                      </span>
                     ) : null}
                   </div>
                 </article>

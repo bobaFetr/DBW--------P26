@@ -1330,6 +1330,12 @@ footer {
   color: var(--red);
 }
 
+.track-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
 .song-text-page {
   padding: 26px;
   border: 2px solid rgba(255, 255, 255, 0.32);
@@ -1723,7 +1729,7 @@ footer {
     padding: 14px;
   }
 
-  .track-text-link {
+  .track-links {
     grid-column: 2 / -1;
     justify-self: start;
   }
