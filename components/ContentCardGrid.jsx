@@ -74,5 +74,10 @@ export default function ContentCardGrid({ contentType, emptyMessage = "No conten
     return <p className="content-empty-state">{emptyMessage}</p>;
   }
 
-  return <CardGrid cards={cards} />;
+  return (
+    <CardGrid
+      cards={cards}
+      className={contentType === "members" ? "member-card-grid" : ""}
+    />
+  );
 }

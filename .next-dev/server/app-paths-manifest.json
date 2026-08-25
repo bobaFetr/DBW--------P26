@@ -1,0 +1,10 @@
+{
+  "/page": "app/page.js",
+  "/albums/page": "app/albums/page.js",
+  "/singles/page": "app/singles/page.js",
+  "/airbrush-board/page": "app/airbrush-board/page.js",
+  "/members/page": "app/members/page.js",
+  "/timeline/page": "app/timeline/page.js",
+  "/merch/page": "app/merch/page.js",
+  "/privacy-policy/page": "app/privacy-policy/page.js"
+}

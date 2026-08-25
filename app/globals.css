@@ -395,6 +395,15 @@ main {
   margin-inline: auto;
 }
 
+.member-card-grid {
+  grid-template-columns: minmax(0, 360px);
+  justify-content: center;
+}
+
+.member-card-grid .card-cover {
+  aspect-ratio: 724 / 747;
+}
+
 .card {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
   border: 2px solid rgba(255, 255, 255, 0.32);
