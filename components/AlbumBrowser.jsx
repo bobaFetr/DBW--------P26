@@ -13,11 +13,12 @@ function dateOnly(value) {
 
 function albumCards(albums) {
   return albums.map((album) => {
+    const songs = parseSongRows(album.trackListJson);
     return {
       title: album.title,
       badge: "Album",
       meta: dateOnly(album.releaseDate) || "Release date TBA",
-      body: `${album.numberOfSongs || 0} songs`,
+      body: `${songs.length || album.numberOfSongs || 0} songs`,
       cover: safeImageUrl(album.photoUrl),
       coverAlt: album.title,
       href: `/albums/#albumId=${album.albumId}`,
@@ -110,7 +111,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
           <div>
             <p className="meta">{dateOnly(selectedAlbum.releaseDate) || "Release date TBA"}</p>
             <h2>{selectedAlbum.title}</h2>
-            <p>{selectedAlbum.numberOfSongs || 0} songs</p>
+            <p>{songs.length || selectedAlbum.numberOfSongs || 0} songs</p>
           </div>
         </section>
 

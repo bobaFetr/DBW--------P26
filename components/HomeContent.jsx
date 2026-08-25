@@ -1,6 +1,7 @@
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { parseSongRows } from "./trackList";
 
 const COLLECTIONS = [
   { key: "albums", label: "Albums" },
@@ -58,12 +59,13 @@ function buildLatestCards(data) {
   }
 
   if (latestRelease?.type === "album") {
+    const songs = parseSongRows(latestAlbum.trackListJson);
     cards.push({
       title: latestAlbum.title,
       badge: "Latest Album",
       urgent: true,
       meta: dateOnly(latestAlbum.releaseDate) || "Release date TBA",
-      body: `${latestAlbum.numberOfSongs || 0} songs`,
+      body: `${songs.length || latestAlbum.numberOfSongs || 0} songs`,
       cover: safeImageUrl(latestAlbum.photoUrl),
       coverAlt: latestAlbum.title,
       href: `/albums/#albumId=${latestAlbum.albumId}`,
