@@ -49,7 +49,7 @@ export const temporaryContent = {
     //   title: "News title",
     //   content: "News text",
     //   publicationDate: "2026-01-01",
-    //   author: "Paralyze"
+    //   author: "Paralyze"jdfjksdhfsdhfskjdhfkjfhkjdfh
     // }
   ],
   members: [
