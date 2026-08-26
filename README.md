@@ -88,7 +88,29 @@ files. Preserve the configured security headers when using another host.
 
 ## Current content status
 
-The website is intentionally using temporary hardcoded content. Singles, one
-member profile, and timeline events are currently published. Albums, concerts,
-news, and the gallery currently have no published entries; merch is marked
-unavailable; and the privacy-policy page still needs its final text.
+The website is intentionally using temporary hardcoded content. One album,
+singles, one member profile, and timeline events are currently published.
+Concerts, news, and the gallery currently have no published entries; merch is
+marked unavailable; and the privacy-policy page contains a short privacy
+statement.
+
+## Future content architecture
+
+The current static content approach can continue to support albums, songs,
+concerts, news, and photos without requiring a backend or database. As the
+amount of content grows, complete the following improvements:
+
+1. Split each content type into a separate file, such as `albums.js`,
+   `singles.js`, `concerts.js`, `news.js`, `gallery.js`, and `members.js`.
+2. Store album tracks as normal JavaScript arrays and objects instead of JSON
+   strings such as `trackListJson`.
+3. Add build-time validation for required fields, unique IDs, ISO dates, safe
+   URLs, and referenced media files.
+4. Consider a headless CMS later if non-technical editors need to publish
+   content, updates become frequent, or drafts and scheduled publishing are
+   required.
+
+A custom backend and database are not necessary solely because the catalog
+grows. They should be introduced only when the website needs interactive
+features such as accounts, orders, payments, form submissions, uploads, or
+other server-managed data.
