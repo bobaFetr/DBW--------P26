@@ -17,8 +17,16 @@ export const temporaryContent = {
     }
   ],
   singles: [
-    {
+{
       songId: 1,
+      songName: "Blow",
+      releaseDate: "2026-08-30",
+      availableOnYoutube: "https://youtu.be/rfxOoQVxEt8?is=1GGUL6AO2RTImLla",
+      photoUrl: "",
+      description: ""
+    },
+    {
+      songId: 2,
       songName: "Spineless love - Instrumental",
       releaseDate: "2026-07-26",
       availableOnYoutube: "https://youtu.be/1YdheCxpDfQ?is=HEdwoePWLlAW4PKg",
@@ -26,7 +34,7 @@ export const temporaryContent = {
       description: ""
     },
     {
-      songId: 2,
+      songId: 3,
       songName: "Coma Distraction - instrumental",
       releaseDate: "2026-07-13",
       availableOnYoutube: "https://youtu.be/t2w8rrT-EUk?si=TeDFE7V4i9gbQm8g",
