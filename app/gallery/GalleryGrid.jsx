@@ -5,15 +5,8 @@ import { loadPublicContent } from "../../components/publicContent";
 import { isVideoUrl, safeMediaUrl } from "../../components/securityUrls";
 
 export default function GalleryGrid() {
-  const items = loadPublicContent("gallery").map((item) => {
-    const mediaUrl = safeMediaUrl(item.mediaUrl);
-    return {
-      ...item,
-      mediaUrl,
-      isVideo: isVideoUrl(mediaUrl),
-      className: item.className || "gallery-item"
-    };
-  });
+  const [items, setItems] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
 
   const isOpen = activeIndex !== null;
@@ -29,6 +22,44 @@ export default function GalleryGrid() {
   }, [items.length]);
 
   useEffect(() => {
+    let ignore = false;
+
+    async function loadGallery() {
+      try {
+        const rows = await loadPublicContent("gallery");
+        if (!ignore) {
+          setItems(
+            rows.map((row, index) => ({
+              id: String(row.id),
+              caption: row.title,
+              category: row.description,
+              mediaUrl: safeMediaUrl(row.imageUrl),
+              isVideo: isVideoUrl(row.imageUrl),
+              className:
+                index % 3 === 0
+                  ? "gallery-item gallery-item-tall"
+                  : index % 3 === 1
+                    ? "gallery-item photo gallery-item-wide"
+                    : "gallery-item alt-logo gallery-item-square"
+            }))
+          );
+        }
+      } catch {
+        // Leave the gallery empty when the API is offline.
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadGallery();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     function onKey(e) {
@@ -38,10 +69,10 @@ export default function GalleryGrid() {
     }
 
     window.addEventListener("keydown", onKey);
-    document.body.classList.add("lightbox-open");
+    document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", onKey);
-      document.body.classList.remove("lightbox-open");
+      document.body.style.overflow = "";
     };
   }, [isOpen, close, prev, next]);
 
@@ -65,7 +96,8 @@ export default function GalleryGrid() {
 
   return (
     <>
-      {!items.length ? (
+      {isLoading ? <p className="content-empty-state">Loading gallery...</p> : null}
+      {!isLoading && !items.length ? (
         <p className="content-empty-state">No gallery items have been published yet.</p>
       ) : null}
       <div className="gallery-masonry">
@@ -123,7 +155,7 @@ export default function GalleryGrid() {
             <p className="lightbox-caption">
               {activeItem.caption}
               {activeItem.category && (
-                <span className="lightbox-category">
+                <span style={{ marginLeft: "10px", opacity: 0.5, fontSize: "0.82rem" }}>
                   — {activeItem.category}
                 </span>
               )}

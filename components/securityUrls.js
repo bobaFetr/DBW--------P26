@@ -10,7 +10,7 @@ export function safeExternalUrl(value) {
 
   try {
     const url = new URL(trimmed);
-    return ["https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
+    return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : undefined;
   } catch {
     try {
       const url = new URL(`https://${trimmed}`);
@@ -45,7 +45,12 @@ export function safeImageUrl(value) {
     return trimmed;
   }
 
-  return undefined;
+  try {
+    const url = new URL(trimmed);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export function safeMediaUrl(value) {

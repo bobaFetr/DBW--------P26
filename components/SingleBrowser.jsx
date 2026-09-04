@@ -1,7 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
@@ -10,11 +11,11 @@ function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
 }
 
-function singleCards(singles, latestSingleIsLatestRelease) {
+function singleCards(singles) {
   return singles.map((single, index) => ({
     title: single.songName,
-    badge: index === 0 && latestSingleIsLatestRelease ? "Latest Release" : "Single",
-    urgent: index === 0 && latestSingleIsLatestRelease,
+    badge: index === 0 ? "Latest Release" : "Single",
+    urgent: index === 0,
     meta: dateOnly(single.releaseDate) || "Release date TBA",
     body: single.description || (
       [single.availableOnYoutube && "YouTube", single.availableOnSpotify && "Spotify"]
@@ -31,16 +32,41 @@ function singleCards(singles, latestSingleIsLatestRelease) {
 export default function SingleBrowser({ emptyMessage = "No singles have been published yet." }) {
   const searchParams = useSearchParams();
   const selectedSingleId = searchParams.get("singleId");
-  const singles = useMemo(() => loadPublicContent("singles"), []);
-  const latestAlbum = useMemo(() => loadPublicContent("albums")[0], []);
-  const latestSingleTime = Date.parse(singles[0]?.releaseDate ?? "") || 0;
-  const latestAlbumTime = Date.parse(latestAlbum?.releaseDate ?? "") || 0;
-  const latestSingleIsLatestRelease = !latestAlbum || latestSingleTime > latestAlbumTime;
+  const [singles, setSingles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadSingles() {
+      try {
+        const rows = await loadPublicContent("singles");
+        if (!ignore) {
+          setSingles(rows);
+        }
+      } catch {
+        // Leave the page empty when the API is offline.
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadSingles();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const selectedSingle = useMemo(
     () => singles.find((single) => String(single.songId) === String(selectedSingleId)),
     [singles, selectedSingleId]
   );
+
+  if (isLoading) {
+    return <p className="content-empty-state">Loading singles...</p>;
+  }
 
   if (!singles.length) {
     return <p className="content-empty-state">{emptyMessage}</p>;
@@ -51,9 +77,9 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
       return (
         <section className="single-detail">
           <p className="content-empty-state">Single was not found.</p>
-          <a className="action-link" href="/singles/">
+          <Link className="action-link" href="/singles/">
             <span>Back to singles</span>
-          </a>
+          </Link>
         </section>
       );
     }
@@ -64,9 +90,9 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
 
     return (
       <section className="single-detail">
-        <a className="action-link single-back-link" href="/singles/">
+        <Link className="action-link single-back-link" href="/singles/">
           <span>Back to singles</span>
-        </a>
+        </Link>
 
         <section className="single-summary">
           {cover ? (
@@ -105,5 +131,5 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
     );
   }
 
-  return <CardGrid cards={singleCards(singles, latestSingleIsLatestRelease)} />;
+  return <CardGrid cards={singleCards(singles)} />;
 }

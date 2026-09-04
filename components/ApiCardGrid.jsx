@@ -1,5 +1,8 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import CardGrid from "./CardGrid";
-import { parseSongRows } from "./trackList";
+import { parseSongRows } from "./adminDraft";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
 
@@ -67,17 +70,41 @@ function albumBody(row) {
   return songs.map((song) => `${song.songName} (${song.duration})`).join(" / ");
 }
 
-export default function ContentCardGrid({ contentType, emptyMessage = "No content has been published yet." }) {
-  const cards = toCards(contentType, loadPublicContent(contentType));
+export default function ApiCardGrid({ contentType, emptyMessage = "No content has been published yet." }) {
+  const [cards, setCards] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadCards() {
+      try {
+        const rows = await loadPublicContent(contentType);
+        if (!ignore) {
+          setCards(toCards(contentType, rows));
+        }
+      } catch {
+        // Leave the page empty when the API is offline.
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadCards();
+    return () => {
+      ignore = true;
+    };
+  }, [contentType]);
+
+  if (isLoading) {
+    return <p className="content-empty-state">Loading content...</p>;
+  }
 
   if (!cards.length) {
     return <p className="content-empty-state">{emptyMessage}</p>;
   }
 
-  return (
-    <CardGrid
-      cards={cards}
-      className={contentType === "members" ? "member-card-grid" : ""}
-    />
-  );
+  return <CardGrid cards={cards} />;
 }

@@ -1,7 +1,9 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
-import { parseSongRows } from "./trackList";
 
 const COLLECTIONS = [
   { key: "albums", label: "Albums" },
@@ -30,18 +32,11 @@ function firstSorted(rows, getDate) {
 
 function buildLatestCards(data) {
   const cards = [];
-  const latestAlbum = firstSorted(data.albums ?? [], (row) => row.releaseDate);
   const latestSingle = firstSorted(data.singles ?? [], (row) => row.releaseDate);
   const latestConcert = firstSorted(data.concerts ?? [], (row) => row.date);
   const latestNews = firstSorted(data.news ?? [], (row) => row.publicationDate);
-  const latestRelease = [
-    latestSingle ? { type: "single", item: latestSingle } : null,
-    latestAlbum ? { type: "album", item: latestAlbum } : null
-  ]
-    .filter(Boolean)
-    .sort(byDateDesc((release) => release.item.releaseDate))[0];
 
-  if (latestRelease?.type === "single") {
+  if (latestSingle) {
     cards.push({
       title: latestSingle.songName,
       badge: "Latest Single",
@@ -55,21 +50,6 @@ function buildLatestCards(data) {
       coverAlt: latestSingle.songName,
       href: safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify),
       linkLabel: latestSingle.availableOnYoutube ? "Listen on YouTube" : "Listen"
-    });
-  }
-
-  if (latestRelease?.type === "album") {
-    const songs = parseSongRows(latestAlbum.trackListJson);
-    cards.push({
-      title: latestAlbum.title,
-      badge: "Latest Album",
-      urgent: true,
-      meta: dateOnly(latestAlbum.releaseDate) || "Release date TBA",
-      body: `${songs.length || latestAlbum.numberOfSongs || 0} songs`,
-      cover: safeImageUrl(latestAlbum.photoUrl),
-      coverAlt: latestAlbum.title,
-      href: `/albums/#albumId=${latestAlbum.albumId}`,
-      linkLabel: "View Album"
     });
   }
 
@@ -99,22 +79,55 @@ function buildLatestCards(data) {
 }
 
 export default function HomeContent() {
-  const data = Object.fromEntries(
-    COLLECTIONS.map((collection) => [collection.key, loadPublicContent(collection.key)])
+  const [data, setData] = useState({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadHomeContent() {
+      try {
+        const entries = await Promise.all(
+          COLLECTIONS.map(async (collection) => {
+            return [collection.key, await loadPublicContent(collection.key)];
+          })
+        );
+
+        if (!ignore) {
+          setData(Object.fromEntries(entries));
+        }
+      } catch {
+        if (!ignore) {
+          setData({});
+        }
+      } finally {
+        if (!ignore) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadHomeContent();
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const stats = useMemo(
+    () => COLLECTIONS.map((collection) => ({
+      label: collection.label,
+      value: data[collection.key]?.length ?? 0
+    })),
+    [data]
   );
-  const stats = COLLECTIONS.map((collection) => ({
-    label: collection.label,
-    value: data[collection.key].length
-  }));
-  const latestCards = buildLatestCards(data);
-  const latestReleaseIsAlbum = latestCards[0]?.badge === "Latest Album";
+  const latestCards = useMemo(() => buildLatestCards(data), [data]);
 
   return (
     <>
       <div className="release-stats">
         {stats.map((stat) => (
           <div key={stat.label} className="release-stat">
-            <strong>{stat.value}</strong>
+            <strong>{isLoading ? "..." : stat.value}</strong>
             <span>{stat.label}</span>
           </div>
         ))}
@@ -124,10 +137,9 @@ export default function HomeContent() {
         <h2 className="section-title">Latest From Paralyze</h2>
       </section>
 
-      {latestCards.length ? (
-        <CardGrid cards={latestCards} className={latestReleaseIsAlbum ? "album-card-grid" : ""} />
-      ) : null}
-      {!latestCards.length ? (
+      {isLoading ? <p className="content-empty-state">Loading latest content...</p> : null}
+      {!isLoading && latestCards.length ? <CardGrid cards={latestCards} /> : null}
+      {!isLoading && !latestCards.length ? (
         <p className="content-empty-state">No featured content has been published yet.</p>
       ) : null}
     </>

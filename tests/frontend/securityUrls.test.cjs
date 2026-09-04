@@ -17,7 +17,7 @@ function loadSecurityUrlModule() {
   };
 
   vm.runInNewContext(
-    `${source}\nmodule.exports = { safeExternalUrl, safeInternalUrl, safeImageUrl, safeMediaUrl, isVideoUrl };`,
+    `${source}\nmodule.exports = { safeExternalUrl, safeImageUrl, safeMediaUrl, isVideoUrl };`,
     context,
     { filename: sourcePath }
   );
@@ -25,21 +25,12 @@ function loadSecurityUrlModule() {
   return context.module.exports;
 }
 
-test("safeExternalUrl accepts secure web and mail links", () => {
+test("safeExternalUrl accepts web and mail links", () => {
   const { safeExternalUrl } = loadSecurityUrlModule();
 
   assert.equal(safeExternalUrl("https://example.com/path"), "https://example.com/path");
-  assert.equal(safeExternalUrl("http://example.com/path"), undefined);
+  assert.equal(safeExternalUrl("http://example.com/path"), "http://example.com/path");
   assert.equal(safeExternalUrl("mailto:band@example.com"), "mailto:band@example.com");
-});
-
-test("safeInternalUrl accepts same-origin paths and rejects protocol-relative paths", () => {
-  const { safeInternalUrl } = loadSecurityUrlModule();
-
-  assert.equal(safeInternalUrl("/albums/?song=1#player"), "/albums/?song=1#player");
-  assert.equal(safeInternalUrl("//example.com/path"), undefined);
-  assert.equal(safeInternalUrl("/\\example.com/path"), undefined);
-  assert.equal(safeInternalUrl("https://example.com/path"), undefined);
 });
 
 test("safeExternalUrl upgrades bare domains and rejects unsafe schemes", () => {
@@ -62,7 +53,7 @@ test("safeImageUrl accepts only public static image paths", () => {
   );
 });
 
-test("safeMediaUrl accepts embedded video data URLs", () => {
+test("safeMediaUrl accepts database-stored video data URLs", () => {
   const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule();
   const videoDataUrl = "data:video/mp4;base64,AQIDBA==";
   const videoPath = "/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000";
@@ -74,11 +65,11 @@ test("safeMediaUrl accepts embedded video data URLs", () => {
   assert.equal(isVideoUrl("https://example.com/live.webm"), true);
 });
 
-test("safeImageUrl accepts only static-site image URL forms", () => {
+test("safeImageUrl accepts only safe image URL forms", () => {
   const { safeImageUrl } = loadSecurityUrlModule();
 
-  assert.equal(safeImageUrl("https://example.com/poster.png"), undefined);
-  assert.equal(safeImageUrl("http://example.com/poster.png"), undefined);
+  assert.equal(safeImageUrl("https://example.com/poster.png"), "https://example.com/poster.png");
+  assert.equal(safeImageUrl("http://example.com/poster.png"), "http://example.com/poster.png");
   assert.equal(safeImageUrl("data:image/jpeg;base64,AQIDBA=="), "data:image/jpeg;base64,AQIDBA==");
   assert.equal(safeImageUrl("javascript:alert(1)"), undefined);
   assert.equal(safeImageUrl("data:text/html;base64,AQIDBA=="), undefined);

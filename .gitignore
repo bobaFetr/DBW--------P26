@@ -435,6 +435,7 @@ FodyWeavers.xsd
 secrets.json
 appsettings.Local.json
 appsettings.*.Local.json
+.data-protection-keys/
 
 # Node / Next.js
 node_modules/

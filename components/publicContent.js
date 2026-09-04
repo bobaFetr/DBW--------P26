@@ -1,5 +1,7 @@
 import { temporaryContent } from "../data/temporaryContent";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+const CONTENT_SOURCE = process.env.NEXT_PUBLIC_CONTENT_SOURCE ?? "temporary";
 const TEMPORARY_CONTENT_TYPES = new Set([
   "albums",
   "singles",
@@ -10,16 +12,22 @@ const TEMPORARY_CONTENT_TYPES = new Set([
   "timeline"
 ]);
 
-export function isPublicContentType(contentType) {
-  return TEMPORARY_CONTENT_TYPES.has(contentType);
+export function isTemporaryContentEnabled(contentType) {
+  return CONTENT_SOURCE.toLowerCase() === "temporary" &&
+    TEMPORARY_CONTENT_TYPES.has(contentType);
 }
 
-export function loadPublicContent(contentType) {
-  if (isPublicContentType(contentType)) {
+export async function loadPublicContent(contentType, fetchOptions) {
+  if (isTemporaryContentEnabled(contentType)) {
     return orderRows(contentType, temporaryContent[contentType] ?? []);
   }
 
-  return [];
+  const response = await fetch(`${API_BASE}/api/content/${contentType}`, fetchOptions);
+  if (!response.ok) {
+    return [];
+  }
+
+  return response.json();
 }
 
 function orderRows(contentType, rows) {

@@ -4,10 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && node scripts/externalize-inline-scripts.cjs",
+    "dev:api": "dotnet run --project \"Back End/MyApi/MyApi.csproj\" --launch-profile http",
+    "dev:frontend": "next dev",
+    "build": "next build && node scripts/externalize-inline-scripts.cjs && node scripts/remove-disabled-admin-output.cjs",
     "start": "next start",
     "lint": "eslint .",
-    "test": "npm run test:frontend",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "dotnet test \"Back End/MyApi.Tests/MyApi.Tests.csproj\" /m:1",
     "test:frontend": "node --test tests/frontend/*.test.cjs"
   },
   "dependencies": {

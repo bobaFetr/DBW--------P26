@@ -4,6 +4,11 @@ services:
     runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./out
+    envVars:
+      - key: NEXT_PUBLIC_CONTENT_SOURCE
+        value: temporary
+      - key: ENABLE_LOCAL_ADMIN
+        value: "false"
     headers:
       - path: "/*"
         name: Content-Security-Policy
@@ -26,3 +31,4 @@ services:
       - path: "/*"
         name: Strict-Transport-Security
         value: "max-age=31536000"
+
