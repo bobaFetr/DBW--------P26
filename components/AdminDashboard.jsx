@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { displayImageInputValue, normalizeDraft, parseSongRows } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
+import { loadPublicContent } from "./adminContent";
+import { adminReadFetch } from "./adminReadFetch";
 import { resolveApiMediaUrl, safeImageUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
@@ -270,7 +272,7 @@ async function getCsrfToken() {
 async function apiFetch(path, options = {}) {
   const method = options.method ?? "GET";
   const csrfToken = isUnsafeMethod(method) ? await getCsrfToken() : null;
-  const response = await fetch(`${API_BASE}${path}`, {
+  const response = await adminReadFetch(`${API_BASE}${path}`, {
     credentials: "include",
     ...options,
     headers: {
@@ -330,6 +332,7 @@ export default function AdminDashboard() {
   const [session, setSession] = useState(null);
   const [activeKey, setActiveKey] = useState(COLLECTIONS[0].key);
   const [records, setRecords] = useState({});
+  const [publicCount, setPublicCount] = useState(null);
   const [drafts, setDrafts] = useState(createInitialDrafts);
   const [contentRequests, setContentRequests] = useState([]);
   const [adminRequests, setAdminRequests] = useState([]);
@@ -347,6 +350,8 @@ export default function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const mutationLock = useRef(false);
+  const contentLoadVersion = useRef(0);
+  const bootStarted = useRef(false);
 
   const isSuperAdmin = session?.roles?.includes("SuperAdmin");
   const isAdmin = session?.roles?.includes("SuperAdmin") || session?.roles?.includes("ContentAdmin");
@@ -363,12 +368,10 @@ export default function AdminDashboard() {
   const pendingRequests = contentRequests.filter(
     (request) => normalizeStatus(request.status) === "Pending"
   );
-  const publicCount = COLLECTIONS.reduce(
-    (total, collection) => total + (records[collection.key]?.length ?? 0),
-    0
-  );
 
   useEffect(() => {
+    if (bootStarted.current) return;
+    bootStarted.current = true;
     void boot();
   }, []);
 
@@ -508,21 +511,18 @@ export default function AdminDashboard() {
   }
 
   async function loadContentRows() {
-    const results = await Promise.allSettled(
-      COLLECTIONS.map(async (collection) => [
-        collection.key,
-        await apiFetch(`/api/content/${collection.key}`)
-      ])
+    const version = ++contentLoadVersion.current;
+    setPublicCount(null);
+    const result = await loadPublicContent(
+      COLLECTIONS,
+      (key) => apiFetch(`/api/content/${key}`, { cache: "no-store" })
     );
-    const entries = results
-      .filter((result) => result.status === "fulfilled")
-      .map((result) => result.value);
-    if (entries.length) {
-      setRecords((current) => ({ ...current, ...Object.fromEntries(entries) }));
+    if (version !== contentLoadVersion.current) return [];
+    if (result.records) {
+      setRecords((current) => ({ ...current, ...result.records }));
     }
-    return results
-      .map((result, index) => result.status === "rejected" ? COLLECTIONS[index].label : null)
-      .filter(Boolean);
+    setPublicCount(result.count);
+    return result.failures;
   }
 
   function beginMutation() {
@@ -959,7 +959,7 @@ export default function AdminDashboard() {
         <div className="admin-summary" aria-label="Dashboard summary">
           <div className="admin-summary-item">
             <span>Public rows</span>
-            <strong>{publicCount}</strong>
+            <strong>{publicCount ?? "Unavailable"}</strong>
           </div>
           <div className="admin-summary-item">
             <span>Pending review</span>
@@ -1188,7 +1188,11 @@ export default function AdminDashboard() {
                   </article>
                 ))
               ) : (
-                <p className="admin-empty-state">No approved public rows yet.</p>
+                <p className="admin-empty-state">
+                  {records[activeCollection.key] === undefined
+                    ? "This collection could not be loaded. Refresh the page to try again."
+                    : "No approved public rows yet."}
+                </p>
               )}
             </div>
           </div>
