@@ -131,7 +131,7 @@ public class ContentChangeApplierTests
             {
                 ContentType = "concerts",
                 Action = ContentChangeAction.Create,
-                PayloadJson = """{"location":"","numberOfSongs":3}"""
+                PayloadJson = """{"date":"2026-01-01","location":"","numberOfSongs":3}"""
             }));
 
         Assert.Equal("Location is required.", exception.Message);

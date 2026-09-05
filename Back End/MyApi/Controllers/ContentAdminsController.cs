@@ -93,6 +93,10 @@ public class ContentAdminsController(
             return BadRequest("A super admin cannot be kicked out through the content admin endpoint.");
         }
 
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
+
         if (await userManager.IsInRoleAsync(user, "ContentAdmin"))
         {
             var roleResult = await userManager.RemoveFromRoleAsync(user, "ContentAdmin");
@@ -124,6 +128,11 @@ public class ContentAdminsController(
             superAdmin.Id,
             nameof(AdminProfile),
             profile?.Id.ToString());
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
 
         return NoContent();
     }

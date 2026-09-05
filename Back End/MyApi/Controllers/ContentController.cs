@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,7 +16,8 @@ public class ContentController(
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
 
     [HttpGet("{contentType}")]
@@ -208,6 +210,7 @@ public class ContentController(
         var entity = payload.Deserialize<TEntity>(JsonOptions)
             ?? throw new InvalidOperationException("Request body could not be read.");
 
+        ResetPrimaryKey(entity);
         EntityValueNormalizer.Normalize(entity);
         add(entity);
         return entity;
@@ -234,5 +237,21 @@ public class ContentController(
             ?? throw new InvalidOperationException($"Key property '{keyPropertyName}' was not found.");
 
         keyProperty.SetValue(entity, id);
+    }
+
+    private static void ResetPrimaryKey(object entity)
+    {
+        var keyPropertyName = entity switch
+        {
+            Albums => nameof(Albums.AlbumId),
+            Singles => nameof(Singles.SongId),
+            Concerts => nameof(Concerts.ConcertId),
+            News => nameof(News.NewsId),
+            TimeLine => nameof(TimeLine.Id),
+            Members => nameof(Members.Id),
+            Gallery => nameof(Gallery.Id),
+            _ => throw new InvalidOperationException("Unsupported content type.")
+        };
+        entity.GetType().GetProperty(keyPropertyName)!.SetValue(entity, 0);
     }
 }

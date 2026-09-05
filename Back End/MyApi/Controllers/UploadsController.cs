@@ -206,6 +206,10 @@ public class UploadsController(
 
     private async Task StoreVideoAsync(MediaUpload upload, byte[] bytes)
     {
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
+
         dbContext.MediaUploads.Add(upload);
         await dbContext.SaveChangesAsync();
 
@@ -231,6 +235,10 @@ public class UploadsController(
         }
 
         await dbContext.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
     }
 
     private static byte[] CombineChunks(IReadOnlyCollection<byte[]> chunks, long expectedLength)

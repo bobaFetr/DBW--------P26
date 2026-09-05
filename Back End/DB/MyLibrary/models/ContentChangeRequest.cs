@@ -37,6 +37,8 @@ public class ContentChangeRequest
 
     public string? TargetEntityId { get; set; }
 
+    public string? TargetVersion { get; set; }
+
     [Required]
     public ContentChangeAction Action { get; set; } = ContentChangeAction.Create;
 

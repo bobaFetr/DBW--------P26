@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
 using MyLibrary;
 
@@ -15,7 +16,8 @@ public class ContentChangeApplier(
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
 
     public async Task ApplyAsync(ContentChangeRequest request, CancellationToken cancellationToken = default)
@@ -92,6 +94,7 @@ public class ContentChangeApplier(
         if (request.Action == ContentChangeAction.Create)
         {
             var entity = Deserialize<TEntity>(request.PayloadJson);
+            PreserveKeyValue(entity, keyPropertyName, default(TKey)!);
             EntityValueNormalizer.Normalize(entity);
             var validationError = await contentInputValidator.ValidateEntityAsync(entity, cancellationToken);
             if (validationError is not null)

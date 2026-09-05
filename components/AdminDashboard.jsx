@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { displayImageInputValue, normalizeDraft, parseSongRows } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
-import { safeImageUrl, safeMediaUrl } from "./securityUrls";
+import { resolveApiMediaUrl, safeImageUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
-const KICKED_CONTENT_ADMIN_MESSAGE = "You can no longer prime Milf.";
+const KICKED_CONTENT_ADMIN_MESSAGE = "Your content admin access has been revoked.";
 const ADMIN_SESSION_ROLE_KEY = "paralyze.adminSessionRole";
 
 const CONTENT_ACTION = {
@@ -187,6 +187,10 @@ function formatDate(value) {
   return String(value).slice(0, 10);
 }
 
+function safeAdminMediaUrl(value) {
+  return resolveApiMediaUrl(value, API_BASE);
+}
+
 function recordToDraft(collection, record) {
   return Object.fromEntries(
     collection.fields.map((field) => {
@@ -341,6 +345,8 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [forcedLogoutNotice, setForcedLogoutNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
+  const mutationLock = useRef(false);
 
   const isSuperAdmin = session?.roles?.includes("SuperAdmin");
   const isAdmin = session?.roles?.includes("SuperAdmin") || session?.roles?.includes("ContentAdmin");
@@ -432,11 +438,11 @@ export default function AdminDashboard() {
     setIsLoading(true);
     setError("");
 
+    let user;
     try {
-      const user = await apiFetch("/api/auth/me");
+      user = await apiFetch("/api/auth/me");
       storeAdminRole(user);
       setSession(user);
-      await refreshDashboard(user);
     } catch (err) {
       setSession(null);
       if (
@@ -447,43 +453,88 @@ export default function AdminDashboard() {
         clearStoredAdminRole();
         setForcedLogoutNotice(KICKED_CONTENT_ADMIN_MESSAGE);
       }
-      await loadContentRows();
+      try {
+        const failures = await loadContentRows();
+        if (failures.length) {
+          setError(`Could not load: ${failures.join(", ")}.`);
+        }
+      } catch {
+        setError("Public content could not be loaded from the administration API.");
+      }
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      await refreshDashboard(user);
+    } catch (err) {
+      setError(err.message || "Some dashboard data could not be loaded.");
     } finally {
       setIsLoading(false);
     }
   }
 
   async function refreshDashboard(user = session) {
-    await loadContentRows();
+    const failures = await loadContentRows();
 
-    if (!user) return;
+    if (!user) return failures;
 
     const roles = user.roles ?? [];
     if (roles.includes("SuperAdmin")) {
-      const [requests, admins, pendingAdminRequests] = await Promise.all([
+      const results = await Promise.allSettled([
         apiFetch("/api/content-requests/pending"),
         apiFetch("/api/content-admins"),
         apiFetch("/api/content-admin-requests/pending")
       ]);
-      setContentRequests(requests);
-      setAdminProfiles(admins);
-      setAdminRequests(pendingAdminRequests);
+      if (results[0].status === "fulfilled") setContentRequests(results[0].value);
+      else failures.push("content requests");
+      if (results[1].status === "fulfilled") setAdminProfiles(results[1].value);
+      else failures.push("content admins");
+      if (results[2].status === "fulfilled") setAdminRequests(results[2].value);
+      else failures.push("admin signup requests");
     } else {
-      const requests = await apiFetch("/api/content-requests/mine");
-      setContentRequests(requests);
+      try {
+        setContentRequests(await apiFetch("/api/content-requests/mine"));
+      } catch {
+        failures.push("your content requests");
+      }
       setAdminProfiles([]);
       setAdminRequests([]);
+    }
+
+    if (failures.length) {
+      throw new Error(`Could not refresh: ${failures.join(", ")}.`);
     }
   }
 
   async function loadContentRows() {
-    const entries = await Promise.all(
+    const results = await Promise.allSettled(
       COLLECTIONS.map(async (collection) => [
         collection.key,
         await apiFetch(`/api/content/${collection.key}`)
       ])
     );
-    setRecords(Object.fromEntries(entries));
+    const entries = results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
+    if (entries.length) {
+      setRecords((current) => ({ ...current, ...Object.fromEntries(entries) }));
+    }
+    return results
+      .map((result, index) => result.status === "rejected" ? COLLECTIONS[index].label : null)
+      .filter(Boolean);
+  }
+
+  function beginMutation() {
+    if (mutationLock.current) return false;
+    mutationLock.current = true;
+    setIsMutating(true);
+    return true;
+  }
+
+  function endMutation() {
+    mutationLock.current = false;
+    setIsMutating(false);
   }
 
   async function login(identifier, password) {
@@ -604,7 +655,9 @@ export default function AdminDashboard() {
 
       const result = await response.json();
       const uploadedUrl = result.url ?? result.Url;
-      const safeUrl = isVideo ? safeMediaUrl(uploadedUrl) : safeImageUrl(uploadedUrl);
+      const safeUrl = isVideo
+        ? resolveApiMediaUrl(uploadedUrl, API_BASE)
+        : safeImageUrl(uploadedUrl);
       if (!safeUrl) {
         throw new Error(`Upload did not return a usable ${isVideo ? "video" : "image"} URL.`);
       }
@@ -636,6 +689,7 @@ export default function AdminDashboard() {
     );
 
     if (hasMissingRequired) return;
+    if (!beginMutation()) return;
 
     try {
       if (isSuperAdmin && isEditing) {
@@ -674,11 +728,14 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
   async function approveRequest(requestId) {
     if (!isSuperAdmin) return;
+    if (!beginMutation()) return;
 
     try {
       await apiFetch(`/api/content-requests/${requestId}/approve`, {
@@ -691,11 +748,14 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
   async function denyRequest(requestId) {
     if (!isSuperAdmin) return;
+    if (!beginMutation()) return;
 
     try {
       await apiFetch(`/api/content-requests/${requestId}/deny`, {
@@ -708,10 +768,13 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
   async function cancelRequest(requestId) {
+    if (!beginMutation()) return;
     try {
       await apiFetch(`/api/content-requests/${requestId}/cancel`, { method: "POST" });
       await refreshDashboard();
@@ -719,11 +782,14 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
   async function removePublicRecord(record) {
     if (!isSuperAdmin) return;
+    if (!beginMutation()) return;
 
     try {
       await apiFetch(`/api/content/${activeCollection.key}/${record[activeCollection.idKey]}`, {
@@ -734,10 +800,40 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
+    }
+  }
+
+  async function requestRecordRemoval(record) {
+    if (!beginMutation()) return;
+    setError("");
+    setNotice("");
+
+    try {
+      await apiFetch("/api/content-requests", {
+        method: "POST",
+        body: JSON.stringify({
+          contentType: activeCollection.key,
+          targetEntityId: String(record[activeCollection.idKey]),
+          action: CONTENT_ACTION.Delete,
+          payloadJson: "{}",
+          message: `Delete ${activeCollection.label} content`
+        })
+      });
+      setNotice(`${activeCollection.label} deletion request was sent for super admin approval.`);
+      await refreshDashboard();
+    } catch (err) {
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    } finally {
+      endMutation();
     }
   }
 
   async function approveAdminRequest(requestId) {
+    if (!beginMutation()) return;
     try {
       await apiFetch(`/api/content-admin-requests/${requestId}/approve`, {
         method: "POST",
@@ -749,10 +845,13 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
   async function denyAdminRequest(requestId) {
+    if (!beginMutation()) return;
     try {
       await apiFetch(`/api/content-admin-requests/${requestId}/deny`, {
         method: "POST",
@@ -764,6 +863,8 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
@@ -782,6 +883,7 @@ export default function AdminDashboard() {
   async function kickContentAdmin(event) {
     event.preventDefault();
     if (!kickConfirmation) return;
+    if (!beginMutation()) return;
 
     setError("");
     setNotice("");
@@ -798,6 +900,8 @@ export default function AdminDashboard() {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
+    } finally {
+      endMutation();
     }
   }
 
@@ -848,7 +952,7 @@ export default function AdminDashboard() {
         </button>
       </div>
 
-      <section className="admin-shell">
+      <section className="admin-shell" aria-busy={isMutating}>
         {error && <p className="admin-login-error">{error}</p>}
         {notice && <p className="admin-empty-state">{notice}</p>}
 
@@ -942,7 +1046,7 @@ export default function AdminDashboard() {
                         required={
                           field.required &&
                           !(field.type === "media"
-                            ? safeMediaUrl(activeDraft[field.key])
+                            ? safeAdminMediaUrl(activeDraft[field.key])
                             : safeImageUrl(activeDraft[field.key]))
                         }
                       />
@@ -957,14 +1061,14 @@ export default function AdminDashboard() {
                       />
                       {uploadingField === field.key && <small>Uploading...</small>}
                       {(field.type === "media"
-                        ? safeMediaUrl(activeDraft[field.key])
+                        ? safeAdminMediaUrl(activeDraft[field.key])
                         : safeImageUrl(activeDraft[field.key])) ? (
                         <small>
                           Stored {field.type === "media" ? "media" : "image"}:{" "}
                           <a
                             href={
                               field.type === "media"
-                                ? safeMediaUrl(activeDraft[field.key])
+                                ? safeAdminMediaUrl(activeDraft[field.key])
                                 : safeImageUrl(activeDraft[field.key])
                             }
                             target="_blank"
@@ -1004,6 +1108,19 @@ export default function AdminDashboard() {
 	                            }
 	                            placeholder="Song text (optional)"
 	                            rows={3}
+	                          />
+	                          <input
+	                            type="url"
+	                            value={row.availableOnYoutube ?? ""}
+	                            onChange={(event) =>
+	                              updateSongRow(
+	                                field.key,
+	                                index,
+	                                "availableOnYoutube",
+	                                event.target.value
+	                              )
+	                            }
+	                            placeholder="YouTube URL (optional)"
 	                          />
 	                          <button type="button" onClick={() => removeSongRow(field.key, index)}>
 	                            Delete row
@@ -1059,11 +1176,14 @@ export default function AdminDashboard() {
                       <button type="button" onClick={() => beginEditRecord(record)}>
                         Edit
                       </button>
-                      {isSuperAdmin && (
-                        <button type="button" onClick={() => removePublicRecord(record)}>
-                          Remove
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => isSuperAdmin
+                          ? removePublicRecord(record)
+                          : requestRecordRemoval(record)}
+                      >
+                        {isSuperAdmin ? "Remove" : "Request Removal"}
+                      </button>
                     </div>
                   </article>
                 ))

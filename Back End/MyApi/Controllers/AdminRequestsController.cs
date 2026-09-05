@@ -1,3 +1,4 @@
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -49,7 +50,14 @@ public class AdminRequestsController(
         };
 
         dbContext.AdminRequests.Add(adminRequest);
-        await dbContext.SaveChangesAsync();
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("This user already has a pending content admin request.");
+        }
 
         return CreatedAtAction(nameof(GetById), new { id = adminRequest.Id }, ToResponse(adminRequest));
     }
@@ -88,6 +96,10 @@ public class AdminRequestsController(
         {
             return Unauthorized();
         }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
 
         var adminRequest = await dbContext.AdminRequests
             .Include(requestEntity => requestEntity.User)
@@ -152,6 +164,11 @@ public class AdminRequestsController(
             superAdmin.Id,
             nameof(AdminRequest),
             adminRequest.Id.ToString());
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
 
         return Ok(ToResponse(adminRequest));
     }

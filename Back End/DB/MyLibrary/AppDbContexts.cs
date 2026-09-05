@@ -78,6 +78,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<AdminRequest>()
             .HasIndex(r => new { r.UserId, r.Status });
 
+        modelBuilder.Entity<AdminRequest>()
+            .HasIndex(r => r.UserId)
+            .HasFilter("\"Status\" = 1")
+            .IsUnique();
+
         // ContentChangeRequest: content admins submit changes for superadmin review.
         modelBuilder.Entity<ContentChangeRequest>()
             .HasOne(r => r.RequestedByUser)
@@ -108,6 +113,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<ContentChangeRequest>()
             .Property(r => r.TargetEntityId)
             .HasMaxLength(80);
+
+        modelBuilder.Entity<ContentChangeRequest>()
+            .Property(r => r.TargetVersion)
+            .HasMaxLength(64);
 
         modelBuilder.Entity<ContentChangeRequest>()
             .Property(r => r.PayloadJson)

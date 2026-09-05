@@ -279,6 +279,10 @@ namespace MyLibrary.Migrations
 
                     b.HasIndex("UserId", "Status");
 
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 1");
+
                     b.ToTable("AdminRequests");
                 });
 
@@ -480,6 +484,10 @@ namespace MyLibrary.Migrations
                     b.Property<string>("TargetEntityId")
                         .HasMaxLength(80)
                         .HasColumnType("character varying(80)");
+
+                    b.Property<string>("TargetVersion")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
 

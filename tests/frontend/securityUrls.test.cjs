@@ -17,7 +17,7 @@ function loadSecurityUrlModule() {
   };
 
   vm.runInNewContext(
-    `${source}\nmodule.exports = { safeExternalUrl, safeImageUrl, safeMediaUrl, isVideoUrl };`,
+    `${source}\nmodule.exports = { safeExternalUrl, safeImageUrl, safeMediaUrl, resolveApiMediaUrl, isVideoUrl };`,
     context,
     { filename: sourcePath }
   );
@@ -54,14 +54,18 @@ test("safeImageUrl accepts only public static image paths", () => {
 });
 
 test("safeMediaUrl accepts database-stored video data URLs", () => {
-  const { isVideoUrl, safeMediaUrl } = loadSecurityUrlModule();
+  const { isVideoUrl, resolveApiMediaUrl, safeMediaUrl } = loadSecurityUrlModule();
   const videoDataUrl = "data:video/mp4;base64,AQIDBA==";
   const videoPath = "/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000";
 
   assert.equal(safeMediaUrl(videoDataUrl), videoDataUrl);
   assert.equal(safeMediaUrl(videoPath), undefined);
+  assert.equal(
+    resolveApiMediaUrl(videoPath, "http://localhost:5001"),
+    "http://localhost:5001/api/uploads/videos/123e4567-e89b-12d3-a456-426614174000"
+  );
   assert.equal(isVideoUrl(videoDataUrl), true);
-  assert.equal(isVideoUrl(videoPath), false);
+  assert.equal(isVideoUrl(videoPath), true);
   assert.equal(isVideoUrl("https://example.com/live.webm"), true);
 });
 

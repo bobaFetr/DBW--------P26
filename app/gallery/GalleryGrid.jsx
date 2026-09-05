@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { loadPublicContent } from "../../components/publicContent";
-import { isVideoUrl, safeMediaUrl } from "../../components/securityUrls";
+import { isVideoUrl, resolveApiMediaUrl } from "../../components/securityUrls";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 export default function GalleryGrid() {
   const [items, setItems] = useState([]);
@@ -33,7 +35,7 @@ export default function GalleryGrid() {
               id: String(row.id),
               caption: row.title,
               category: row.description,
-              mediaUrl: safeMediaUrl(row.imageUrl),
+              mediaUrl: resolveApiMediaUrl(row.imageUrl, API_BASE),
               isVideo: isVideoUrl(row.imageUrl),
               className:
                 index % 3 === 0

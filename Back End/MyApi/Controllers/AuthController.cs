@@ -19,7 +19,8 @@ public class AuthController(
     AppDbContext dbContext,
     ICodeGenerator codeGenerator,
     IAntiforgery antiforgery,
-    IWebHostEnvironment environment) : ControllerBase
+    IWebHostEnvironment environment,
+    ILogger<AuthController>? logger = null) : ControllerBase
 {
     [HttpGet("csrf")]
     [AllowAnonymous]
@@ -45,7 +46,7 @@ public class AuthController(
         {
             UserName = request.UserName.Trim(),
             Email = request.Email.Trim(),
-            EmailConfirmed = false,
+            EmailConfirmed = true,
             DisplayName = CleanOptionalText(request.DisplayName)
         };
 
@@ -69,24 +70,65 @@ public class AuthController(
             await RevokeCurrentSessionAsync();
         }
 
-        var duplicateError = await GetDuplicateAccountErrorAsync(request);
-        if (duplicateError is not null)
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
+
+        var email = request.Email.Trim();
+        var userName = request.UserName.Trim();
+        var userByEmail = await userManager.FindByEmailAsync(email);
+        var userByName = await userManager.FindByNameAsync(userName);
+        ApplicationUser user;
+
+        if (userByEmail is not null || userByName is not null)
         {
-            return BadRequest(new[] { duplicateError });
+            if (userByEmail is null || userByName is null || userByEmail.Id != userByName.Id)
+            {
+                return BadRequest("The username or email is already registered to another account.");
+            }
+
+            user = userByEmail;
+            if (await userManager.IsInRoleAsync(user, "ContentAdmin") ||
+                await userManager.IsInRoleAsync(user, "SuperAdmin"))
+            {
+                return BadRequest("This account is already an administrator.");
+            }
+
+            if (!await userManager.CheckPasswordAsync(user, request.Password))
+            {
+                return Unauthorized("The existing account credentials are incorrect.");
+            }
+
+            var hasPendingRequest = await dbContext.AdminRequests.AnyAsync(adminRequest =>
+                adminRequest.UserId == user.Id &&
+                adminRequest.Status == AdminRequestStatus.Pending);
+            if (hasPendingRequest)
+            {
+                return Conflict("This account already has a pending content admin request.");
+            }
+
+            user.DisplayName = CleanOptionalText(request.DisplayName);
+            var updateResult = await userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+            {
+                return BadRequest(updateResult.Errors);
+            }
         }
-
-        var user = new ApplicationUser
+        else
         {
-            UserName = request.UserName.Trim(),
-            Email = request.Email.Trim(),
-            EmailConfirmed = false,
-            DisplayName = CleanOptionalText(request.DisplayName)
-        };
+            user = new ApplicationUser
+            {
+                UserName = userName,
+                Email = email,
+                EmailConfirmed = false,
+                DisplayName = CleanOptionalText(request.DisplayName)
+            };
 
-        var result = await userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
-        {
-            return BadRequest(result.Errors);
+            var result = await userManager.CreateAsync(user, request.Password);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result.Errors);
+            }
         }
 
         var adminRequest = new AdminRequest
@@ -97,7 +139,18 @@ public class AuthController(
         };
 
         dbContext.AdminRequests.Add(adminRequest);
-        await dbContext.SaveChangesAsync();
+        try
+        {
+            await dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            return Conflict("This account already has a pending content admin request.");
+        }
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
 
         return Created(
             $"/api/content-admin-requests/{adminRequest.Id}",
@@ -143,7 +196,7 @@ public class AuthController(
         var roles = await userManager.GetRolesAsync(user);
         if (roles.Contains("ContentAdmin") || roles.Contains("SuperAdmin"))
         {
-            await auditLogger.LogAsync(user.Id, "admin_login", user.Id);
+            await TryAuditAsync(user.Id, "admin_login", user.Id);
         }
 
         return Ok(await ToCurrentUserResponse(user));
@@ -159,7 +212,7 @@ public class AuthController(
             var roles = await userManager.GetRolesAsync(user);
             if (roles.Contains("ContentAdmin") || roles.Contains("SuperAdmin"))
             {
-                await auditLogger.LogAsync(user.Id, "admin_logout", user.Id);
+                await TryAuditAsync(user.Id, "admin_logout", user.Id);
             }
         }
 
@@ -233,6 +286,18 @@ public class AuthController(
             SameSite = environment.IsDevelopment() ? SameSiteMode.Lax : SameSiteMode.None,
             Secure = !environment.IsDevelopment()
         });
+    }
+
+    private async Task TryAuditAsync(string adminUserId, string action, string? performedByUserId)
+    {
+        try
+        {
+            await auditLogger.LogAsync(adminUserId, action, performedByUserId);
+        }
+        catch (Exception ex)
+        {
+            logger?.LogError(ex, "Could not write admin audit event {Action} for {AdminUserId}.", action, adminUserId);
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,21 @@ public class ContentRequestsController(
         }
 
         contentInputValidator.TryNormalizeContentType(request.ContentType, out var normalizedContentType);
+        string? targetVersion = null;
+        if (request.Action is ContentChangeAction.Update or ContentChangeAction.Delete)
+        {
+            targetVersion = await contentInputValidator.GetTargetVersionAsync(
+                normalizedContentType,
+                request.TargetEntityId);
+            if (targetVersion is null)
+            {
+                return NotFound("The target content no longer exists.");
+            }
+        }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
 
         var changeRequest = new ContentChangeRequest
         {
@@ -51,6 +67,7 @@ public class ContentRequestsController(
             TargetEntityId = string.IsNullOrWhiteSpace(request.TargetEntityId)
                 ? null
                 : request.TargetEntityId.Trim(),
+            TargetVersion = targetVersion,
             Action = request.Action,
             PayloadJson = request.PayloadJson,
             Message = CleanOptionalText(request.Message)
@@ -66,8 +83,12 @@ public class ContentRequestsController(
                 "content_change_requested",
                 user.Id,
                 request.ContentType,
-                request.TargetEntityId,
-                request.PayloadJson);
+                request.TargetEntityId);
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
         }
 
         return CreatedAtAction(nameof(GetById), new { id = changeRequest.Id }, ToResponse(changeRequest));
@@ -128,6 +149,10 @@ public class ContentRequestsController(
             return Unauthorized();
         }
 
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
+
         var changeRequest = await dbContext.ContentChangeRequests
             .Include(requestEntity => requestEntity.RequestedByUser)
             .FirstOrDefaultAsync(requestEntity => requestEntity.Id == id);
@@ -140,6 +165,17 @@ public class ContentRequestsController(
         if (changeRequest.Status != ContentChangeStatus.Pending)
         {
             return Conflict("Only pending content requests can be approved.");
+        }
+
+        if (changeRequest.Action is ContentChangeAction.Update or ContentChangeAction.Delete)
+        {
+            var currentVersion = await contentInputValidator.GetTargetVersionAsync(
+                changeRequest.ContentType,
+                changeRequest.TargetEntityId);
+            if (currentVersion is null || currentVersion != changeRequest.TargetVersion)
+            {
+                return Conflict("The target content changed after this request was submitted. Deny this request and submit a new one.");
+            }
         }
 
         try
@@ -176,8 +212,12 @@ public class ContentRequestsController(
                 "content_change_approved",
                 superAdmin.Id,
                 changeRequest.ContentType,
-                changeRequest.TargetEntityId,
-                changeRequest.PayloadJson);
+                changeRequest.TargetEntityId);
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
         }
 
         return Ok(ToResponse(changeRequest));
@@ -192,6 +232,10 @@ public class ContentRequestsController(
         {
             return Unauthorized();
         }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
 
         var changeRequest = await dbContext.ContentChangeRequests
             .Include(requestEntity => requestEntity.RequestedByUser)
@@ -220,8 +264,12 @@ public class ContentRequestsController(
                 "content_change_denied",
                 superAdmin.Id,
                 changeRequest.ContentType,
-                changeRequest.TargetEntityId,
-                changeRequest.PayloadJson);
+                changeRequest.TargetEntityId);
+        }
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
         }
 
         return Ok(ToResponse(changeRequest));

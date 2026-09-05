@@ -1,4 +1,7 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using MyLibrary;
@@ -15,6 +18,10 @@ public interface IContentInputValidator
         string? payloadJson,
         CancellationToken cancellationToken = default);
     Task<string?> ValidateEntityAsync(object entity, CancellationToken cancellationToken = default);
+    Task<string?> GetTargetVersionAsync(
+        string? contentType,
+        string? targetEntityId,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInputValidator
@@ -46,7 +53,8 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
     };
 
     private static readonly HashSet<string> SupportedContentTypes = new(StringComparer.OrdinalIgnoreCase)
@@ -140,6 +148,12 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
 
     public async Task<string?> ValidateEntityAsync(object entity, CancellationToken cancellationToken = default)
     {
+        var systemPropertyError = ValidateSystemManagedProperties(entity);
+        if (systemPropertyError is not null)
+        {
+            return systemPropertyError;
+        }
+
         return entity switch
         {
             Albums album => ValidateAlbum(album),
@@ -178,22 +192,72 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
 
     private static string? ValidateConcert(Concerts concert)
     {
-        return ValidateRequiredText(concert.Location, "Location", 200)
+        return ValidateRequiredDate(concert.Date, "Date")
+            ?? ValidateRequiredText(concert.Location, "Location", 200)
             ?? ValidateNonNegative(concert.NumberOfSongs, "NumberOfSongs");
+    }
+
+    public async Task<string?> GetTargetVersionAsync(
+        string? contentType,
+        string? targetEntityId,
+        CancellationToken cancellationToken = default)
+    {
+        if (!TryNormalizeContentType(contentType, out var normalizedContentType) ||
+            !int.TryParse(targetEntityId, out var id) || id <= 0)
+        {
+            return null;
+        }
+
+        object? entity = normalizedContentType switch
+        {
+            "albums" => await dbContext.Albums.AsNoTracking().FirstOrDefaultAsync(item => item.AlbumId == id, cancellationToken),
+            "singles" => await dbContext.Singles.AsNoTracking().FirstOrDefaultAsync(item => item.SongId == id, cancellationToken),
+            "concerts" => await dbContext.Concerts.AsNoTracking().FirstOrDefaultAsync(item => item.ConcertId == id, cancellationToken),
+            "news" => await dbContext.News.AsNoTracking().FirstOrDefaultAsync(item => item.NewsId == id, cancellationToken),
+            "timeline" => await dbContext.TimeLines.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, cancellationToken),
+            "members" => await dbContext.Members.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, cancellationToken),
+            "gallery" => await dbContext.Gallery.AsNoTracking().FirstOrDefaultAsync(item => item.Id == id, cancellationToken),
+            _ => null
+        };
+
+        if (entity is null) return null;
+        var json = JsonSerializer.Serialize(entity, entity.GetType());
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(json)));
+    }
+
+    private static string? ValidateSystemManagedProperties(object entity)
+    {
+        return entity switch
+        {
+            Albums album when album.Singles is null || album.Singles.Count != 0 =>
+                "Singles are managed separately and cannot be supplied inside an album.",
+            Singles single when single.Album is not null || single.ConcertSongs is null || single.ConcertSongs.Count != 0 =>
+                "Album and ConcertSongs are managed separately and cannot be supplied inside a single.",
+            Concerts concert when concert.ConcertSongs is null || concert.ConcertSongs.Count != 0 =>
+                "ConcertSongs are managed separately and cannot be supplied inside a concert.",
+            _ => null
+        };
     }
 
     private static string? ValidateNews(News news)
     {
-        return ValidateRequiredText(news.Title, "Title", 200)
+        return ValidateRequiredDate(news.PublicationDate, "PublicationDate")
+            ?? ValidateRequiredText(news.Title, "Title", 200)
             ?? ValidateRequiredText(news.Content, "Content", 10_000)
             ?? ValidateRequiredText(news.Author, "Author", 150);
     }
 
     private static string? ValidateTimeline(TimeLine timeLine)
     {
-        return ValidateRequiredText(timeLine.Event, "Event", 200)
+        return ValidateRequiredDate(timeLine.Date, "Date")
+            ?? ValidateRequiredText(timeLine.Event, "Event", 200)
             ?? ValidateRequiredText(timeLine.Description, "Description", 5_000)
             ?? ValidateOptionalText(timeLine.Location, "Location", 200);
+    }
+
+    private static string? ValidateRequiredDate(DateTime value, string fieldName)
+    {
+        return value == default ? $"{fieldName} is required." : null;
     }
 
     private static string? ValidateMember(Members member)
@@ -338,6 +402,9 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
                 var text = row.TryGetProperty("text", out var textElement)
                     ? textElement.GetString()
                     : null;
+                var availableOnYoutube = row.TryGetProperty("availableOnYoutube", out var youtubeElement)
+                    ? youtubeElement.GetString()
+                    : null;
 
                 var songNameError = ValidateRequiredText(songName, "SongName", 200);
                 if (songNameError is not null)
@@ -360,6 +427,15 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
                 {
                     return textError;
                 }
+
+                var youtubeError = ValidateOptionalUrl(
+                    availableOnYoutube,
+                    "AvailableOnYoutube",
+                    allowImageDataUrl: false);
+                if (youtubeError is not null)
+                {
+                    return youtubeError;
+                }
             }
 
             return null;
@@ -367,6 +443,10 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
         catch (JsonException)
         {
             return "TrackListJson must contain valid JSON.";
+        }
+        catch (InvalidOperationException)
+        {
+            return "Album song properties must contain text values.";
         }
     }
 

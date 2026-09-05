@@ -92,6 +92,7 @@ public class ContentInputValidatorTests
 
         var error = await validator.ValidateEntityAsync(new Concerts
         {
+            Date = new DateTime(2026, 1, 1),
             Location = " ",
             NumberOfSongs = 1
         });
@@ -107,11 +108,32 @@ public class ContentInputValidatorTests
 
         var error = await validator.ValidateEntityAsync(new Concerts
         {
+            Date = new DateTime(2026, 1, 1),
             Location = "Sofia",
             NumberOfSongs = -1
         });
 
         Assert.Equal("NumberOfSongs cannot be negative.", error);
+    }
+
+    [Theory]
+    [InlineData("concerts")]
+    [InlineData("news")]
+    [InlineData("timeline")]
+    public async Task ValidateEntityAsync_RejectsMissingRequiredDates(string contentType)
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+        object entity = contentType switch
+        {
+            "concerts" => new Concerts { Location = "Sofia" },
+            "news" => new News { Title = "Update", Content = "News", Author = "Band" },
+            _ => new TimeLine { Event = "Formed", Description = "The beginning" }
+        };
+
+        var error = await validator.ValidateEntityAsync(entity);
+
+        Assert.Contains("required", error, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -149,6 +171,52 @@ public class ContentInputValidatorTests
         });
 
         Assert.Equal("Duration must use minutes:seconds format.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsUnsafeAlbumTrackYoutubeUrl()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            TrackListJson = """[{ "songName": "Intro", "duration": "1:05", "availableOnYoutube": "javascript:alert(1)" }]""",
+            NumberOfSongs = 1
+        });
+
+        Assert.Equal("AvailableOnYoutube must be a valid HTTP or HTTPS URL.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsNullNavigationCollection()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            Singles = null!
+        });
+
+        Assert.Equal("Singles are managed separately and cannot be supplied inside an album.", error);
+    }
+
+    [Fact]
+    public async Task ValidateEntityAsync_RejectsNonTextAlbumTrackProperties()
+    {
+        using var dbContext = TestDb.Create();
+        var validator = new ContentInputValidator(dbContext);
+
+        var error = await validator.ValidateEntityAsync(new Albums
+        {
+            Title = "Debut",
+            TrackListJson = """[{ "songName": "Intro", "duration": 65 }]"""
+        });
+
+        Assert.Equal("Album song properties must contain text values.", error);
     }
 
     [Fact]
