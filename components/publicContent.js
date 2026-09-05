@@ -1,4 +1,5 @@
 import { temporaryContent } from "../data/temporaryContent";
+import { mergeTemporaryWithLocal } from "./publicContentMerge";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 const CONTENT_SOURCE = process.env.NEXT_PUBLIC_CONTENT_SOURCE ?? "temporary";
@@ -33,10 +34,10 @@ export async function loadPublicContent(contentType, fetchOptions) {
       }
 
       const localAdminRows = await response.json();
-      return orderRows(contentType, [
-        ...temporaryRows,
-        ...namespaceLocalIds(contentType, localAdminRows)
-      ]);
+      return orderRows(
+        contentType,
+        mergeTemporaryWithLocal(contentType, temporaryRows, localAdminRows)
+      );
     } catch {
       return orderRows(contentType, temporaryRows);
     }
@@ -48,29 +49,6 @@ export async function loadPublicContent(contentType, fetchOptions) {
   }
 
   return response.json();
-}
-
-const CONTENT_ID_KEYS = {
-  albums: "albumId",
-  singles: "songId",
-  concerts: "concertId",
-  news: "newsId",
-  gallery: "id",
-  members: "id",
-  timeline: "id"
-};
-
-function namespaceLocalIds(contentType, rows) {
-  const idKey = CONTENT_ID_KEYS[contentType];
-  if (!idKey || !Array.isArray(rows)) return [];
-
-  // A fresh local database commonly starts its IDs at 1, which can overlap
-  // with IDs in temporaryContent. Public-detail links only need a stable
-  // client-side ID, so namespace local records instead of hiding either row.
-  return rows.map((row) => ({
-    ...row,
-    [idKey]: `local-${row[idKey]}`
-  }));
 }
 
 function orderRows(contentType, rows) {
