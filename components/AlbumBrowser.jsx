@@ -1,11 +1,11 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { parseSongRows } from "./adminDraft";
 import { loadPublicContent } from "./publicContent";
 import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { useHashParams } from "./useHashParams";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -21,16 +21,16 @@ function albumCards(albums) {
       body: songs.length ? `${songs.length} songs` : `${album.numberOfSongs || 0} songs`,
       cover: safeImageUrl(album.photoUrl),
       coverAlt: album.title,
-      href: `/albums/?albumId=${album.albumId}`,
+      href: `/albums/#albumId=${album.albumId}`,
       linkLabel: "View songs"
     };
   });
 }
 
 export default function AlbumBrowser({ emptyMessage = "No albums have been published yet." }) {
-  const searchParams = useSearchParams();
-  const selectedAlbumId = searchParams.get("albumId");
-  const selectedSongNumber = searchParams.get("song");
+  const hashParams = useHashParams();
+  const selectedAlbumId = hashParams.get("albumId");
+  const selectedSongNumber = hashParams.get("song");
   const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -76,7 +76,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
       return (
         <section className="album-detail">
           <p className="content-empty-state">Album was not found.</p>
-          <a className="action-link" href="/albums/">
+          <a className="action-link" href="/albums/#">
             <span>Back to albums</span>
           </a>
         </section>
@@ -95,7 +95,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
         return (
           <section className="album-detail">
             <p className="content-empty-state">Song text was not found.</p>
-            <a className="action-link" href={`/albums/?albumId=${selectedAlbum.albumId}`}>
+            <a className="action-link" href={`/albums/#albumId=${selectedAlbum.albumId}`}>
               <span>Back to album</span>
             </a>
           </section>
@@ -104,7 +104,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
 
       return (
         <section className="album-detail song-text-detail">
-          <a className="action-link album-back-link" href={`/albums/?albumId=${selectedAlbum.albumId}`}>
+          <a className="action-link album-back-link" href={`/albums/#albumId=${selectedAlbum.albumId}`}>
             <span>Back to album</span>
           </a>
 
@@ -122,7 +122,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
 
     return (
       <section className="album-detail">
-        <a className="action-link album-back-link" href="/albums/">
+        <a className="action-link album-back-link" href="/albums/#">
           <span>Back to albums</span>
         </a>
 
@@ -173,7 +173,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
                         {hasText ? (
                           <a
                             className="track-text-link"
-                            href={`/albums/?albumId=${selectedAlbum.albumId}&song=${index + 1}`}
+                            href={`/albums/#albumId=${selectedAlbum.albumId}&song=${index + 1}`}
                           >
                             Song text
                           </a>
