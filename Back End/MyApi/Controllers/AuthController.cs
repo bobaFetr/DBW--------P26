@@ -15,12 +15,10 @@ namespace MyApi.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
-    IAuditLogger auditLogger,
     AppDbContext dbContext,
     ICodeGenerator codeGenerator,
     IAntiforgery antiforgery,
-    IWebHostEnvironment environment,
-    ILogger<AuthController>? logger = null) : ControllerBase
+    IWebHostEnvironment environment) : ControllerBase
 {
     [HttpGet("csrf")]
     [AllowAnonymous]
@@ -193,12 +191,6 @@ public class AuthController(
             return Unauthorized();
         }
 
-        var roles = await userManager.GetRolesAsync(user);
-        if (roles.Contains("ContentAdmin") || roles.Contains("SuperAdmin"))
-        {
-            await TryAuditAsync(user.Id, "admin_login", user.Id);
-        }
-
         return Ok(await ToCurrentUserResponse(user));
     }
 
@@ -207,14 +199,6 @@ public class AuthController(
     public async Task<IActionResult> Logout()
     {
         var user = await userManager.GetUserAsync(User);
-        if (user is not null)
-        {
-            var roles = await userManager.GetRolesAsync(user);
-            if (roles.Contains("ContentAdmin") || roles.Contains("SuperAdmin"))
-            {
-                await TryAuditAsync(user.Id, "admin_logout", user.Id);
-            }
-        }
 
         await RevokeCurrentSessionAsync(user);
         return NoContent();
@@ -288,17 +272,6 @@ public class AuthController(
         });
     }
 
-    private async Task TryAuditAsync(string adminUserId, string action, string? performedByUserId)
-    {
-        try
-        {
-            await auditLogger.LogAsync(adminUserId, action, performedByUserId);
-        }
-        catch (Exception ex)
-        {
-            logger?.LogError(ex, "Could not write admin audit event {Action} for {AdminUserId}.", action, adminUserId);
-        }
-    }
 }
 
 public record CsrfTokenResponse(string Token);

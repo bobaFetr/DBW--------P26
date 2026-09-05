@@ -17,7 +17,6 @@ public class ContentRequestsController(
     AppDbContext dbContext,
     UserManager<ApplicationUser> userManager,
     ICodeGenerator codeGenerator,
-    IAuditLogger auditLogger,
     IContentChangeApplier contentChangeApplier,
     IContentInputValidator contentInputValidator) : ControllerBase
 {
@@ -75,16 +74,6 @@ public class ContentRequestsController(
 
         dbContext.ContentChangeRequests.Add(changeRequest);
         await dbContext.SaveChangesAsync();
-
-        if (await userManager.IsInRoleAsync(user, "ContentAdmin"))
-        {
-            await auditLogger.LogAsync(
-                user.Id,
-                "content_change_requested",
-                user.Id,
-                request.ContentType,
-                request.TargetEntityId);
-        }
 
         if (transaction is not null)
         {
@@ -205,16 +194,6 @@ public class ContentRequestsController(
         changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
         await dbContext.SaveChangesAsync();
 
-        if (await userManager.IsInRoleAsync(changeRequest.RequestedByUser, "ContentAdmin"))
-        {
-            await auditLogger.LogAsync(
-                changeRequest.RequestedByUserId,
-                "content_change_approved",
-                superAdmin.Id,
-                changeRequest.ContentType,
-                changeRequest.TargetEntityId);
-        }
-
         if (transaction is not null)
         {
             await transaction.CommitAsync();
@@ -256,16 +235,6 @@ public class ContentRequestsController(
         changeRequest.ReviewedAtUtc = DateTime.UtcNow;
         changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
         await dbContext.SaveChangesAsync();
-
-        if (await userManager.IsInRoleAsync(changeRequest.RequestedByUser, "ContentAdmin"))
-        {
-            await auditLogger.LogAsync(
-                changeRequest.RequestedByUserId,
-                "content_change_denied",
-                superAdmin.Id,
-                changeRequest.ContentType,
-                changeRequest.TargetEntityId);
-        }
 
         if (transaction is not null)
         {

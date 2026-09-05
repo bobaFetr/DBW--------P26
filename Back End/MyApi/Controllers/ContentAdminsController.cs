@@ -14,8 +14,7 @@ namespace MyApi.Controllers;
 [Authorize(Roles = "SuperAdmin")]
 public class ContentAdminsController(
     AppDbContext dbContext,
-    UserManager<ApplicationUser> userManager,
-    IAuditLogger auditLogger) : ControllerBase
+    UserManager<ApplicationUser> userManager) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ContentAdminResponse>>> GetAll()
@@ -40,26 +39,6 @@ public class ContentAdminsController(
                 profileEntity.AdminKind == AdminKind.ContentAdmin);
 
         return profile is null ? NotFound() : Ok(ToResponse(profile));
-    }
-
-    [HttpGet("{userId}/audit")]
-    public async Task<ActionResult<IEnumerable<AdminAuditLogResponse>>> GetAudit(string userId)
-    {
-        var logs = await dbContext.AdminAuditLogs
-            .Where(log => log.AdminUserId == userId)
-            .OrderByDescending(log => log.CreatedAtUtc)
-            .Select(log => new AdminAuditLogResponse(
-                log.Id,
-                log.AdminUserId,
-                log.PerformedByUserId,
-                log.Action,
-                log.EntityType,
-                log.EntityId,
-                log.DetailsJson,
-                log.CreatedAtUtc))
-            .ToListAsync();
-
-        return Ok(logs);
     }
 
     [HttpDelete("{userId}")]
@@ -122,12 +101,6 @@ public class ContentAdminsController(
         }
 
         await dbContext.SaveChangesAsync();
-        await auditLogger.LogAsync(
-            userId,
-            "content_admin_kicked",
-            superAdmin.Id,
-            nameof(AdminProfile),
-            profile?.Id.ToString());
 
         if (transaction is not null)
         {

@@ -14,8 +14,7 @@ namespace MyApi.Controllers;
 public class AdminRequestsController(
     AppDbContext dbContext,
     UserManager<ApplicationUser> userManager,
-    ICodeGenerator codeGenerator,
-    IAuditLogger auditLogger) : ControllerBase
+    ICodeGenerator codeGenerator) : ControllerBase
 {
     [HttpPost]
     [Authorize]
@@ -158,12 +157,6 @@ public class AdminRequestsController(
         }
 
         await dbContext.SaveChangesAsync();
-        await auditLogger.LogAsync(
-            adminRequest.UserId,
-            "content_admin_request_approved",
-            superAdmin.Id,
-            nameof(AdminRequest),
-            adminRequest.Id.ToString());
 
         if (transaction is not null)
         {

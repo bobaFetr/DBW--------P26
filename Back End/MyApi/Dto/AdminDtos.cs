@@ -31,13 +31,3 @@ public record ContentAdminResponse(
     string AdminCode,
     bool IsActive,
     DateTime ApprovedAtUtc);
-
-public record AdminAuditLogResponse(
-    Guid Id,
-    string AdminUserId,
-    string? PerformedByUserId,
-    string Action,
-    string? EntityType,
-    string? EntityId,
-    string? DetailsJson,
-    DateTime CreatedAtUtc);

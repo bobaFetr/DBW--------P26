@@ -237,7 +237,6 @@ builder.Services.AddRateLimiter(options =>
             }));
 });
 builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHasher>();
-builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 builder.Services.AddScoped<ICodeGenerator, CodeGenerator>();
 builder.Services.AddScoped<IContentInputValidator, ContentInputValidator>();
 builder.Services.AddScoped<IContentChangeApplier, ContentChangeApplier>();

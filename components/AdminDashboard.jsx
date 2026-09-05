@@ -337,8 +337,6 @@ export default function AdminDashboard() {
   const [contentRequests, setContentRequests] = useState([]);
   const [adminRequests, setAdminRequests] = useState([]);
   const [adminProfiles, setAdminProfiles] = useState([]);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
   const [kickConfirmation, setKickConfirmation] = useState(null);
   const [kickPassword, setKickPassword] = useState("");
   const [editingRecord, setEditingRecord] = useState(null);
@@ -408,8 +406,6 @@ export default function AdminDashboard() {
     setContentRequests([]);
     setAdminProfiles([]);
     setAdminRequests([]);
-    setAuditLogs([]);
-    setSelectedAuditUserId("");
     setKickConfirmation(null);
     setKickPassword("");
   }
@@ -904,17 +900,6 @@ export default function AdminDashboard() {
     }
   }
 
-  async function loadAudit(userId) {
-    try {
-      setSelectedAuditUserId(userId);
-      setAuditLogs(await apiFetch(`/api/content-admins/${userId}/audit`));
-    } catch (err) {
-      if (!handleAdminAccessError(err)) {
-        setError(err.message);
-      }
-    }
-  }
-
   if (isLoading) {
     return <p className="admin-empty-state">Loading admin dashboard...</p>;
   }
@@ -1360,9 +1345,6 @@ export default function AdminDashboard() {
                         <p className="meta">{profile.email}</p>
                       </div>
                       <div className="admin-record-actions">
-                        <button type="button" onClick={() => loadAudit(profile.userId)}>
-                          Audit
-                        </button>
                         <button type="button" onClick={() => beginKickContentAdmin(profile)}>
                           Kick
                         </button>
@@ -1395,35 +1377,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {selectedAuditUserId && (
-              <div className="admin-review-panel">
-                <div className="admin-editor-heading">
-                  <div>
-                    <h3>Audit Log</h3>
-                    <p>{selectedAuditUserId}</p>
-                  </div>
-                </div>
-                <div className="admin-record-list">
-                  {auditLogs.length ? (
-                    auditLogs.map((log) => (
-                      <article className="admin-record" key={log.id}>
-                        <div>
-                          <div className="admin-record-topline">
-                            <h4>{log.action}</h4>
-                            <span>{formatDate(log.createdAtUtc)}</span>
-                          </div>
-                          <p className="meta">
-                            {log.entityType ?? "Admin"} {log.entityId ?? ""}
-                          </p>
-                        </div>
-                      </article>
-                    ))
-                  ) : (
-                    <p className="admin-empty-state">No audit events for this admin yet.</p>
-                  )}
-                </div>
-              </div>
-            )}
           </>
         )}
       </section>
