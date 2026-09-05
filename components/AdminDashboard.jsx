@@ -364,7 +364,6 @@ export default function AdminDashboard() {
   const activeRecords = records[activeCollection.key] ?? [];
   const activeDraft = drafts[activeCollection.key] ?? emptyDraft(activeCollection);
   const isEditing = editingRecord?.collectionKey === activeCollection.key;
-  const visibleRequests = contentRequests;
   const pendingRequests = contentRequests.filter(
     (request) => normalizeStatus(request.status) === "Pending"
   );
@@ -1202,7 +1201,7 @@ export default function AdminDashboard() {
           <div className="admin-editor-heading">
             <div>
               <h3>ContentChangeRequests</h3>
-              <p>Normal users and content admins wait here until a super admin reviews them.</p>
+              <p>Pending content changes awaiting review by a super admin.</p>
             </div>
           </div>
 
@@ -1218,8 +1217,8 @@ export default function AdminDashboard() {
           )}
 
           <div className="admin-record-list">
-            {visibleRequests.length ? (
-              visibleRequests.map((request) => {
+            {pendingRequests.length ? (
+              pendingRequests.map((request) => {
                 const collection = COLLECTIONS.find(
                   (item) => item.key === String(request.contentType).toLowerCase()
                 );
@@ -1300,7 +1299,7 @@ export default function AdminDashboard() {
                 );
               })
             ) : (
-              <p className="admin-empty-state">No content change requests.</p>
+              <p className="admin-empty-state">No pending content change requests.</p>
             )}
           </div>
         </div>
