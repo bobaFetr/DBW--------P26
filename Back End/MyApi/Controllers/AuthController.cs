@@ -29,34 +29,6 @@ public class AuthController(
         return Ok(new CsrfTokenResponse(tokens.RequestToken!));
     }
 
-    [HttpPost("register")]
-    [AllowAnonymous]
-    [EnableRateLimiting("AuthSensitive")]
-    public async Task<ActionResult<CurrentUserResponse>> Register(RegisterRequest request)
-    {
-        var duplicateError = await GetDuplicateAccountErrorAsync(request);
-        if (duplicateError is not null)
-        {
-            return BadRequest(new[] { duplicateError });
-        }
-
-        var user = new ApplicationUser
-        {
-            UserName = request.UserName.Trim(),
-            Email = request.Email.Trim(),
-            EmailConfirmed = true,
-            DisplayName = CleanOptionalText(request.DisplayName)
-        };
-
-        var result = await userManager.CreateAsync(user, request.Password);
-        if (!result.Succeeded)
-        {
-            return BadRequest(result.Errors);
-        }
-
-        return Ok(await ToCurrentUserResponse(user));
-    }
-
     [HttpPost("register-content-admin-request")]
     [AllowAnonymous]
     [EnableRateLimiting("AuthSensitive")]
@@ -210,32 +182,6 @@ public class AuthController(
     {
         var user = await userManager.GetUserAsync(User);
         return user is null ? Unauthorized() : Ok(await ToCurrentUserResponse(user));
-    }
-
-    private async Task<IdentityError?> GetDuplicateAccountErrorAsync(RegisterRequest request)
-    {
-        var email = request.Email.Trim();
-        var userName = request.UserName.Trim();
-
-        if (await userManager.FindByEmailAsync(email) is not null)
-        {
-            return new IdentityError
-            {
-                Code = "DuplicateEmail",
-                Description = "Email is already registered."
-            };
-        }
-
-        if (await userManager.FindByNameAsync(userName) is not null)
-        {
-            return new IdentityError
-            {
-                Code = "DuplicateUserName",
-                Description = "Username is already taken."
-            };
-        }
-
-        return null;
     }
 
     private async Task<CurrentUserResponse> ToCurrentUserResponse(ApplicationUser user)
