@@ -169,7 +169,12 @@ public class AuthController(
 
         if (!result.Succeeded)
         {
-            return Unauthorized();
+            if (result.IsLockedOut)
+            {
+                return Unauthorized(new { message = "Account locked. Try again later." });
+            }
+
+            return Unauthorized(new { message = "Wrong password" });
         }
 
         return Ok(await ToCurrentUserResponse(user));

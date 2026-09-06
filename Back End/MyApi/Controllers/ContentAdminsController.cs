@@ -76,31 +76,7 @@ public class ContentAdminsController(
             ? await dbContext.Database.BeginTransactionAsync()
             : null;
 
-        if (await userManager.IsInRoleAsync(user, "ContentAdmin"))
-        {
-            var roleResult = await userManager.RemoveFromRoleAsync(user, "ContentAdmin");
-            if (!roleResult.Succeeded)
-            {
-                return BadRequest(roleResult.Errors);
-            }
-
-            var stampResult = await userManager.UpdateSecurityStampAsync(user);
-            if (!stampResult.Succeeded)
-            {
-                return BadRequest(stampResult.Errors);
-            }
-        }
-
-        var profile = await dbContext.AdminProfiles.FirstOrDefaultAsync(profileEntity =>
-            profileEntity.UserId == userId &&
-            profileEntity.AdminKind == AdminKind.ContentAdmin);
-
-        if (profile is not null)
-        {
-            dbContext.AdminProfiles.Remove(profile);
-        }
-
-        await dbContext.SaveChangesAsync();
+        await ContentAdminDataDeletion.DeleteAsync(dbContext, user);
 
         if (transaction is not null)
         {
