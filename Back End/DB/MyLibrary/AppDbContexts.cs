@@ -25,6 +25,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<AdminRequest> AdminRequests { get; set; }
     public DbSet<ContentChangeRequest> ContentChangeRequests { get; set; }
     public DbSet<AdminAuditLog> AdminAuditLogs { get; set; }
+    public DbSet<SiteSetting> SiteSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -151,6 +152,10 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
         modelBuilder.Entity<AdminAuditLog>()
             .Property(log => log.EntityId)
             .HasMaxLength(80);
+
+        modelBuilder.Entity<SiteSetting>()
+            .Property(setting => setting.Key)
+            .HasMaxLength(100);
 
         // Your existing relations
         modelBuilder.Entity<Singles>()

@@ -713,6 +713,20 @@ namespace MyLibrary.Migrations
                     b.ToTable("TimeLines");
                 });
 
+            modelBuilder.Entity("MyLibrary.SiteSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("BooleanValue")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("SiteSettings");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)

@@ -337,6 +337,7 @@ export default function AdminDashboard() {
   const [contentRequests, setContentRequests] = useState([]);
   const [adminRequests, setAdminRequests] = useState([]);
   const [adminProfiles, setAdminProfiles] = useState([]);
+  const [caRequestsEnabled, setCaRequestsEnabled] = useState(false);
   const [kickConfirmation, setKickConfirmation] = useState(null);
   const [kickPassword, setKickPassword] = useState("");
   const [editingRecord, setEditingRecord] = useState(null);
@@ -482,7 +483,8 @@ export default function AdminDashboard() {
       const results = await Promise.allSettled([
         apiFetch("/api/content-requests/pending"),
         apiFetch("/api/content-admins"),
-        apiFetch("/api/content-admin-requests/pending")
+        apiFetch("/api/content-admin-requests/pending"),
+        apiFetch("/api/ca-requests-permission")
       ]);
       if (results[0].status === "fulfilled") setContentRequests(results[0].value);
       else failures.push("content requests");
@@ -490,6 +492,8 @@ export default function AdminDashboard() {
       else failures.push("content admins");
       if (results[2].status === "fulfilled") setAdminRequests(results[2].value);
       else failures.push("admin signup requests");
+      if (results[3].status === "fulfilled") setCaRequestsEnabled(Boolean(results[3].value.enabled));
+      else failures.push("CA requests permission status");
     } else {
       try {
         setContentRequests(await apiFetch("/api/content-requests/mine"));
@@ -556,6 +560,26 @@ export default function AdminDashboard() {
     });
     resetAdminState();
     clearStoredAdminRole();
+  }
+
+  async function toggleCaRequestsPermission() {
+    if (!isSuperAdmin || !beginMutation()) return;
+    setError("");
+    setNotice("");
+
+    const nextEnabled = !caRequestsEnabled;
+    try {
+      const result = await apiFetch("/api/ca-requests-permission", {
+        method: "PUT",
+        body: JSON.stringify({ enabled: nextEnabled })
+      });
+      setCaRequestsEnabled(Boolean(result.enabled));
+      setNotice(`CA registration requests are now ${result.enabled ? "allowed" : "forbidden"}.`);
+    } catch (err) {
+      if (!handleAdminAccessError(err)) setError(err.message);
+    } finally {
+      endMutation();
+    }
   }
 
   async function logout() {
@@ -956,6 +980,32 @@ export default function AdminDashboard() {
             <strong>{adminProfiles.length}</strong>
           </div>
         </div>
+
+        {isSuperAdmin && (
+          <div className="admin-permission-control">
+            <span>
+              <strong>CA requests permission status</strong>
+              <small>{caRequestsEnabled ? "Registration requests are allowed" : "Registration requests are forbidden"}</small>
+            </span>
+            <div className="switch">
+              <input
+                id="ca-requests-permission-toggle"
+                type="checkbox"
+                checked={caRequestsEnabled}
+                onChange={toggleCaRequestsPermission}
+                disabled={isMutating}
+                aria-label="CA requests permission status"
+              />
+              <label
+                className="toggle"
+                htmlFor="ca-requests-permission-toggle"
+                aria-hidden="true"
+              >
+                <i />
+              </label>
+            </div>
+          </div>
+        )}
 
         <div className="admin-workspace">
           <aside className="admin-sidebar" aria-label="Admin sections">

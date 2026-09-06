@@ -35,6 +35,15 @@ public class AuthController(
     public async Task<ActionResult<AdminRequestResponse>> RegisterContentAdminRequest(
         RegisterRequest request)
     {
+        var requestsEnabled = await dbContext.SiteSettings
+            .Where(setting => setting.Key == CaRequestsPermissionController.SettingKey)
+            .Select(setting => setting.BooleanValue)
+            .SingleOrDefaultAsync();
+        if (!requestsEnabled)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, "CA requests are forbidden");
+        }
+
         if (User.Identity?.IsAuthenticated == true)
         {
             await RevokeCurrentSessionAsync();
