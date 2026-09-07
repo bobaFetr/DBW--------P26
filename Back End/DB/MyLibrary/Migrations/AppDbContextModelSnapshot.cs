@@ -609,7 +609,6 @@ namespace MyLibrary.Migrations
                         .HasColumnType("character varying(150)");
 
                     b.Property<string>("PhotoUrl")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");

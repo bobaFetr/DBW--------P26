@@ -24,6 +24,17 @@ function loadAdminDraftModule() {
   return context.module.exports;
 }
 
+test("blank optional image and media fields serialize as null", () => {
+  const { normalizeDraft } = loadAdminDraftModule();
+  for (const type of ["image", "media"]) {
+    for (const value of [undefined, null, "", " \t "]) {
+      const result = normalizeDraft({ fields: [{key: "url", type}] }, {url: value});
+      assert.equal(result.url, null);
+      assert.equal(JSON.stringify(result), '{"url":null}');
+    }
+  }
+});
+
 test("normalizeDraft preserves uploaded member image data URLs", () => {
   const { normalizeDraft } = loadAdminDraftModule();
   const dataUrl = "data:image/jpeg;base64,AQIDBA==";

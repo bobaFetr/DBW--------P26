@@ -142,11 +142,11 @@ const COLLECTIONS = [
     fields: [
       { key: "name", label: "Name", required: true },
       { key: "instrument", label: "Instrument", required: true },
-      { key: "photoUrl", label: "Photo", required: true, type: "image" }
+      { key: "photoUrl", label: "Photo", type: "image" }
     ],
     title: (record) => record.name,
     meta: (record) => record.instrument,
-    detail: () => "Photo uploaded"
+    detail: (record) => record.photoUrl ? "Photo uploaded" : "No photo"
   },
   {
     key: "gallery",
@@ -155,11 +155,11 @@ const COLLECTIONS = [
     idKey: "id",
     fields: [
       { key: "title", label: "Title", required: true },
-      { key: "imageUrl", label: "Media", required: true, type: "media" },
+      { key: "imageUrl", label: "Media", type: "media" },
       { key: "description", label: "Description", type: "textarea", emptyValue: "" }
     ],
     title: (record) => record.title,
-    meta: () => "Media uploaded",
+    meta: (record) => record.imageUrl ? "Media uploaded" : "No media",
     detail: (record) => record.description
   }
 ];
@@ -262,7 +262,7 @@ async function getCsrfToken() {
   });
 
   if (!response.ok) {
-    throw new Error("Could not prepare a secure request.");
+    throw new ApiError("Could not prepare a secure request.", response.status);
   }
 
   const result = await response.json();
@@ -332,12 +332,15 @@ export default function AdminDashboard() {
   const [session, setSession] = useState(null);
   const [activeKey, setActiveKey] = useState(COLLECTIONS[0].key);
   const [records, setRecords] = useState({});
-  const [publicCount, setPublicCount] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [adminPage, setAdminPage] = useState(1);
+  const [hasMoreAdmins, setHasMoreAdmins] = useState(false);
+  const [hasMoreAudit, setHasMoreAudit] = useState(false);
+  const auditLoadVersion = useRef(0);
   const [drafts, setDrafts] = useState(createInitialDrafts);
   const [contentRequests, setContentRequests] = useState([]);
   const [adminRequests, setAdminRequests] = useState([]);
   const [adminProfiles, setAdminProfiles] = useState([]);
-  const [recordPages, setRecordPages] = useState({});
   const [hasMoreRecords, setHasMoreRecords] = useState({});
   const [hasMoreContentRequests, setHasMoreContentRequests] = useState(false);
   const [hasMoreAdminRequests, setHasMoreAdminRequests] = useState(false);
@@ -380,7 +383,7 @@ export default function AdminDashboard() {
   }, []);
 
   useEffect(() => {
-    if (!session?.roles?.includes("ContentAdmin") || session.roles.includes("SuperAdmin")) {
+    if (!isAdmin) {
       return undefined;
     }
 
@@ -391,8 +394,8 @@ export default function AdminDashboard() {
         const user = await apiFetch("/api/auth/me");
         if (isCancelled) return;
 
-        if (!user.roles?.includes("ContentAdmin") || user.roles?.includes("SuperAdmin")) {
-          handleContentAdminKickout();
+        if (!user.roles?.some((role) => role === "ContentAdmin" || role === "SuperAdmin")) {
+          handleAdminAccessError(new ApiError("Administrator access is no longer available.", 401));
         }
       } catch (err) {
         if (!isCancelled) {
@@ -402,23 +405,28 @@ export default function AdminDashboard() {
     }
 
     const intervalId = window.setInterval(verifyContentAdminAccess, 10000);
+    window.addEventListener("focus", verifyContentAdminAccess);
     return () => {
       isCancelled = true;
       window.clearInterval(intervalId);
+      window.removeEventListener("focus", verifyContentAdminAccess);
     };
-  }, [session?.userId, session?.roles]);
+  }, [session?.id, session?.roles, isAdmin]);
 
   function resetAdminState() {
     contentLoadVersion.current += 1;
     setSession(null);
     setActiveKey(COLLECTIONS[0].key);
     setRecords({});
-    setPublicCount(null);
+    setSummary(null);
     setDrafts(createInitialDrafts());
     setEditingRecord(null);
     setContentRequests([]);
     setAdminProfiles([]);
-    setRecordPages({});
+    setAdminPage(1);
+    setHasMoreAdmins(false);
+    setHasMoreAudit(false);
+    auditLoadVersion.current += 1;
     setHasMoreRecords({});
     setHasMoreContentRequests(false);
     setHasMoreAdminRequests(false);
@@ -447,6 +455,15 @@ export default function AdminDashboard() {
       (err.status === 401 || err.status === 403)
     ) {
       handleContentAdminKickout();
+      return true;
+    }
+
+    if (err instanceof ApiError && err.status === 401) {
+      resetAdminState();
+      clearStoredAdminRole();
+      setError("");
+      setNotice("");
+      setForcedLogoutNotice("Your session has expired. Please sign in again.");
       return true;
     }
 
@@ -494,10 +511,22 @@ export default function AdminDashboard() {
   }
 
   async function refreshDashboard(user = session) {
+    setSummary(null);
+    const version = contentLoadVersion.current + 1;
     const failures = await loadContentRows();
+    if (version !== contentLoadVersion.current) return;
 
     if (!user) return failures;
 
+    try {
+      const totals = await apiFetch("/api/admin-dashboard/summary", { cache: "no-store" });
+      if (version !== contentLoadVersion.current) return;
+      setSummary(totals);
+    } catch (err) {
+      if (version !== contentLoadVersion.current) return;
+      if (handleAdminAccessError(err)) return;
+      failures.push("dashboard totals");
+    }
     const roles = user.roles ?? [];
     if (roles.includes("SuperAdmin")) {
       const results = await Promise.allSettled([
@@ -506,12 +535,17 @@ export default function AdminDashboard() {
         apiFetch(`/api/content-admin-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
         apiFetch("/api/ca-requests-permission")
       ]);
+      if (version !== contentLoadVersion.current) return;
       if (results[0].status === "fulfilled") {
         setContentRequests(results[0].value);
         setHasMoreContentRequests(results[0].value.length === PAGE_SIZE);
       }
       else failures.push("content requests");
-      if (results[1].status === "fulfilled") setAdminProfiles(results[1].value);
+      if (results[1].status === "fulfilled") {
+        setAdminProfiles(results[1].value);
+        setAdminPage(1);
+        setHasMoreAdmins(results[1].value.length === PAGE_SIZE);
+      }
       else failures.push("content admins");
       if (results[2].status === "fulfilled") {
         setAdminRequests(results[2].value);
@@ -523,6 +557,7 @@ export default function AdminDashboard() {
     } else {
       try {
         const requests = await apiFetch(`/api/content-requests/mine?page=1&pageSize=${PAGE_SIZE}`);
+        if (version !== contentLoadVersion.current) return;
         setContentRequests(requests);
         setHasMoreContentRequests(requests.length === PAGE_SIZE);
       } catch {
@@ -539,23 +574,18 @@ export default function AdminDashboard() {
 
   async function loadContentRows() {
     const version = ++contentLoadVersion.current;
-    setPublicCount(null);
     const result = await loadPublicContent(
       COLLECTIONS,
-      (key) => apiFetch(`/api/content/${key}?page=1&pageSize=${PAGE_SIZE}`, { cache: "no-store" })
+      (key) => apiFetch(`/api/content/${key}?afterId=0&pageSize=${PAGE_SIZE}`, { cache: "no-store" })
     );
     if (version !== contentLoadVersion.current) return [];
     if (result.records) {
       setRecords((current) => ({ ...current, ...result.records }));
-      setRecordPages(Object.fromEntries(
-        Object.keys(result.records).map((key) => [key, 1])
-      ));
       setHasMoreRecords(Object.fromEntries(
         Object.entries(result.records).map(([key, rows]) => [key, rows.length === PAGE_SIZE])
       ));
     }
 
-    setPublicCount(result.count);
     return result.failures;
   }
 
@@ -563,10 +593,10 @@ export default function AdminDashboard() {
     if (!beginMutation()) return;
     setError("");
     const version = contentLoadVersion.current;
-    const page = (recordPages[activeCollection.key] ?? 1) + 1;
+    const cursor = records[activeCollection.key]?.at(-1)?.[activeCollection.idKey] ?? 0;
     try {
       const nextRows = await apiFetch(
-        `/api/content/${activeCollection.key}?page=${page}&pageSize=${PAGE_SIZE}`,
+        `/api/content/${activeCollection.key}?afterId=${cursor}&pageSize=${PAGE_SIZE}`,
         { cache: "no-store" }
       );
       if (version !== contentLoadVersion.current) return;
@@ -574,7 +604,6 @@ export default function AdminDashboard() {
         ...current,
         [activeCollection.key]: [...(current[activeCollection.key] ?? []), ...nextRows]
       }));
-      setRecordPages((current) => ({ ...current, [activeCollection.key]: page }));
       setHasMoreRecords((current) => ({
         ...current,
         [activeCollection.key]: nextRows.length === PAGE_SIZE
@@ -695,7 +724,14 @@ export default function AdminDashboard() {
   }
 
   async function logout() {
-    await apiFetch("/api/auth/logout", { method: "POST" });
+    try {
+      await apiFetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      if (!(err instanceof ApiError) || err.status !== 401) {
+        setError(err.message || "Could not sign out. Please try again.");
+        return;
+      }
+    }
     resetAdminState();
     clearStoredAdminRole();
     setForcedLogoutNotice("");
@@ -781,7 +817,7 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        throw new ApiError(await response.text(), response.status);
       }
 
       const result = await response.json();
@@ -1004,18 +1040,46 @@ export default function AdminDashboard() {
     setKickPassword("");
   }
 
-  async function loadAudit(userId) {
+  async function loadMoreAdmins() {
+    if (!beginMutation()) return;
+    const version = contentLoadVersion.current;
+    setError("");
+    try {
+      const rows = await apiFetch(`/api/content-admins?page=${adminPage + 1}&pageSize=${PAGE_SIZE}`);
+      if (version !== contentLoadVersion.current) return;
+      setAdminProfiles((current) => [...new Map([...current, ...rows].map((row) => [row.userId, row])).values()]);
+      setAdminPage((page) => page + 1);
+      setHasMoreAdmins(rows.length === PAGE_SIZE);
+    } catch (err) {
+      if (!handleAdminAccessError(err)) setError(err.message);
+    } finally {
+      endMutation();
+    }
+  }
+
+  async function loadAudit(userId, more = false) {
+    const version = ++auditLoadVersion.current;
     setError("");
     setNotice("");
-    try {
-      setSelectedAuditUserId(userId);
-      setAuditLogs(await apiFetch(`/api/content-admins/${userId}/audit`));
-    } catch (err) {
-      setSelectedAuditUserId("");
+    const cursor = more ? auditLogs.at(-1) : null;
+    if (!more) {
       setAuditLogs([]);
-      if (!handleAdminAccessError(err)) {
-        setError(err.message);
-      }
+      setHasMoreAudit(false);
+    }
+    setSelectedAuditUserId(userId);
+    try {
+      const path = userId === "all" ? "/api/content-admins/audit" : `/api/content-admins/${encodeURIComponent(userId)}/audit`;
+      const query = cursor
+        ? `&afterCreatedAtUtc=${encodeURIComponent(cursor.createdAtUtc)}&afterId=${cursor.id}` : "";
+      const rows = await apiFetch(`${path}?pageSize=${PAGE_SIZE}${query}`);
+      if (version !== auditLoadVersion.current) return;
+      setAuditLogs((current) => more
+        ? [...new Map([...current, ...rows].map((row) => [row.id, row])).values()]
+        : rows);
+      setHasMoreAudit(rows.length === PAGE_SIZE);
+    } catch (err) {
+      if (version !== auditLoadVersion.current) return;
+      if (!handleAdminAccessError(err)) setError(err.message);
     }
   }
 
@@ -1041,6 +1105,17 @@ export default function AdminDashboard() {
       cancelKickContentAdmin();
       await refreshDashboard();
     } catch (err) {
+      // A bad confirmation password also returns 401; it does not end the
+      // reviewer's session. Check the session before treating it as expiry.
+      if (err instanceof ApiError && err.status === 401) {
+        try {
+          await apiFetch("/api/auth/me");
+          setError(err.message);
+        } catch (sessionError) {
+          if (!handleAdminAccessError(sessionError)) setError(sessionError.message);
+        }
+        return;
+      }
       if (!handleAdminAccessError(err)) {
         setError(err.message);
       }
@@ -1092,18 +1167,18 @@ export default function AdminDashboard() {
         <div className="admin-summary" aria-label="Dashboard summary">
           <div className="admin-summary-item">
             <span>Public rows</span>
-            <strong>{publicCount ?? "Unavailable"}</strong>
+            <strong>{summary?.publicRows ?? "Unavailable"}</strong>
           </div>
           <div className="admin-summary-item">
             <span>Pending review</span>
-            <strong className={pendingRequests.length > 0 ? "admin-pending-count" : ""}>
-              {pendingRequests.length}
+            <strong className={summary?.pendingReview > 0 ? "admin-pending-count" : ""}>
+              {summary?.pendingReview ?? "Unavailable"}
             </strong>
           </div>
-          <div className="admin-summary-item">
+          {isSuperAdmin && <div className="admin-summary-item">
             <span>Active content admins</span>
-            <strong>{adminProfiles.length}</strong>
-          </div>
+            <strong>{summary?.activeContentAdmins ?? "Unavailable"}</strong>
+          </div>}
         </div>
 
         {isSuperAdmin && (
@@ -1193,7 +1268,7 @@ export default function AdminDashboard() {
                   key={field.key}
                 >
                   <span className="admin-field-label">
-                    <span>{field.label}</span>
+                    <span>{field.label}{(field.type === "image" || field.type === "media") && !field.required ? " (optional)" : ""}</span>
                     {field.required && <span className="admin-required-badge">Required</span>}
                   </span>
                   {field.type === "textarea" ? (
@@ -1529,6 +1604,7 @@ export default function AdminDashboard() {
               <div className="admin-editor-heading">
                 <div>
                   <h3>Content Admins</h3>
+                  <button type="button" onClick={() => loadAudit("all")}>All admin audit history</button>
                   <p>Kick removes Content Admin access and its admin profile. The account and its request history are retained.</p>
                 </div>
               </div>
@@ -1574,17 +1650,22 @@ export default function AdminDashboard() {
                     </article>
                   ))
                 ) : (
-                  <p className="admin-empty-state">No active content admins.</p>
+                  <p className="admin-empty-state">No content admins.</p>
                 )}
               </div>
             </div>
+
+            {hasMoreAdmins && (
+              <button type="button" onClick={loadMoreAdmins} disabled={isMutating}>Load more content admins</button>
+            )}
 
             {selectedAuditUserId && (
               <div className="admin-review-panel">
                 <div className="admin-editor-heading">
                   <div>
                     <h3>Audit Log</h3>
-                    <p>Latest 100 events for this Content Admin.</p>
+                    {hasMoreAudit && <button type="button" onClick={() => loadAudit(selectedAuditUserId, true)}>Load older events</button>}
+                    <p>{selectedAuditUserId === "all" ? "All administrators, including revoked accounts." : "Events for the selected administrator."}</p>
                   </div>
                 </div>
                 <div className="admin-record-list">
@@ -1598,12 +1679,13 @@ export default function AdminDashboard() {
                           </div>
                           <p className="meta">
                             {[log.entityType, log.entityId].filter(Boolean).join(" ") || "Admin account"}
+                            {` | Admin: ${log.adminUserId} | Actor: ${log.performedByUserId ?? "Unknown"}`}
                           </p>
                         </div>
                       </article>
                     ))
                   ) : (
-                    <p className="admin-empty-state">No audit events for this Content Admin yet.</p>
+                    <p className="admin-empty-state">No audit events found.</p>
                   )}
                 </div>
               </div>

@@ -28,6 +28,7 @@ public class ContentAdminsController(
             .Include(profile => profile.User)
             .Where(profile => profile.AdminKind == AdminKind.ContentAdmin)
             .OrderBy(profile => profile.User.DisplayName ?? profile.User.UserName)
+            .ThenBy(profile => profile.UserId)
             .Skip((page - 1) * Math.Min(pageSize, 50))
             .Take(Math.Min(pageSize, 50))
             .Select(profile => ToResponse(profile))
@@ -48,16 +49,30 @@ public class ContentAdminsController(
         return profile is null ? NotFound() : Ok(ToResponse(profile));
     }
 
+    [HttpGet("audit")]
     [HttpGet("{userId}/audit")]
     public async Task<ActionResult<IEnumerable<AdminAuditLogResponse>>> GetAudit(
-        string userId,
-        CancellationToken cancellationToken)
+        string? userId,
+        CancellationToken cancellationToken,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] DateTime? afterCreatedAtUtc = null,
+        [FromQuery] Guid? afterId = null)
     {
-        var logs = await dbContext.AdminAuditLogs
-            .AsNoTracking()
-            .Where(log => log.AdminUserId == userId)
+        if (pageSize < 1 || afterCreatedAtUtc.HasValue != afterId.HasValue)
+            return BadRequest("Provide a positive page size and both cursor values.");
+        var query = dbContext.AdminAuditLogs.AsNoTracking();
+        if (!string.IsNullOrEmpty(userId)) query = query.Where(log => log.AdminUserId == userId);
+        if (afterCreatedAtUtc.HasValue && afterId.HasValue)
+        {
+            var timestamp = afterCreatedAtUtc.Value;
+            var cursorId = afterId.Value;
+            query = query.Where(log => log.CreatedAtUtc < timestamp ||
+                (log.CreatedAtUtc == timestamp && log.Id.CompareTo(cursorId) < 0));
+        }
+        var logs = await query
             .OrderByDescending(log => log.CreatedAtUtc)
-            .Take(100)
+            .ThenByDescending(log => log.Id)
+            .Take(Math.Min(pageSize, 100))
             .Select(log => new AdminAuditLogResponse(
                 log.Id,
                 log.AdminUserId,
@@ -103,6 +118,10 @@ public class ContentAdminsController(
             return BadRequest("A super admin cannot be kicked out through the content admin endpoint.");
         }
 
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
+
         if (await userManager.IsInRoleAsync(user, "ContentAdmin"))
         {
             var roleResult = await userManager.RemoveFromRoleAsync(user, "ContentAdmin");
@@ -134,6 +153,7 @@ public class ContentAdminsController(
             nameof(AdminProfile),
             profile?.Id.ToString());
 
+        if (transaction is not null) await transaction.CommitAsync();
         return NoContent();
     }
 

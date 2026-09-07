@@ -16,9 +16,22 @@ public static class EntityValueNormalizer
                 break;
             case Gallery gallery:
                 gallery.Description ??= string.Empty;
+                gallery.ImageUrl = NormalizeMedia(gallery.ImageUrl);
+                break;
+            case Members member:
+                member.PhotoUrl = NormalizeMedia(member.PhotoUrl);
+                break;
+            case Albums album:
+                album.PhotoUrl = NormalizeMedia(album.PhotoUrl);
+                break;
+            case Singles single:
+                single.PhotoUrl = NormalizeMedia(single.PhotoUrl);
                 break;
         }
 
         return entity;
     }
+
+    private static string? NormalizeMedia(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

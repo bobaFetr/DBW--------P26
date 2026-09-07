@@ -58,7 +58,7 @@ export default function AdminLogin({ onLogin, onRegisterContentAdmin, initialNot
             Content Admin Signup
           </button>
         </div>
-        <form className="admin-login-form" onSubmit={handleSubmit} noValidate>
+        <form className="admin-login-form" onSubmit={handleSubmit}>
           <label>
             <span>{isLogin ? "Email or username" : "Username"}</span>
             <input
@@ -96,7 +96,9 @@ export default function AdminLogin({ onLogin, onRegisterContentAdmin, initialNot
             <span>Password</span>
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
+              minLength={isLogin ? undefined : 12}
+              maxLength={128}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

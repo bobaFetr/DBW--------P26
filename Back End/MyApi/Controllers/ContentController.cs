@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
@@ -26,7 +27,8 @@ public class ContentController(
         string contentType,
         CancellationToken cancellationToken,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        [FromQuery] int? afterId = null)
     {
         if (!contentInputValidator.TryNormalizeContentType(contentType, out var normalizedContentType))
         {
@@ -39,48 +41,75 @@ public class ContentController(
         }
 
         pageSize = Math.Min(pageSize, 50);
+        if (afterId is < 0 || (afterId.HasValue && page != 1))
+            return BadRequest("Cursor pagination requires a nonnegative afterId and page 1.");
+
+        // Admin traversal uses immutable IDs so edits to dates/titles and deletions
+        // cannot shift records across page boundaries. Legacy public sorting stays available.
+        if (afterId.HasValue)
+        {
+            var cursor = afterId.Value;
+            return Ok(normalizedContentType switch
+            {
+                "albums" => await dbContext.Albums.Where(x => x.AlbumId > cursor).OrderBy(x => x.AlbumId).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                "singles" => await dbContext.Singles.Where(x => x.SongId > cursor).OrderBy(x => x.SongId).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                "concerts" => await dbContext.Concerts.Where(x => x.ConcertId > cursor).OrderBy(x => x.ConcertId).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                "news" => await dbContext.News.Where(x => x.NewsId > cursor).OrderBy(x => x.NewsId).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                "timeline" => await dbContext.TimeLines.Where(x => x.Id > cursor).OrderBy(x => x.Id).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                "members" => await dbContext.Members.Where(x => x.Id > cursor).OrderBy(x => x.Id).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                "gallery" => await dbContext.Gallery.Where(x => x.Id > cursor).OrderBy(x => x.Id).Take(pageSize).Cast<object>().ToListAsync(cancellationToken),
+                _ => Array.Empty<object>()
+            });
+        }
         var skip = (page - 1) * pageSize;
 
         return Ok(normalizedContentType switch
         {
             "albums" => await dbContext.Albums
                 .OrderByDescending(item => item.ReleaseDate)
+                .ThenBy(item => item.AlbumId)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "singles" => await dbContext.Singles
                 .OrderByDescending(item => item.ReleaseDate)
+                .ThenBy(item => item.SongId)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "concerts" => await dbContext.Concerts
                 .OrderByDescending(item => item.Date)
+                .ThenBy(item => item.ConcertId)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "news" => await dbContext.News
                 .OrderByDescending(item => item.PublicationDate)
+                .ThenBy(item => item.NewsId)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "timeline" => await dbContext.TimeLines
                 .OrderByDescending(item => item.Date)
+                .ThenBy(item => item.Id)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "members" => await dbContext.Members
                 .OrderBy(item => item.Name)
+                .ThenBy(item => item.Id)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "gallery" => await dbContext.Gallery
                 .OrderBy(item => item.Title)
+                .ThenBy(item => item.Id)
                 .Skip(skip)
                 .Take(pageSize)
                 .Cast<object>()
@@ -131,7 +160,7 @@ public class ContentController(
             return BadRequest(validationError);
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await SaveWithAuditAsync(created, "content_created", cancellationToken);
         return Ok(created);
     }
 
@@ -165,7 +194,7 @@ public class ContentController(
         }
 
         dbContext.Remove(entity);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await SaveWithAuditAsync(entity, "content_deleted", cancellationToken);
         return NoContent();
     }
 
@@ -222,8 +251,32 @@ public class ContentController(
         SetKeyValue(updated, keyPropertyName, id);
         dbContext.Entry(existing).CurrentValues.SetValues(updated);
         dbContext.Entry(existing).Property(keyPropertyName).IsModified = false;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await SaveWithAuditAsync(existing, "content_updated", cancellationToken);
         return Ok(existing);
+    }
+
+    private async Task SaveWithAuditAsync(object entity, string action, CancellationToken cancellationToken)
+    {
+        var actor = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new InvalidOperationException("An authenticated administrator is required.");
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        var entityId = entity switch
+        {
+            Albums item => item.AlbumId,
+            Singles item => item.SongId,
+            Concerts item => item.ConcertId,
+            News item => item.NewsId,
+            TimeLine item => item.Id,
+            Members item => item.Id,
+            Gallery item => item.Id,
+            _ => throw new InvalidOperationException("Unsupported content type.")
+        };
+        await new AuditLogger(dbContext).LogAsync(actor, action, actor,
+            entity.GetType().Name, entityId.ToString(), cancellationToken: cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
     }
 
     private static TEntity Add<TEntity>(

@@ -264,14 +264,14 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     {
         return ValidateRequiredText(member.Name, "Name", 150)
             ?? ValidateRequiredText(member.Instrument, "Instrument", 100)
-            ?? ValidateRequiredUrl(member.PhotoUrl, "PhotoUrl", allowImageDataUrl: true);
+            ?? ValidateOptionalUrl(member.PhotoUrl, "PhotoUrl", allowImageDataUrl: true);
     }
 
     private static string? ValidateGallery(Gallery gallery)
     {
         return ValidateRequiredText(gallery.Title, "Title", 200)
             ?? ValidateOptionalText(gallery.Description, "Description", 2_000)
-            ?? ValidateRequiredMediaUrl(gallery.ImageUrl, "ImageUrl");
+            ?? (string.IsNullOrWhiteSpace(gallery.ImageUrl) ? null : ValidateRequiredMediaUrl(gallery.ImageUrl, "ImageUrl"));
     }
 
     private static IDisposable? TryParseJsonObject(string payloadJson, out string? error)

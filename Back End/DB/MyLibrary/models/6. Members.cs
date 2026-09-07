@@ -11,6 +11,5 @@ public class Members
     public string Name {get; set;} = string.Empty;
     [Required]
     public string Instrument {get; set;} = string.Empty;
-    [Required]
-    public string PhotoUrl {get; set;} = string.Empty;
+    public string? PhotoUrl {get; set;}
 }

@@ -151,6 +151,40 @@ public sealed class RequestConcurrencyTests : IDisposable
     }
 
     [Fact]
+    public async Task KickOut_RequiresPasswordThenRevokesRoleProfileAndSessionStamp()
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        Assert.True((await roles.CreateAsync(new IdentityRole("ContentAdmin"))).Succeeded);
+        var reviewer = new ApplicationUser { Id = "reviewer", UserName = "reviewer" };
+        var target = new ApplicationUser { Id = "target", UserName = "target" };
+        Assert.True((await users.CreateAsync(reviewer, "Review-Password-2026!")).Succeeded);
+        Assert.True((await users.CreateAsync(target)).Succeeded);
+        Assert.True((await users.AddToRoleAsync(target, "ContentAdmin")).Succeeded);
+        db.AdminProfiles.Add(new AdminProfile { UserId = target.Id, AdminKind = AdminKind.ContentAdmin, AdminCode = "CA-TEST" });
+        await db.SaveChangesAsync();
+        var stamp = await users.GetSecurityStampAsync(target);
+        var controller = new ContentAdminsController(db, users, new AuditLogger(db)) { ControllerContext = Actor(reviewer.Id) };
+
+        Assert.IsType<UnauthorizedObjectResult>(await controller.KickOut(target.Id, new KickContentAdminRequest("wrong")));
+        Assert.True(await users.IsInRoleAsync(target, "ContentAdmin"));
+        Assert.Single(await db.AdminProfiles.ToListAsync());
+        Assert.Empty(await db.AdminAuditLogs.ToListAsync());
+
+        Assert.IsType<NoContentResult>(await controller.KickOut(target.Id, new KickContentAdminRequest("Review-Password-2026!")));
+        Assert.False(await users.IsInRoleAsync(target, "ContentAdmin"));
+        Assert.NotEqual(stamp, await users.GetSecurityStampAsync(target));
+        Assert.Empty(await db.AdminProfiles.ToListAsync());
+        Assert.NotNull(await users.FindByIdAsync(target.Id));
+        var audit = await db.AdminAuditLogs.SingleAsync();
+        Assert.Equal("content_admin_access_revoked", audit.Action);
+        Assert.Equal(target.Id, audit.AdminUserId);
+        Assert.Equal(reviewer.Id, audit.PerformedByUserId);
+    }
+
+    [Fact]
     public async Task UnrelatedDatabaseFailure_IsNotReportedAsConcurrencyConflict()
     {
         var error = new DbUpdateException("Unrelated write failure");

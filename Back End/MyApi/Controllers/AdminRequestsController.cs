@@ -202,17 +202,17 @@ public class AdminRequestsController(
 
         await dbContext.SaveChangesAsync();
 
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync();
-        }
-
         await auditLogger.LogAsync(
             adminRequest.UserId,
             "content_admin_access_granted",
             superAdmin.Id,
             nameof(AdminRequest),
             adminRequest.Id.ToString());
+
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
 
         return Ok(ToResponse(adminRequest));
     }
@@ -229,6 +229,10 @@ public class AdminRequestsController(
         {
             return Unauthorized();
         }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
 
         var adminRequest = await dbContext.AdminRequests
             .Include(requestEntity => requestEntity.User)
@@ -259,6 +263,8 @@ public class AdminRequestsController(
             superAdmin.Id,
             nameof(AdminRequest),
             adminRequest.Id.ToString());
+
+        if (transaction is not null) await transaction.CommitAsync();
 
         return Ok(ToResponse(adminRequest));
     }
