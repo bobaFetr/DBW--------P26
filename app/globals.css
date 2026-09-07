@@ -2452,6 +2452,7 @@ body.lightbox-open {
   min-height: 260px;
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.9rem;
+}
 
 /* ── Admin login ─────────────────────────────────────────────────── */
 
@@ -2764,6 +2765,4 @@ body.lightbox-open {
     display: grid;
     grid-template-columns: 1fr;
   }
-}
-
 }
