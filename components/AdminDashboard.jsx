@@ -339,9 +339,7 @@ export default function AdminDashboard() {
   const [adminProfiles, setAdminProfiles] = useState([]);
   const [recordPages, setRecordPages] = useState({});
   const [hasMoreRecords, setHasMoreRecords] = useState({});
-  const [contentRequestPage, setContentRequestPage] = useState(1);
   const [hasMoreContentRequests, setHasMoreContentRequests] = useState(false);
-  const [adminRequestPage, setAdminRequestPage] = useState(1);
   const [hasMoreAdminRequests, setHasMoreAdminRequests] = useState(false);
   const [auditLogs, setAuditLogs] = useState([]);
   const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
@@ -422,9 +420,7 @@ export default function AdminDashboard() {
     setAdminProfiles([]);
     setRecordPages({});
     setHasMoreRecords({});
-    setContentRequestPage(1);
     setHasMoreContentRequests(false);
-    setAdminRequestPage(1);
     setHasMoreAdminRequests(false);
     setAdminRequests([]);
     setAuditLogs([]);
@@ -510,8 +506,6 @@ export default function AdminDashboard() {
         apiFetch(`/api/content-admin-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
         apiFetch("/api/ca-requests-permission")
       ]);
-      setContentRequestPage(1);
-      setAdminRequestPage(1);
       if (results[0].status === "fulfilled") {
         setContentRequests(results[0].value);
         setHasMoreContentRequests(results[0].value.length === PAGE_SIZE);
@@ -530,7 +524,6 @@ export default function AdminDashboard() {
       try {
         const requests = await apiFetch(`/api/content-requests/mine?page=1&pageSize=${PAGE_SIZE}`);
         setContentRequests(requests);
-        setContentRequestPage(1);
         setHasMoreContentRequests(requests.length === PAGE_SIZE);
       } catch {
         failures.push("your content requests");
@@ -562,12 +555,21 @@ export default function AdminDashboard() {
       ));
     }
 
-    async function loadMoreRecords() {
-      const page = (recordPages[activeCollection.key] ?? 1) + 1;
+    setPublicCount(result.count);
+    return result.failures;
+  }
+
+  async function loadMoreRecords() {
+    if (!beginMutation()) return;
+    setError("");
+    const version = contentLoadVersion.current;
+    const page = (recordPages[activeCollection.key] ?? 1) + 1;
+    try {
       const nextRows = await apiFetch(
         `/api/content/${activeCollection.key}?page=${page}&pageSize=${PAGE_SIZE}`,
         { cache: "no-store" }
       );
+      if (version !== contentLoadVersion.current) return;
       setRecords((current) => ({
         ...current,
         [activeCollection.key]: [...(current[activeCollection.key] ?? []), ...nextRows]
@@ -577,30 +579,61 @@ export default function AdminDashboard() {
         ...current,
         [activeCollection.key]: nextRows.length === PAGE_SIZE
       }));
+    } catch (err) {
+      if (version !== contentLoadVersion.current) return;
+      if (!handleAdminAccessError(err)) {
+        setError(err.message || `Could not load more ${activeCollection.label.toLowerCase()}.`);
+      }
+    } finally {
+      endMutation();
     }
+  }
 
-    async function loadMoreContentRequests() {
-      const page = contentRequestPage + 1;
-      const path = isSuperAdmin ? "pending" : "mine";
+  async function loadMoreContentRequests() {
+    const cursor = contentRequests.at(-1);
+    if (!cursor) return;
+    if (!beginMutation()) return;
+    setError("");
+    const version = contentLoadVersion.current;
+    const path = isSuperAdmin ? "pending" : "mine";
+    try {
       const nextRequests = await apiFetch(
-        `/api/content-requests/${path}?page=${page}&pageSize=${PAGE_SIZE}`
+        `/api/content-requests/${path}?pageSize=${PAGE_SIZE}&afterRequestedAtUtc=${encodeURIComponent(cursor.requestedAtUtc)}&afterId=${cursor.id}`
       );
+      if (version !== contentLoadVersion.current) return;
       setContentRequests((current) => [...current, ...nextRequests]);
-      setContentRequestPage(page);
       setHasMoreContentRequests(nextRequests.length === PAGE_SIZE);
+    } catch (err) {
+      if (version !== contentLoadVersion.current) return;
+      if (!handleAdminAccessError(err)) {
+        setError(err.message || "Could not load more content requests.");
+      }
+    } finally {
+      endMutation();
     }
+  }
 
-    async function loadMoreAdminRequests() {
-      const page = adminRequestPage + 1;
+  async function loadMoreAdminRequests() {
+    const cursor = adminRequests.at(-1);
+    if (!cursor) return;
+    if (!beginMutation()) return;
+    setError("");
+    const version = contentLoadVersion.current;
+    try {
       const nextRequests = await apiFetch(
-        `/api/content-admin-requests/pending?page=${page}&pageSize=${PAGE_SIZE}`
+        `/api/content-admin-requests/pending?pageSize=${PAGE_SIZE}&afterRequestedAtUtc=${encodeURIComponent(cursor.requestedAtUtc)}&afterId=${cursor.id}`
       );
+      if (version !== contentLoadVersion.current) return;
       setAdminRequests((current) => [...current, ...nextRequests]);
-      setAdminRequestPage(page);
       setHasMoreAdminRequests(nextRequests.length === PAGE_SIZE);
+    } catch (err) {
+      if (version !== contentLoadVersion.current) return;
+      if (!handleAdminAccessError(err)) {
+        setError(err.message || "Could not load more signup requests.");
+      }
+    } finally {
+      endMutation();
     }
-    setPublicCount(result.count);
-    return result.failures;
   }
 
   function beginMutation() {
@@ -1382,11 +1415,6 @@ export default function AdminDashboard() {
                         <h4>{request.changeCode}</h4>
                         <span className={`status-${status.toLowerCase()}`}>{status}</span>
                       </div>
-                      {hasMoreContentRequests && (
-                        <button type="button" onClick={loadMoreContentRequests} disabled={isMutating}>
-                          Load more content requests
-                        </button>
-                      )}
                       <p className="meta">
                         {action} {request.contentType} by{" "}
                         {request.requestedByUserName ?? request.requestedByUserId}
@@ -1448,6 +1476,11 @@ export default function AdminDashboard() {
               <p className="admin-empty-state">No pending content change requests.</p>
             )}
           </div>
+          {hasMoreContentRequests && (
+            <button type="button" onClick={loadMoreContentRequests} disabled={isMutating}>
+              Load more content requests
+            </button>
+          )}
         </div>
 
         {isSuperAdmin && (
@@ -1468,11 +1501,6 @@ export default function AdminDashboard() {
                           <h4>{request.displayName ?? request.userName}</h4>
                           <span className="status-pending">Pending</span>
                         </div>
-                        {hasMoreAdminRequests && (
-                          <button type="button" onClick={loadMoreAdminRequests} disabled={isMutating}>
-                            Load more signup requests
-                          </button>
-                        )}
                         <p className="meta">{request.email}</p>
                         <p>{request.message}</p>
                       </div>
@@ -1490,6 +1518,11 @@ export default function AdminDashboard() {
                   <p className="admin-empty-state">No pending content admin signups.</p>
                 )}
               </div>
+              {hasMoreAdminRequests && (
+                <button type="button" onClick={loadMoreAdminRequests} disabled={isMutating}>
+                  Load more signup requests
+                </button>
+              )}
             </div>
 
             <div className="admin-review-panel">
