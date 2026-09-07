@@ -24,7 +24,7 @@ public class AdminRequest
 
     public ApplicationUser User { get; set; } = null!;
 
-    [Required]
+    [Required, ConcurrencyCheck]
     public AdminRequestStatus Status { get; set; } = AdminRequestStatus.Pending;
 
     public string? Message { get; set; }

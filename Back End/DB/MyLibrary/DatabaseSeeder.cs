@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
+using System.Data;
 
 namespace MyLibrary;
 
@@ -11,6 +12,8 @@ public sealed record DatabaseSeedOptions(
 
 public static class DatabaseSeeder
 {
+    private const string BootstrapCompletedKey = "InitialAdminBootstrapCompleted";
+
     public static async Task SeedAsync(
         IServiceProvider services,
         DatabaseSeedOptions options)
@@ -18,15 +21,53 @@ public static class DatabaseSeeder
         using var scope = services.CreateScope();
 
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.MigrateAsync();
+        // Program applies migrations before calling the seeder. Keep account
+        // bootstrap atomic and separate from schema initialization.
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
 
-        var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var bootstrap = await dbContext.SiteSettings.FindAsync(BootstrapCompletedKey);
+        if (bootstrap?.BooleanValue == true)
+        {
+            return;
+        }
+
+        // Existing databases are already initialized, including databases where
+        // a seed account was removed before this marker was introduced. Never
+        // adopt, rename, promote or reactivate an existing account.
+        var hasExistingUsers = await dbContext.Users.AnyAsync();
+        if (!hasExistingUsers)
+        {
+            await CreateInitialAdminsAsync(scope.ServiceProvider, dbContext, options);
+        }
+
+        if (bootstrap is null)
+        {
+            bootstrap = new SiteSetting { Key = BootstrapCompletedKey };
+            dbContext.SiteSettings.Add(bootstrap);
+        }
+
+        bootstrap.BooleanValue = true;
+        await dbContext.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
+    }
+
+    private static async Task CreateInitialAdminsAsync(
+        IServiceProvider services,
+        AppDbContext dbContext,
+        DatabaseSeedOptions options)
+    {
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
         await EnsureRoleAsync(roleManager, "SuperAdmin");
         await EnsureRoleAsync(roleManager, "ContentAdmin");
 
-        var superAdmin = await EnsureUserAsync(
+        var superAdmin = await CreateUserAsync(
             userManager,
             username: "superadmin",
             email: "superadmin@paralyze.local",
@@ -41,31 +82,26 @@ public static class DatabaseSeeder
             adminKind: AdminKind.SuperAdmin,
             approvedByUserId: null);
 
-        var contentAdmin = await EnsureUserAsync(
+        var contentAdmin = await CreateUserAsync(
             userManager,
             username: "contentadmin",
             email: "contentadmin@paralyze.local",
             displayName: "Content Admin",
             password: options.ContentAdminPassword,
-            role: "ContentAdmin",
-            ensureRoleForExistingUser: false);
+            role: "ContentAdmin");
 
-        var contentAdminHasRole = await userManager.IsInRoleAsync(contentAdmin, "ContentAdmin");
-        if (contentAdminHasRole)
-        {
-            await EnsureAdminProfileAsync(
-                dbContext,
-                contentAdmin.Id,
-                adminCode: "CADM-000001",
-                adminKind: AdminKind.ContentAdmin,
-                approvedByUserId: superAdmin.Id);
-        }
+        await EnsureAdminProfileAsync(
+            dbContext,
+            contentAdmin.Id,
+            adminCode: "CADM-000001",
+            adminKind: AdminKind.ContentAdmin,
+            approvedByUserId: superAdmin.Id);
 
         await EnsureIdentityMetadataAsync(
             userManager,
             roleManager,
             superAdmin,
-            contentAdminHasRole ? contentAdmin : null);
+            contentAdmin);
     }
 
     private static async Task EnsureRoleAsync(
@@ -85,70 +121,34 @@ public static class DatabaseSeeder
         }
     }
 
-    private static async Task<ApplicationUser> EnsureUserAsync(
+    private static async Task<ApplicationUser> CreateUserAsync(
         UserManager<ApplicationUser> userManager,
         string username,
         string email,
         string displayName,
         string password,
-        string role,
-        bool ensureRoleForExistingUser = true)
+        string role)
     {
-        var user = await userManager.FindByNameAsync(username);
-        var userWasCreated = false;
-
-        if (user is null)
+        var user = new ApplicationUser
         {
-            var usersInRole = await userManager.GetUsersInRoleAsync(role);
-            if (usersInRole.Count == 1)
-            {
-                user = usersInRole[0];
-            }
+            UserName = username,
+            Email = email,
+            EmailConfirmed = true,
+            DisplayName = displayName
+        };
+
+        var createResult = await userManager.CreateAsync(user, password);
+        if (!createResult.Succeeded)
+        {
+            throw new InvalidOperationException(
+                $"Failed to create user '{username}': {FormatErrors(createResult)}");
         }
 
-        if (user is null)
+        var roleResult = await userManager.AddToRoleAsync(user, role);
+        if (!roleResult.Succeeded)
         {
-            user = new ApplicationUser
-            {
-                UserName = username,
-                Email = email,
-                EmailConfirmed = true,
-                DisplayName = displayName
-            };
-
-            var createResult = await userManager.CreateAsync(user, password);
-            if (!createResult.Succeeded)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to create user '{username}': {FormatErrors(createResult)}");
-            }
-
-            userWasCreated = true;
-        }
-        else
-        {
-            user.UserName = username;
-            user.Email = email;
-            user.EmailConfirmed = true;
-            user.DisplayName = displayName;
-
-            var updateResult = await userManager.UpdateAsync(user);
-            if (!updateResult.Succeeded)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to update user '{username}': {FormatErrors(updateResult)}");
-            }
-        }
-
-        if ((userWasCreated || ensureRoleForExistingUser) &&
-            !await userManager.IsInRoleAsync(user, role))
-        {
-            var roleResult = await userManager.AddToRoleAsync(user, role);
-            if (!roleResult.Succeeded)
-            {
-                throw new InvalidOperationException(
-                    $"Failed to add user '{username}' to role '{role}': {FormatErrors(roleResult)}");
-            }
+            throw new InvalidOperationException(
+                $"Failed to add user '{username}' to role '{role}': {FormatErrors(roleResult)}");
         }
 
         return user;
@@ -175,16 +175,7 @@ public static class DatabaseSeeder
             });
 
             await dbContext.SaveChangesAsync();
-            return;
         }
-
-        profile.AdminCode = adminCode;
-        profile.AdminKind = adminKind;
-        profile.IsActive = true;
-        profile.DisabledAtUtc = null;
-        profile.DisabledByUserId = null;
-
-        await dbContext.SaveChangesAsync();
     }
 
     private static async Task EnsureIdentityMetadataAsync(

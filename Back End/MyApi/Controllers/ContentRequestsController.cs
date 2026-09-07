@@ -130,7 +130,10 @@ public class ContentRequestsController(
 
     [HttpPost("{id:guid}/approve")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<ContentChangeRequestResponse>> Approve(Guid id, ReviewRequestDto request)
+    public Task<ActionResult<ContentChangeRequestResponse>> Approve(Guid id, ReviewRequestDto request) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => ApproveCore(id, request));
+
+    private async Task<ActionResult<ContentChangeRequestResponse>> ApproveCore(Guid id, ReviewRequestDto request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
@@ -167,6 +170,15 @@ public class ContentRequestsController(
             }
         }
 
+        // Claim the Pending transition before applying content. Status is a
+        // concurrency token, so a stale request cannot publish any changes.
+        // The surrounding transaction keeps this claim and its effects atomic.
+        changeRequest.Status = ContentChangeStatus.Approved;
+        changeRequest.ReviewedBySuperAdminId = superAdmin.Id;
+        changeRequest.ReviewedAtUtc = DateTime.UtcNow;
+        changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
+        await dbContext.SaveChangesAsync();
+
         try
         {
             await contentChangeApplier.ApplyAsync(changeRequest);
@@ -188,10 +200,6 @@ public class ContentRequestsController(
             return BadRequest("TargetEntityId is outside the supported range.");
         }
 
-        changeRequest.Status = ContentChangeStatus.Approved;
-        changeRequest.ReviewedBySuperAdminId = superAdmin.Id;
-        changeRequest.ReviewedAtUtc = DateTime.UtcNow;
-        changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
         await dbContext.SaveChangesAsync();
 
         if (transaction is not null)
@@ -204,7 +212,10 @@ public class ContentRequestsController(
 
     [HttpPost("{id:guid}/deny")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<ContentChangeRequestResponse>> Deny(Guid id, ReviewRequestDto request)
+    public Task<ActionResult<ContentChangeRequestResponse>> Deny(Guid id, ReviewRequestDto request) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => DenyCore(id, request));
+
+    private async Task<ActionResult<ContentChangeRequestResponse>> DenyCore(Guid id, ReviewRequestDto request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
@@ -246,7 +257,10 @@ public class ContentRequestsController(
 
     [HttpPost("{id:guid}/cancel")]
     [Authorize]
-    public async Task<ActionResult<ContentChangeRequestResponse>> Cancel(Guid id)
+    public Task<ActionResult<ContentChangeRequestResponse>> Cancel(Guid id) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => CancelCore(id));
+
+    private async Task<ActionResult<ContentChangeRequestResponse>> CancelCore(Guid id)
     {
         var user = await userManager.GetUserAsync(User);
         if (user is null)

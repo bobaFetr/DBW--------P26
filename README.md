@@ -59,6 +59,12 @@ The development seed logins are:
 - Super admin: `superadmin` / `LocalSuperAdmin-2026!`
 - Content admin: `contentadmin` / `LocalContentAdmin-2026!`
 
+These accounts are created only when the database has no users and initial admin
+bootstrap has not already completed. A persistent `SiteSettings` marker prevents
+later startups from recreating deleted accounts. Existing databases are marked as
+initialized without changing their users, roles, or profiles; seeding does not
+restore revoked access or repair missing administrator accounts.
+
 To test public pages against the local API as well, change only this local
 setting and restart the frontend:
 

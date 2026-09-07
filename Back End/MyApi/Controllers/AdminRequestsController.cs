@@ -88,7 +88,10 @@ public class AdminRequestsController(
 
     [HttpPost("{id:guid}/approve")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<AdminRequestResponse>> Approve(Guid id, ReviewRequestDto request)
+    public Task<ActionResult<AdminRequestResponse>> Approve(Guid id, ReviewRequestDto request) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => ApproveCore(id, request));
+
+    private async Task<ActionResult<AdminRequestResponse>> ApproveCore(Guid id, ReviewRequestDto request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
@@ -118,6 +121,10 @@ public class AdminRequestsController(
         adminRequest.ReviewedBySuperAdminId = superAdmin.Id;
         adminRequest.ReviewedAtUtc = DateTime.UtcNow;
         adminRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
+
+        // Reject stale approval before Identity saves roles or account changes.
+        // The transaction commits the status and all approval effects together.
+        await dbContext.SaveChangesAsync();
 
         if (!await userManager.IsInRoleAsync(adminRequest.User, "ContentAdmin"))
         {
@@ -168,7 +175,10 @@ public class AdminRequestsController(
 
     [HttpPost("{id:guid}/deny")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<AdminRequestResponse>> Deny(Guid id, ReviewRequestDto request)
+    public Task<ActionResult<AdminRequestResponse>> Deny(Guid id, ReviewRequestDto request) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => DenyCore(id, request));
+
+    private async Task<ActionResult<AdminRequestResponse>> DenyCore(Guid id, ReviewRequestDto request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
