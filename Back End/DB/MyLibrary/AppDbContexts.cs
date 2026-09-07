@@ -240,10 +240,6 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             .IsRequired()
             .HasMaxLength(200);
 
-        modelBuilder.Entity<Gallery>()
-            .Property(g => g.ImageUrl)
-            .IsRequired();
-
         modelBuilder.Entity<MediaUpload>()
             .Property(upload => upload.FileName)
             .IsRequired()

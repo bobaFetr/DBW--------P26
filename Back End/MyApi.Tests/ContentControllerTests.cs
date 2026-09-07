@@ -10,6 +10,28 @@ namespace MyApi.Tests;
 public class ContentControllerTests
 {
     [Fact]
+    public async Task GetAll_GalleryWithLegacyMissingMedia_ReturnsTheEditableRow()
+    {
+        using var dbContext = TestDb.Create();
+        dbContext.Gallery.Add(new Gallery
+        {
+            Id = 7,
+            Title = "Legacy gallery row",
+            ImageUrl = null
+        });
+        await dbContext.SaveChangesAsync();
+
+        var controller = new ContentController(dbContext, new ContentInputValidator(dbContext));
+
+        var result = await controller.GetAll("gallery", CancellationToken.None);
+
+        var response = Assert.IsType<OkObjectResult>(result.Result);
+        var rows = Assert.IsAssignableFrom<IEnumerable<object>>(response.Value);
+        var gallery = Assert.IsType<Gallery>(Assert.Single(rows));
+        Assert.Null(gallery.ImageUrl);
+    }
+
+    [Fact]
     public async Task Update_ExistingConcert_UpdatesRowAndPreservesPrimaryKey()
     {
         using var dbContext = TestDb.Create();
