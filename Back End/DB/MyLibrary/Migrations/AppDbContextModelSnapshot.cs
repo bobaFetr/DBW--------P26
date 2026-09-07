@@ -278,11 +278,11 @@ namespace MyLibrary.Migrations
                     b.HasIndex("RequestCode")
                         .IsUnique();
 
-                    b.HasIndex("UserId", "Status");
-
                     b.HasIndex("UserId")
                         .IsUnique()
                         .HasFilter("\"Status\" = 1");
+
+                    b.HasIndex("UserId", "Status");
 
                     b.ToTable("AdminRequests");
                 });
@@ -516,7 +516,6 @@ namespace MyLibrary.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Title")
@@ -686,6 +685,20 @@ namespace MyLibrary.Migrations
                     b.ToTable("Singles");
                 });
 
+            modelBuilder.Entity("MyLibrary.SiteSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("BooleanValue")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("SiteSettings");
+                });
+
             modelBuilder.Entity("MyLibrary.TimeLine", b =>
                 {
                     b.Property<int>("Id")
@@ -713,20 +726,6 @@ namespace MyLibrary.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("TimeLines");
-                });
-
-            modelBuilder.Entity("MyLibrary.SiteSetting", b =>
-                {
-                    b.Property<string>("Key")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<bool>("BooleanValue")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("Key");
-
-                    b.ToTable("SiteSettings");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
