@@ -1,4 +1,5 @@
-import ApiCardGrid from "../../components/ApiCardGrid";
+import { Suspense } from "react";
+import NewsBrowser from "../../components/NewsBrowser";
 import PageIntro from "../../components/PageIntro";
 
 export const metadata = {
@@ -12,7 +13,9 @@ export default function NewsPage() {
       <PageIntro title="News">
         Use this page for updates, announcements, and release countdowns.
       </PageIntro>
-      <ApiCardGrid contentType="news" emptyMessage="No news posts have been published yet." />
+      <Suspense fallback={<p className="content-empty-state">Loading news...</p>}>
+        <NewsBrowser emptyMessage="No news posts have been published yet." />
+      </Suspense>
     </>
   );
 }

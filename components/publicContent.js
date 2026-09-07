@@ -43,12 +43,30 @@ export async function loadPublicContent(contentType, fetchOptions) {
     }
   }
 
-  const response = await fetch(`${API_BASE}/api/content/${contentType}`, fetchOptions);
-  if (!response.ok) {
-    return [];
-  }
+  const rows = [];
+  let page = 1;
 
-  return response.json();
+  while (true) {
+    const response = await fetch(
+      `${API_BASE}/api/content/${contentType}?page=${page}&pageSize=50`,
+      fetchOptions
+    );
+    if (!response.ok) {
+      throw new Error(`Could not load ${contentType} content.`);
+    }
+
+    const pageRows = await response.json();
+    if (!Array.isArray(pageRows)) {
+      throw new Error(`Could not load ${contentType} content.`);
+    }
+
+    rows.push(...pageRows);
+    if (pageRows.length < 50) {
+      return rows;
+    }
+
+    page += 1;
+  }
 }
 
 function orderRows(contentType, rows) {

@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { parseSongRows } from "./adminDraft";
 import { loadPublicContent } from "./publicContent";
-import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { resolveApiMediaUrl, safeExternalUrl } from "./securityUrls";
 import { useHashParams } from "./useHashParams";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -19,7 +21,7 @@ function albumCards(albums) {
       badge: "Album",
       meta: dateOnly(album.releaseDate) || "Release date TBA",
       body: songs.length ? `${songs.length} songs` : `${album.numberOfSongs || 0} songs`,
-      cover: safeImageUrl(album.photoUrl),
+      cover: resolveApiMediaUrl(album.photoUrl, API_BASE),
       coverAlt: album.title,
       href: `/albums/#albumId=${album.albumId}`,
       linkLabel: "View songs"
@@ -84,7 +86,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
     }
 
     const songs = parseSongRows(selectedAlbum.trackListJson);
-    const cover = safeImageUrl(selectedAlbum.photoUrl);
+    const cover = resolveApiMediaUrl(selectedAlbum.photoUrl, API_BASE);
     const selectedSongIndex = Number(selectedSongNumber) - 1;
     const selectedSong = Number.isInteger(selectedSongIndex) && selectedSongIndex >= 0
       ? songs[selectedSongIndex]

@@ -189,19 +189,19 @@ public class UploadsController(
             return NotFound();
         }
 
-        var chunks = await dbContext.MediaUploadChunks
-            .AsNoTracking()
-            .Where(chunk => chunk.MediaUploadId == id)
-            .OrderBy(chunk => chunk.Sequence)
-            .Select(chunk => chunk.Data)
-            .ToListAsync(cancellationToken);
-
-        var data = chunks.Count > 0
-            ? CombineChunks(chunks, upload.Length)
-            : upload.Data;
-
         Response.Headers.CacheControl = "public, max-age=31536000, immutable";
-        return File(data, upload.ContentType, enableRangeProcessing: true);
+        var hasChunks = await dbContext.MediaUploadChunks
+            .AsNoTracking()
+            .AnyAsync(chunk => chunk.MediaUploadId == id, cancellationToken);
+        if (!hasChunks)
+        {
+            return File(upload.Data, upload.ContentType, enableRangeProcessing: true);
+        }
+
+        return File(
+            new ChunkedVideoStream(dbContext, id, upload.Length),
+            upload.ContentType,
+            enableRangeProcessing: true);
     }
 
     private async Task StoreVideoAsync(MediaUpload upload, byte[] bytes)
@@ -239,24 +239,6 @@ public class UploadsController(
         {
             await transaction.CommitAsync();
         }
-    }
-
-    private static byte[] CombineChunks(IReadOnlyCollection<byte[]> chunks, long expectedLength)
-    {
-        if (expectedLength > int.MaxValue)
-        {
-            throw new InvalidOperationException("Stored video is too large to serve.");
-        }
-
-        var data = new byte[(int)expectedLength];
-        var offset = 0;
-        foreach (var chunk in chunks)
-        {
-            Buffer.BlockCopy(chunk, 0, data, offset, chunk.Length);
-            offset += chunk.Length;
-        }
-
-        return data;
     }
 
     private static string GetImageMediaType(string extension)
@@ -532,6 +514,84 @@ public class UploadsController(
     private static int ReadLittleEndianUInt24(byte[] bytes, int offset)
     {
         return bytes[offset] | (bytes[offset + 1] << 8) | (bytes[offset + 2] << 16);
+    }
+
+    private sealed class ChunkedVideoStream(AppDbContext dbContext, Guid mediaUploadId, long length) : Stream
+    {
+        private byte[]? currentChunk;
+        private int currentChunkSequence = -1;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => true;
+        public override bool CanWrite => false;
+        public override long Length => length;
+        public override long Position { get; set; }
+
+        public override void Flush() { }
+        public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            ReadAsync(buffer.AsMemory(offset, count)).GetAwaiter().GetResult();
+
+        public override async ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default)
+        {
+            if (Position >= Length || buffer.Length == 0)
+            {
+                return 0;
+            }
+
+            var totalRead = 0;
+            while (totalRead < buffer.Length && Position < Length)
+            {
+                var sequence = checked((int)(Position / VideoChunkBytes));
+                if (currentChunkSequence != sequence)
+                {
+                    currentChunk = await dbContext.MediaUploadChunks
+                        .AsNoTracking()
+                        .Where(chunk => chunk.MediaUploadId == mediaUploadId && chunk.Sequence == sequence)
+                        .Select(chunk => chunk.Data)
+                        .SingleAsync(cancellationToken);
+                    currentChunkSequence = sequence;
+                }
+
+                var chunkOffset = checked((int)(Position % VideoChunkBytes));
+                var available = currentChunk!.Length - chunkOffset;
+                if (available <= 0)
+                {
+                    throw new InvalidOperationException("Stored video chunks are incomplete.");
+                }
+
+                var count = Math.Min(available, buffer.Length - totalRead);
+                currentChunk.AsMemory(chunkOffset, count).CopyTo(buffer[totalRead..]);
+                Position += count;
+                totalRead += count;
+            }
+
+            return totalRead;
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            var position = origin switch
+            {
+                SeekOrigin.Begin => offset,
+                SeekOrigin.Current => Position + offset,
+                SeekOrigin.End => Length + offset,
+                _ => throw new ArgumentOutOfRangeException(nameof(origin))
+            };
+            if (position < 0 || position > Length)
+            {
+                throw new IOException("Cannot seek outside the stored video.");
+            }
+
+            Position = position;
+            return Position;
+        }
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
     }
 }
 

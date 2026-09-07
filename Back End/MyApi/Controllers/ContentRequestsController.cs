@@ -18,7 +18,8 @@ public class ContentRequestsController(
     UserManager<ApplicationUser> userManager,
     ICodeGenerator codeGenerator,
     IContentChangeApplier contentChangeApplier,
-    IContentInputValidator contentInputValidator) : ControllerBase
+    IContentInputValidator contentInputValidator,
+    IAuditLogger auditLogger) : ControllerBase
 {
     [HttpPost]
     [Authorize(Roles = "SuperAdmin,ContentAdmin")]
@@ -80,6 +81,13 @@ public class ContentRequestsController(
             await transaction.CommitAsync();
         }
 
+        await auditLogger.LogAsync(
+            user.Id,
+            "content_change_requested",
+            user.Id,
+            nameof(ContentChangeRequest),
+            changeRequest.Id.ToString());
+
         return CreatedAtAction(nameof(GetById), new { id = changeRequest.Id }, ToResponse(changeRequest));
     }
 
@@ -96,12 +104,18 @@ public class ContentRequestsController(
 
     [HttpGet("pending")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetPending()
+    public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetPending(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
+        if (page < 1 || pageSize < 1) return BadRequest("Page and pageSize must be positive.");
+
         var requests = await dbContext.ContentChangeRequests
             .Include(changeRequest => changeRequest.RequestedByUser)
             .Where(changeRequest => changeRequest.Status == ContentChangeStatus.Pending)
             .OrderBy(changeRequest => changeRequest.RequestedAtUtc)
+            .Skip((page - 1) * Math.Min(pageSize, 50))
+            .Take(Math.Min(pageSize, 50))
             .Select(changeRequest => ToResponse(changeRequest))
             .ToListAsync();
 
@@ -110,7 +124,9 @@ public class ContentRequestsController(
 
     [HttpGet("mine")]
     [Authorize]
-    public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetMine()
+    public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetMine(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
         var user = await userManager.GetUserAsync(User);
         if (user is null)
@@ -118,10 +134,14 @@ public class ContentRequestsController(
             return Unauthorized();
         }
 
+        if (page < 1 || pageSize < 1) return BadRequest("Page and pageSize must be positive.");
+
         var requests = await dbContext.ContentChangeRequests
             .Include(changeRequest => changeRequest.RequestedByUser)
             .Where(changeRequest => changeRequest.RequestedByUserId == user.Id)
             .OrderByDescending(changeRequest => changeRequest.RequestedAtUtc)
+            .Skip((page - 1) * Math.Min(pageSize, 50))
+            .Take(Math.Min(pageSize, 50))
             .Select(changeRequest => ToResponse(changeRequest))
             .ToListAsync();
 
@@ -138,7 +158,8 @@ public class ContentRequestsController(
             return Unauthorized();
         }
 
-        await using var transaction = dbContext.Database.IsRelational()
+        var isRelational = dbContext.Database.IsRelational();
+        await using var transaction = isRelational
             ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
             : null;
 
@@ -167,6 +188,15 @@ public class ContentRequestsController(
             }
         }
 
+        if (isRelational && !await TryFinalizePendingRequestAsync(
+                changeRequest,
+                ContentChangeStatus.Approved,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending content requests can be approved.");
+        }
+
         try
         {
             await contentChangeApplier.ApplyAsync(changeRequest);
@@ -188,16 +218,26 @@ public class ContentRequestsController(
             return BadRequest("TargetEntityId is outside the supported range.");
         }
 
-        changeRequest.Status = ContentChangeStatus.Approved;
-        changeRequest.ReviewedBySuperAdminId = superAdmin.Id;
-        changeRequest.ReviewedAtUtc = DateTime.UtcNow;
-        changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
-        await dbContext.SaveChangesAsync();
+        if (!isRelational && !await TryFinalizePendingRequestAsync(
+                changeRequest,
+                ContentChangeStatus.Approved,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending content requests can be approved.");
+        }
 
         if (transaction is not null)
         {
             await transaction.CommitAsync();
         }
+
+        await auditLogger.LogAsync(
+            changeRequest.RequestedByUserId,
+            "content_change_approved",
+            superAdmin.Id,
+            nameof(ContentChangeRequest),
+            changeRequest.Id.ToString());
 
         return Ok(ToResponse(changeRequest));
     }
@@ -230,16 +270,26 @@ public class ContentRequestsController(
             return Conflict("Only pending content requests can be denied.");
         }
 
-        changeRequest.Status = ContentChangeStatus.Denied;
-        changeRequest.ReviewedBySuperAdminId = superAdmin.Id;
-        changeRequest.ReviewedAtUtc = DateTime.UtcNow;
-        changeRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
-        await dbContext.SaveChangesAsync();
+        if (!await TryFinalizePendingRequestAsync(
+                changeRequest,
+                ContentChangeStatus.Denied,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending content requests can be denied.");
+        }
 
         if (transaction is not null)
         {
             await transaction.CommitAsync();
         }
+
+        await auditLogger.LogAsync(
+            changeRequest.RequestedByUserId,
+            "content_change_denied",
+            superAdmin.Id,
+            nameof(ContentChangeRequest),
+            changeRequest.Id.ToString());
 
         return Ok(ToResponse(changeRequest));
     }
@@ -273,10 +323,67 @@ public class ContentRequestsController(
             return Conflict("Only pending content requests can be cancelled.");
         }
 
-        changeRequest.Status = ContentChangeStatus.Cancelled;
-        await dbContext.SaveChangesAsync();
+        if (!await TryFinalizePendingRequestAsync(
+                changeRequest,
+                ContentChangeStatus.Cancelled,
+                reviewedBySuperAdminId: null,
+                reviewNote: null))
+        {
+            return Conflict("Only pending content requests can be cancelled.");
+        }
+
+        await auditLogger.LogAsync(
+            user.Id,
+            "content_change_cancelled",
+            user.Id,
+            nameof(ContentChangeRequest),
+            changeRequest.Id.ToString());
 
         return Ok(ToResponse(changeRequest));
+    }
+
+    private async Task<bool> TryFinalizePendingRequestAsync(
+        ContentChangeRequest changeRequest,
+        ContentChangeStatus status,
+        string? reviewedBySuperAdminId,
+        string? reviewNote)
+    {
+        var reviewedAtUtc = DateTime.UtcNow;
+
+        if (dbContext.Database.IsRelational())
+        {
+            var updated = await dbContext.ContentChangeRequests
+                .Where(request => request.Id == changeRequest.Id &&
+                    request.Status == ContentChangeStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(request => request.Status, status)
+                    .SetProperty(request => request.ReviewedBySuperAdminId, reviewedBySuperAdminId)
+                    .SetProperty(request => request.ReviewedAtUtc, reviewedAtUtc)
+                    .SetProperty(request => request.ReviewNote, reviewNote));
+            if (updated == 0)
+            {
+                return false;
+            }
+
+            changeRequest.Status = status;
+            changeRequest.ReviewedBySuperAdminId = reviewedBySuperAdminId;
+            changeRequest.ReviewedAtUtc = reviewedAtUtc;
+            changeRequest.ReviewNote = reviewNote;
+            dbContext.Entry(changeRequest).State = EntityState.Unchanged;
+            return true;
+        }
+
+        if (changeRequest.Status != ContentChangeStatus.Pending)
+        {
+            return false;
+        }
+
+        changeRequest.Status = status;
+        changeRequest.ReviewedBySuperAdminId = reviewedBySuperAdminId;
+        changeRequest.ReviewedAtUtc = reviewedAtUtc;
+        changeRequest.ReviewNote = reviewNote;
+        await dbContext.SaveChangesAsync();
+        return true;
     }
 
     private static ContentChangeRequestResponse ToResponse(ContentChangeRequest request)

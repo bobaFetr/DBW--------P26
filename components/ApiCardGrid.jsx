@@ -4,7 +4,9 @@ import { useEffect, useState } from "react";
 import CardGrid from "./CardGrid";
 import { parseSongRows } from "./adminDraft";
 import { loadPublicContent } from "./publicContent";
-import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { resolveApiMediaUrl, safeExternalUrl } from "./securityUrls";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -18,7 +20,7 @@ function toCards(contentType, rows) {
         badge: "Album",
         meta: dateOnly(row.releaseDate) || "Release date TBA",
         body: albumBody(row),
-        cover: safeImageUrl(row.photoUrl),
+        cover: resolveApiMediaUrl(row.photoUrl, API_BASE),
         coverAlt: row.title
       }));
     case "singles":
@@ -31,7 +33,7 @@ function toCards(contentType, rows) {
           [row.availableOnYoutube && "YouTube", row.availableOnSpotify && "Spotify"]
             .filter(Boolean)
             .join(" / ") || "Streaming links pending",
-        cover: safeImageUrl(row.photoUrl),
+        cover: resolveApiMediaUrl(row.photoUrl, API_BASE),
         coverAlt: row.songName,
         href: safeExternalUrl(row.availableOnYoutube || row.availableOnSpotify),
         linkLabel: row.availableOnYoutube ? "Listen on YouTube" : "Listen"
@@ -53,7 +55,7 @@ function toCards(contentType, rows) {
       return rows.map((row) => ({
         title: row.name,
         meta: row.instrument,
-        cover: safeImageUrl(row.photoUrl),
+        cover: resolveApiMediaUrl(row.photoUrl, API_BASE),
         coverAlt: row.name
       }));
     default:

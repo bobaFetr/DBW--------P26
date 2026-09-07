@@ -11,6 +11,8 @@ public sealed record DatabaseSeedOptions(
 
 public static class DatabaseSeeder
 {
+    private const string DefaultContentAdminSeededSettingKey = "DefaultContentAdminSeeded";
+
     public static async Task SeedAsync(
         IServiceProvider services,
         DatabaseSeedOptions options)
@@ -18,7 +20,10 @@ public static class DatabaseSeeder
         using var scope = services.CreateScope();
 
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await dbContext.Database.MigrateAsync();
+        if (dbContext.Database.IsRelational())
+        {
+            await dbContext.Database.MigrateAsync();
+        }
 
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -41,21 +46,17 @@ public static class DatabaseSeeder
             adminKind: AdminKind.SuperAdmin,
             approvedByUserId: null);
 
-        var contentAdmin = await EnsureUserAsync(
+        var contentAdmin = await EnsureDefaultContentAdminAsync(
+            dbContext,
             userManager,
-            username: "contentadmin",
-            email: "contentadmin@paralyze.local",
-            displayName: "Content Admin",
-            password: options.ContentAdminPassword,
-            role: "ContentAdmin",
-            ensureRoleForExistingUser: false);
-
-        var contentAdminHasRole = await userManager.IsInRoleAsync(contentAdmin, "ContentAdmin");
+            options.ContentAdminPassword);
+        var contentAdminHasRole = contentAdmin is not null &&
+            await userManager.IsInRoleAsync(contentAdmin, "ContentAdmin");
         if (contentAdminHasRole)
         {
             await EnsureAdminProfileAsync(
                 dbContext,
-                contentAdmin.Id,
+                contentAdmin!.Id,
                 adminCode: "CADM-000001",
                 adminKind: AdminKind.ContentAdmin,
                 approvedByUserId: superAdmin.Id);
@@ -66,6 +67,69 @@ public static class DatabaseSeeder
             roleManager,
             superAdmin,
             contentAdminHasRole ? contentAdmin : null);
+    }
+
+    private static async Task<ApplicationUser?> EnsureDefaultContentAdminAsync(
+        AppDbContext dbContext,
+        UserManager<ApplicationUser> userManager,
+        string password)
+    {
+        var contentAdmin = await userManager.FindByNameAsync("contentadmin");
+        var setting = await dbContext.SiteSettings.FindAsync([DefaultContentAdminSeededSettingKey]);
+
+        if (contentAdmin is not null)
+        {
+            await MarkDefaultContentAdminSeededAsync(dbContext, setting);
+            return contentAdmin;
+        }
+
+        if (setting?.BooleanValue == true)
+        {
+            return null;
+        }
+
+        var hasExistingContentAdmin = await dbContext.AdminProfiles.AnyAsync(profile =>
+            profile.AdminKind == AdminKind.ContentAdmin);
+        if (hasExistingContentAdmin)
+        {
+            await MarkDefaultContentAdminSeededAsync(dbContext, setting);
+            return null;
+        }
+
+        contentAdmin = await EnsureUserAsync(
+            userManager,
+            username: "contentadmin",
+            email: "contentadmin@paralyze.local",
+            displayName: "Content Admin",
+            password,
+            role: "ContentAdmin");
+        await MarkDefaultContentAdminSeededAsync(dbContext, setting);
+        return contentAdmin;
+    }
+
+    private static async Task MarkDefaultContentAdminSeededAsync(
+        AppDbContext dbContext,
+        SiteSetting? setting)
+    {
+        if (setting?.BooleanValue == true)
+        {
+            return;
+        }
+
+        if (setting is null)
+        {
+            dbContext.SiteSettings.Add(new SiteSetting
+            {
+                Key = DefaultContentAdminSeededSettingKey,
+                BooleanValue = true
+            });
+        }
+        else
+        {
+            setting.BooleanValue = true;
+        }
+
+        await dbContext.SaveChangesAsync();
     }
 
     private static async Task EnsureRoleAsync(
@@ -91,20 +155,9 @@ public static class DatabaseSeeder
         string email,
         string displayName,
         string password,
-        string role,
-        bool ensureRoleForExistingUser = true)
+        string role)
     {
         var user = await userManager.FindByNameAsync(username);
-        var userWasCreated = false;
-
-        if (user is null)
-        {
-            var usersInRole = await userManager.GetUsersInRoleAsync(role);
-            if (usersInRole.Count == 1)
-            {
-                user = usersInRole[0];
-            }
-        }
 
         if (user is null)
         {
@@ -122,8 +175,6 @@ public static class DatabaseSeeder
                 throw new InvalidOperationException(
                     $"Failed to create user '{username}': {FormatErrors(createResult)}");
             }
-
-            userWasCreated = true;
         }
         else
         {
@@ -140,8 +191,7 @@ public static class DatabaseSeeder
             }
         }
 
-        if ((userWasCreated || ensureRoleForExistingUser) &&
-            !await userManager.IsInRoleAsync(user, role))
+        if (!await userManager.IsInRoleAsync(user, role))
         {
             var roleResult = await userManager.AddToRoleAsync(user, role);
             if (!roleResult.Succeeded)

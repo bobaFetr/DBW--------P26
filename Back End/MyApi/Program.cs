@@ -238,6 +238,7 @@ builder.Services.AddScoped<IPasswordHasher<ApplicationUser>, BcryptPasswordHashe
 builder.Services.AddScoped<ICodeGenerator, CodeGenerator>();
 builder.Services.AddScoped<IContentInputValidator, ContentInputValidator>();
 builder.Services.AddScoped<IContentChangeApplier, ContentChangeApplier>();
+builder.Services.AddScoped<IAuditLogger, AuditLogger>();
 builder.Services.AddControllers(options =>
 {
     options.Filters.Add<ApiAntiforgeryFilter>();

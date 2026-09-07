@@ -1,6 +1,7 @@
 const IMAGE_DATA_URL_PATTERN = /^data:image\/(?:jpeg|png|webp|gif);base64,[A-Za-z0-9+/]+={0,2}$/i;
 const VIDEO_DATA_URL_PATTERN = /^data:video\/(?:mp4|webm|quicktime);base64,[A-Za-z0-9+/]+={0,2}$/i;
 const API_VIDEO_PATH_PATTERN = /^\/api\/uploads\/videos\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const API_IMAGE_PATH_PATTERN = /^\/uploads\/images\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+\.(?:jpg|jpeg|png|webp|gif)$/i;
 const PUBLIC_IMAGE_PATH_PATTERN = /^\/(?!\/)(?!api\/)(?!uploads\/)(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+\.(?:jpg|jpeg|png|webp|gif)$/i;
 
 export function safeExternalUrl(value) {
@@ -69,7 +70,7 @@ export function safeMediaUrl(value) {
 
 export function resolveApiMediaUrl(value, apiBase) {
   const trimmed = String(value ?? "").trim();
-  if (!API_VIDEO_PATH_PATTERN.test(trimmed)) {
+  if (!API_VIDEO_PATH_PATTERN.test(trimmed) && !API_IMAGE_PATH_PATTERN.test(trimmed)) {
     return safeMediaUrl(trimmed);
   }
 

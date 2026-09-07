@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
-import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { resolveApiMediaUrl, safeExternalUrl } from "./securityUrls";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 const COLLECTIONS = [
   { key: "albums", label: "Albums" },
@@ -46,7 +48,7 @@ function buildLatestCards(data) {
         [latestSingle.availableOnYoutube && "YouTube", latestSingle.availableOnSpotify && "Spotify"]
           .filter(Boolean)
           .join(" / ") || "Streaming links pending",
-      cover: safeImageUrl(latestSingle.photoUrl),
+      cover: resolveApiMediaUrl(latestSingle.photoUrl, API_BASE),
       coverAlt: latestSingle.songName,
       href: safeExternalUrl(latestSingle.availableOnYoutube || latestSingle.availableOnSpotify),
       linkLabel: latestSingle.availableOnYoutube ? "Listen on YouTube" : "Listen"
@@ -81,24 +83,28 @@ function buildLatestCards(data) {
 export default function HomeContent() {
   const [data, setData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [unavailableCollections, setUnavailableCollections] = useState([]);
 
   useEffect(() => {
     let ignore = false;
 
     async function loadHomeContent() {
       try {
-        const entries = await Promise.all(
+        const results = await Promise.allSettled(
           COLLECTIONS.map(async (collection) => {
             return [collection.key, await loadPublicContent(collection.key)];
           })
         );
 
         if (!ignore) {
+          const entries = results
+            .filter((result) => result.status === "fulfilled")
+            .map((result) => result.value);
           setData(Object.fromEntries(entries));
-        }
-      } catch {
-        if (!ignore) {
-          setData({});
+          setUnavailableCollections(
+            results.flatMap((result, index) =>
+              result.status === "rejected" ? [COLLECTIONS[index].label] : [])
+          );
         }
       } finally {
         if (!ignore) {
@@ -138,6 +144,11 @@ export default function HomeContent() {
       </section>
 
       {isLoading ? <p className="content-empty-state">Loading latest content...</p> : null}
+      {!isLoading && unavailableCollections.length ? (
+        <p className="content-empty-state" role="status">
+          Some content is temporarily unavailable: {unavailableCollections.join(", ")}.
+        </p>
+      ) : null}
       {!isLoading && latestCards.length ? <CardGrid cards={latestCards} /> : null}
       {!isLoading && !latestCards.length ? (
         <p className="content-empty-state">No featured content has been published yet.</p>

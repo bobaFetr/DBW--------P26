@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { displayImageInputValue, normalizeDraft, parseSongRows } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
 import { loadPublicContent } from "./adminContent";
 import { adminReadFetch } from "./adminReadFetch";
-import { resolveApiMediaUrl, safeImageUrl } from "./securityUrls";
+import { resolveApiMediaUrl } from "./securityUrls";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
+const PAGE_SIZE = 50;
 const KICKED_CONTENT_ADMIN_MESSAGE = "Your content admin access has been revoked.";
 const ADMIN_SESSION_ROLE_KEY = "paralyze.adminSessionRole";
 
@@ -337,6 +337,14 @@ export default function AdminDashboard() {
   const [contentRequests, setContentRequests] = useState([]);
   const [adminRequests, setAdminRequests] = useState([]);
   const [adminProfiles, setAdminProfiles] = useState([]);
+  const [recordPages, setRecordPages] = useState({});
+  const [hasMoreRecords, setHasMoreRecords] = useState({});
+  const [contentRequestPage, setContentRequestPage] = useState(1);
+  const [hasMoreContentRequests, setHasMoreContentRequests] = useState(false);
+  const [adminRequestPage, setAdminRequestPage] = useState(1);
+  const [hasMoreAdminRequests, setHasMoreAdminRequests] = useState(false);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [selectedAuditUserId, setSelectedAuditUserId] = useState("");
   const [caRequestsEnabled, setCaRequestsEnabled] = useState(false);
   const [kickConfirmation, setKickConfirmation] = useState(null);
   const [kickPassword, setKickPassword] = useState("");
@@ -403,10 +411,26 @@ export default function AdminDashboard() {
   }, [session?.userId, session?.roles]);
 
   function resetAdminState() {
+    contentLoadVersion.current += 1;
     setSession(null);
+    setActiveKey(COLLECTIONS[0].key);
+    setRecords({});
+    setPublicCount(null);
+    setDrafts(createInitialDrafts());
+    setEditingRecord(null);
     setContentRequests([]);
     setAdminProfiles([]);
+    setRecordPages({});
+    setHasMoreRecords({});
+    setContentRequestPage(1);
+    setHasMoreContentRequests(false);
+    setAdminRequestPage(1);
+    setHasMoreAdminRequests(false);
     setAdminRequests([]);
+    setAuditLogs([]);
+    setSelectedAuditUserId("");
+    setReviewNote("");
+    setUploadingField("");
     setKickConfirmation(null);
     setKickPassword("");
   }
@@ -481,22 +505,33 @@ export default function AdminDashboard() {
     const roles = user.roles ?? [];
     if (roles.includes("SuperAdmin")) {
       const results = await Promise.allSettled([
-        apiFetch("/api/content-requests/pending"),
-        apiFetch("/api/content-admins"),
-        apiFetch("/api/content-admin-requests/pending"),
+        apiFetch(`/api/content-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
+        apiFetch(`/api/content-admins?page=1&pageSize=${PAGE_SIZE}`),
+        apiFetch(`/api/content-admin-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
         apiFetch("/api/ca-requests-permission")
       ]);
-      if (results[0].status === "fulfilled") setContentRequests(results[0].value);
+      setContentRequestPage(1);
+      setAdminRequestPage(1);
+      if (results[0].status === "fulfilled") {
+        setContentRequests(results[0].value);
+        setHasMoreContentRequests(results[0].value.length === PAGE_SIZE);
+      }
       else failures.push("content requests");
       if (results[1].status === "fulfilled") setAdminProfiles(results[1].value);
       else failures.push("content admins");
-      if (results[2].status === "fulfilled") setAdminRequests(results[2].value);
+      if (results[2].status === "fulfilled") {
+        setAdminRequests(results[2].value);
+        setHasMoreAdminRequests(results[2].value.length === PAGE_SIZE);
+      }
       else failures.push("admin signup requests");
       if (results[3].status === "fulfilled") setCaRequestsEnabled(Boolean(results[3].value.enabled));
       else failures.push("CA requests permission status");
     } else {
       try {
-        setContentRequests(await apiFetch("/api/content-requests/mine"));
+        const requests = await apiFetch(`/api/content-requests/mine?page=1&pageSize=${PAGE_SIZE}`);
+        setContentRequests(requests);
+        setContentRequestPage(1);
+        setHasMoreContentRequests(requests.length === PAGE_SIZE);
       } catch {
         failures.push("your content requests");
       }
@@ -514,11 +549,55 @@ export default function AdminDashboard() {
     setPublicCount(null);
     const result = await loadPublicContent(
       COLLECTIONS,
-      (key) => apiFetch(`/api/content/${key}`, { cache: "no-store" })
+      (key) => apiFetch(`/api/content/${key}?page=1&pageSize=${PAGE_SIZE}`, { cache: "no-store" })
     );
     if (version !== contentLoadVersion.current) return [];
     if (result.records) {
       setRecords((current) => ({ ...current, ...result.records }));
+      setRecordPages(Object.fromEntries(
+        Object.keys(result.records).map((key) => [key, 1])
+      ));
+      setHasMoreRecords(Object.fromEntries(
+        Object.entries(result.records).map(([key, rows]) => [key, rows.length === PAGE_SIZE])
+      ));
+    }
+
+    async function loadMoreRecords() {
+      const page = (recordPages[activeCollection.key] ?? 1) + 1;
+      const nextRows = await apiFetch(
+        `/api/content/${activeCollection.key}?page=${page}&pageSize=${PAGE_SIZE}`,
+        { cache: "no-store" }
+      );
+      setRecords((current) => ({
+        ...current,
+        [activeCollection.key]: [...(current[activeCollection.key] ?? []), ...nextRows]
+      }));
+      setRecordPages((current) => ({ ...current, [activeCollection.key]: page }));
+      setHasMoreRecords((current) => ({
+        ...current,
+        [activeCollection.key]: nextRows.length === PAGE_SIZE
+      }));
+    }
+
+    async function loadMoreContentRequests() {
+      const page = contentRequestPage + 1;
+      const path = isSuperAdmin ? "pending" : "mine";
+      const nextRequests = await apiFetch(
+        `/api/content-requests/${path}?page=${page}&pageSize=${PAGE_SIZE}`
+      );
+      setContentRequests((current) => [...current, ...nextRequests]);
+      setContentRequestPage(page);
+      setHasMoreContentRequests(nextRequests.length === PAGE_SIZE);
+    }
+
+    async function loadMoreAdminRequests() {
+      const page = adminRequestPage + 1;
+      const nextRequests = await apiFetch(
+        `/api/content-admin-requests/pending?page=${page}&pageSize=${PAGE_SIZE}`
+      );
+      setAdminRequests((current) => [...current, ...nextRequests]);
+      setAdminRequestPage(page);
+      setHasMoreAdminRequests(nextRequests.length === PAGE_SIZE);
     }
     setPublicCount(result.count);
     return result.failures;
@@ -674,9 +753,7 @@ export default function AdminDashboard() {
 
       const result = await response.json();
       const uploadedUrl = result.url ?? result.Url;
-      const safeUrl = isVideo
-        ? resolveApiMediaUrl(uploadedUrl, API_BASE)
-        : safeImageUrl(uploadedUrl);
+      const safeUrl = resolveApiMediaUrl(uploadedUrl, API_BASE);
       if (!safeUrl) {
         throw new Error(`Upload did not return a usable ${isVideo ? "video" : "image"} URL.`);
       }
@@ -894,6 +971,21 @@ export default function AdminDashboard() {
     setKickPassword("");
   }
 
+  async function loadAudit(userId) {
+    setError("");
+    setNotice("");
+    try {
+      setSelectedAuditUserId(userId);
+      setAuditLogs(await apiFetch(`/api/content-admins/${userId}/audit`));
+    } catch (err) {
+      setSelectedAuditUserId("");
+      setAuditLogs([]);
+      if (!handleAdminAccessError(err)) {
+        setError(err.message);
+      }
+    }
+  }
+
   function cancelKickContentAdmin() {
     setKickConfirmation(null);
     setKickPassword("");
@@ -1015,8 +1107,17 @@ export default function AdminDashboard() {
                 type="button"
                 className={collection.key === activeKey ? "active" : undefined}
                 onClick={() => {
-                  setActiveKey(collection.key);
+                  if (editingRecord) {
+                    setDrafts((currentDrafts) => ({
+                      ...currentDrafts,
+                      [editingRecord.collectionKey]: emptyDraft(
+                        COLLECTIONS.find((item) => item.key === editingRecord.collectionKey)
+                          ?? activeCollection
+                      )
+                    }));
+                  }
                   setEditingRecord(null);
+                  setActiveKey(collection.key);
                 }}
               >
                 <span>{collection.label}</span>
@@ -1031,9 +1132,9 @@ export default function AdminDashboard() {
                 <h3>{activeCollection.label}</h3>
                 <p>Database content type: {activeCollection.key}</p>
               </div>
-              <Link className="action-link" href={activeCollection.route}>
+              <a className="action-link" href={activeCollection.route}>
                 <span>View Page</span>
-              </Link>
+              </a>
             </div>
 
             {isEditing && (
@@ -1081,7 +1182,7 @@ export default function AdminDashboard() {
                           field.required &&
                           !(field.type === "media"
                             ? safeAdminMediaUrl(activeDraft[field.key])
-                            : safeImageUrl(activeDraft[field.key]))
+                            : safeAdminMediaUrl(activeDraft[field.key]))
                         }
                       />
                       <input
@@ -1096,14 +1197,14 @@ export default function AdminDashboard() {
                       {uploadingField === field.key && <small>Uploading...</small>}
                       {(field.type === "media"
                         ? safeAdminMediaUrl(activeDraft[field.key])
-                        : safeImageUrl(activeDraft[field.key])) ? (
+                        : safeAdminMediaUrl(activeDraft[field.key])) ? (
                         <small>
                           Stored {field.type === "media" ? "media" : "image"}:{" "}
                           <a
                             href={
                               field.type === "media"
                                 ? safeAdminMediaUrl(activeDraft[field.key])
-                                : safeImageUrl(activeDraft[field.key])
+                                : safeAdminMediaUrl(activeDraft[field.key])
                             }
                             target="_blank"
                             rel="noreferrer"
@@ -1229,6 +1330,11 @@ export default function AdminDashboard() {
                 </p>
               )}
             </div>
+            {hasMoreRecords[activeCollection.key] && (
+              <button type="button" onClick={loadMoreRecords} disabled={isMutating}>
+                Load more {activeCollection.label.toLowerCase()}
+              </button>
+            )}
           </div>
         </div>
 
@@ -1276,6 +1382,11 @@ export default function AdminDashboard() {
                         <h4>{request.changeCode}</h4>
                         <span className={`status-${status.toLowerCase()}`}>{status}</span>
                       </div>
+                      {hasMoreContentRequests && (
+                        <button type="button" onClick={loadMoreContentRequests} disabled={isMutating}>
+                          Load more content requests
+                        </button>
+                      )}
                       <p className="meta">
                         {action} {request.contentType} by{" "}
                         {request.requestedByUserName ?? request.requestedByUserId}
@@ -1357,6 +1468,11 @@ export default function AdminDashboard() {
                           <h4>{request.displayName ?? request.userName}</h4>
                           <span className="status-pending">Pending</span>
                         </div>
+                        {hasMoreAdminRequests && (
+                          <button type="button" onClick={loadMoreAdminRequests} disabled={isMutating}>
+                            Load more signup requests
+                          </button>
+                        )}
                         <p className="meta">{request.email}</p>
                         <p>{request.message}</p>
                       </div>
@@ -1380,7 +1496,7 @@ export default function AdminDashboard() {
               <div className="admin-editor-heading">
                 <div>
                   <h3>Content Admins</h3>
-                  <p>Kick removes the ContentAdmin role and deletes their admin profile.</p>
+                  <p>Kick removes Content Admin access and its admin profile. The account and its request history are retained.</p>
                 </div>
               </div>
               <div className="admin-record-list">
@@ -1395,6 +1511,9 @@ export default function AdminDashboard() {
                         <p className="meta">{profile.email}</p>
                       </div>
                       <div className="admin-record-actions">
+                        <button type="button" onClick={() => loadAudit(profile.userId)}>
+                          Audit
+                        </button>
                         <button type="button" onClick={() => beginKickContentAdmin(profile)}>
                           Kick
                         </button>
@@ -1426,6 +1545,36 @@ export default function AdminDashboard() {
                 )}
               </div>
             </div>
+
+            {selectedAuditUserId && (
+              <div className="admin-review-panel">
+                <div className="admin-editor-heading">
+                  <div>
+                    <h3>Audit Log</h3>
+                    <p>Latest 100 events for this Content Admin.</p>
+                  </div>
+                </div>
+                <div className="admin-record-list">
+                  {auditLogs.length ? (
+                    auditLogs.map((log) => (
+                      <article className="admin-record" key={log.id}>
+                        <div>
+                          <div className="admin-record-topline">
+                            <h4>{log.action}</h4>
+                            <span>{formatDate(log.createdAtUtc)}</span>
+                          </div>
+                          <p className="meta">
+                            {[log.entityType, log.entityId].filter(Boolean).join(" ") || "Admin account"}
+                          </p>
+                        </div>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="admin-empty-state">No audit events for this Content Admin yet.</p>
+                  )}
+                </div>
+              </div>
+            )}
 
           </>
         )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { loadPublicContent } from "../../components/publicContent";
 import { isVideoUrl, resolveApiMediaUrl } from "../../components/securityUrls";
 
@@ -10,10 +10,15 @@ export default function GalleryGrid() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
+  const closeButtonRef = useRef(null);
+  const triggerRef = useRef(null);
 
   const isOpen = activeIndex !== null;
 
-  const close = useCallback(() => setActiveIndex(null), []);
+  const close = useCallback(() => {
+    setActiveIndex(null);
+    triggerRef.current?.focus();
+  }, []);
 
   const prev = useCallback(() => {
     setActiveIndex((i) => (i > 0 ? i - 1 : items.length - 1));
@@ -68,6 +73,21 @@ export default function GalleryGrid() {
       if (e.key === "Escape") close();
       if (e.key === "ArrowLeft") prev();
       if (e.key === "ArrowRight") next();
+      if (e.key === "Tab") {
+        const focusable = Array.from(
+          document.querySelectorAll(".lightbox-inner button:not(:disabled)")
+        );
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (!first || !last) return;
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
 
     window.addEventListener("keydown", onKey);
@@ -77,6 +97,12 @@ export default function GalleryGrid() {
       document.body.style.overflow = "";
     };
   }, [isOpen, close, prev, next]);
+
+  useEffect(() => {
+    if (isOpen) {
+      closeButtonRef.current?.focus();
+    }
+  }, [isOpen]);
 
   // Touch/swipe support
   const [touchStartX, setTouchStartX] = useState(null);
@@ -110,8 +136,17 @@ export default function GalleryGrid() {
             role="button"
             tabIndex={0}
             aria-label={`Open ${item.caption}`}
-            onClick={() => setActiveIndex(index)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveIndex(index); } }}
+            onClick={(event) => {
+              triggerRef.current = event.currentTarget;
+              setActiveIndex(index);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                triggerRef.current = e.currentTarget;
+                setActiveIndex(index);
+              }
+            }}
           >
             {item.mediaUrl && item.isVideo ? (
               <video className="gallery-thumb-img gallery-thumb-video" src={item.mediaUrl} muted playsInline preload="metadata" />
@@ -138,6 +173,7 @@ export default function GalleryGrid() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              ref={closeButtonRef}
               className="lightbox-close"
               onClick={close}
               aria-label="Close lightbox"

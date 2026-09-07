@@ -24,41 +24,65 @@ public class ContentController(
     [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<object>>> GetAll(
         string contentType,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
         if (!contentInputValidator.TryNormalizeContentType(contentType, out var normalizedContentType))
         {
             return BadRequest("Unsupported content type.");
         }
 
+        if (page < 1 || pageSize < 1)
+        {
+            return BadRequest("Page and pageSize must be positive.");
+        }
+
+        pageSize = Math.Min(pageSize, 50);
+        var skip = (page - 1) * pageSize;
+
         return Ok(normalizedContentType switch
         {
             "albums" => await dbContext.Albums
                 .OrderByDescending(item => item.ReleaseDate)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "singles" => await dbContext.Singles
                 .OrderByDescending(item => item.ReleaseDate)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "concerts" => await dbContext.Concerts
                 .OrderByDescending(item => item.Date)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "news" => await dbContext.News
                 .OrderByDescending(item => item.PublicationDate)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "timeline" => await dbContext.TimeLines
                 .OrderByDescending(item => item.Date)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "members" => await dbContext.Members
                 .OrderBy(item => item.Name)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             "gallery" => await dbContext.Gallery
                 .OrderBy(item => item.Title)
+                .Skip(skip)
+                .Take(pageSize)
                 .Cast<object>()
                 .ToListAsync(cancellationToken),
             _ => Array.Empty<object>()

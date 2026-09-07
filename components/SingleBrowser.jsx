@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import CardGrid from "./CardGrid";
 import { loadPublicContent } from "./publicContent";
-import { safeExternalUrl, safeImageUrl } from "./securityUrls";
+import { resolveApiMediaUrl, safeExternalUrl } from "./securityUrls";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001";
 
 function dateOnly(value) {
   return value ? String(value).slice(0, 10) : "";
@@ -22,7 +23,7 @@ function singleCards(singles) {
         .filter(Boolean)
         .join(" / ") || "Streaming links pending"
     ),
-    cover: safeImageUrl(single.photoUrl),
+    cover: resolveApiMediaUrl(single.photoUrl, API_BASE),
     coverAlt: single.songName,
     href: `/singles/?singleId=${single.songId}`,
     linkLabel: "View single"
@@ -77,22 +78,22 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
       return (
         <section className="single-detail">
           <p className="content-empty-state">Single was not found.</p>
-          <Link className="action-link" href="/singles/">
+          <a className="action-link" href="/singles/">
             <span>Back to singles</span>
-          </Link>
+          </a>
         </section>
       );
     }
 
-    const cover = safeImageUrl(selectedSingle.photoUrl);
+    const cover = resolveApiMediaUrl(selectedSingle.photoUrl, API_BASE);
     const youtubeUrl = safeExternalUrl(selectedSingle.availableOnYoutube);
     const spotifyUrl = safeExternalUrl(selectedSingle.availableOnSpotify);
 
     return (
       <section className="single-detail">
-        <Link className="action-link single-back-link" href="/singles/">
+        <a className="action-link single-back-link" href="/singles/">
           <span>Back to singles</span>
-        </Link>
+        </a>
 
         <section className="single-summary">
           {cover ? (

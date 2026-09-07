@@ -42,10 +42,14 @@ test("safeExternalUrl upgrades bare domains and rejects unsafe schemes", () => {
   assert.equal(safeExternalUrl("   "), undefined);
 });
 
-test("safeImageUrl accepts only public static image paths", () => {
-  const { safeImageUrl } = loadSecurityUrlModule();
+test("safeImageUrl excludes API-hosted image paths until their origin is resolved", () => {
+  const { resolveApiMediaUrl, safeImageUrl } = loadSecurityUrlModule();
 
   assert.equal(safeImageUrl("/uploads/images/poster.png"), undefined);
+  assert.equal(
+    resolveApiMediaUrl("/uploads/images/poster.png", "http://localhost:5001"),
+    "http://localhost:5001/uploads/images/poster.png"
+  );
   assert.equal(safeImageUrl("/BUntitled.png"), "/BUntitled.png");
   assert.equal(
     safeImageUrl("/singles/coma-distraction-instrumental.jpg"),
