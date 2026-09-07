@@ -77,15 +77,31 @@ public class AdminRequestsController(
     [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<IEnumerable<AdminRequestResponse>>> GetPending(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        [FromQuery] DateTime? afterRequestedAtUtc = null,
+        [FromQuery] Guid? afterId = null)
     {
         if (page < 1 || pageSize < 1) return BadRequest("Page and pageSize must be positive.");
+        if (afterRequestedAtUtc.HasValue != afterId.HasValue)
+        {
+            return BadRequest("Both afterRequestedAtUtc and afterId are required for cursor pagination.");
+        }
 
-        var requests = await dbContext.AdminRequests
+        IQueryable<AdminRequest> query = dbContext.AdminRequests
             .Include(request => request.User)
-            .Where(request => request.Status == AdminRequestStatus.Pending)
+            .Where(request => request.Status == AdminRequestStatus.Pending);
+        if (afterRequestedAtUtc is not null)
+        {
+            query = query.Where(request =>
+                request.RequestedAtUtc > afterRequestedAtUtc ||
+                (request.RequestedAtUtc == afterRequestedAtUtc &&
+                 request.Id.CompareTo(afterId!.Value) > 0));
+        }
+
+        var requests = await query
             .OrderBy(request => request.RequestedAtUtc)
-            .Skip((page - 1) * Math.Min(pageSize, 50))
+            .ThenBy(request => request.Id)
+            .Skip(afterRequestedAtUtc is null ? (page - 1) * Math.Min(pageSize, 50) : 0)
             .Take(Math.Min(pageSize, 50))
             .Select(request => ToResponse(request))
             .ToListAsync();

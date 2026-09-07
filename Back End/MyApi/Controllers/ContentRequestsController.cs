@@ -106,15 +106,31 @@ public class ContentRequestsController(
     [Authorize(Roles = "SuperAdmin")]
     public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetPending(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        [FromQuery] DateTime? afterRequestedAtUtc = null,
+        [FromQuery] Guid? afterId = null)
     {
         if (page < 1 || pageSize < 1) return BadRequest("Page and pageSize must be positive.");
+        if (afterRequestedAtUtc.HasValue != afterId.HasValue)
+        {
+            return BadRequest("Both afterRequestedAtUtc and afterId are required for cursor pagination.");
+        }
 
-        var requests = await dbContext.ContentChangeRequests
+        IQueryable<ContentChangeRequest> query = dbContext.ContentChangeRequests
             .Include(changeRequest => changeRequest.RequestedByUser)
-            .Where(changeRequest => changeRequest.Status == ContentChangeStatus.Pending)
+            .Where(changeRequest => changeRequest.Status == ContentChangeStatus.Pending);
+        if (afterRequestedAtUtc is not null)
+        {
+            query = query.Where(changeRequest =>
+                changeRequest.RequestedAtUtc > afterRequestedAtUtc ||
+                (changeRequest.RequestedAtUtc == afterRequestedAtUtc &&
+                 changeRequest.Id.CompareTo(afterId!.Value) > 0));
+        }
+
+        var requests = await query
             .OrderBy(changeRequest => changeRequest.RequestedAtUtc)
-            .Skip((page - 1) * Math.Min(pageSize, 50))
+            .ThenBy(changeRequest => changeRequest.Id)
+            .Skip(afterRequestedAtUtc is null ? (page - 1) * Math.Min(pageSize, 50) : 0)
             .Take(Math.Min(pageSize, 50))
             .Select(changeRequest => ToResponse(changeRequest))
             .ToListAsync();
@@ -126,7 +142,9 @@ public class ContentRequestsController(
     [Authorize]
     public async Task<ActionResult<IEnumerable<ContentChangeRequestResponse>>> GetMine(
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 50)
+        [FromQuery] int pageSize = 50,
+        [FromQuery] DateTime? afterRequestedAtUtc = null,
+        [FromQuery] Guid? afterId = null)
     {
         var user = await userManager.GetUserAsync(User);
         if (user is null)
@@ -135,12 +153,26 @@ public class ContentRequestsController(
         }
 
         if (page < 1 || pageSize < 1) return BadRequest("Page and pageSize must be positive.");
+        if (afterRequestedAtUtc.HasValue != afterId.HasValue)
+        {
+            return BadRequest("Both afterRequestedAtUtc and afterId are required for cursor pagination.");
+        }
 
-        var requests = await dbContext.ContentChangeRequests
+        IQueryable<ContentChangeRequest> query = dbContext.ContentChangeRequests
             .Include(changeRequest => changeRequest.RequestedByUser)
-            .Where(changeRequest => changeRequest.RequestedByUserId == user.Id)
+            .Where(changeRequest => changeRequest.RequestedByUserId == user.Id);
+        if (afterRequestedAtUtc is not null)
+        {
+            query = query.Where(changeRequest =>
+                changeRequest.RequestedAtUtc < afterRequestedAtUtc ||
+                (changeRequest.RequestedAtUtc == afterRequestedAtUtc &&
+                 changeRequest.Id.CompareTo(afterId!.Value) < 0));
+        }
+
+        var requests = await query
             .OrderByDescending(changeRequest => changeRequest.RequestedAtUtc)
-            .Skip((page - 1) * Math.Min(pageSize, 50))
+            .ThenByDescending(changeRequest => changeRequest.Id)
+            .Skip(afterRequestedAtUtc is null ? (page - 1) * Math.Min(pageSize, 50) : 0)
             .Take(Math.Min(pageSize, 50))
             .Select(changeRequest => ToResponse(changeRequest))
             .ToListAsync();
