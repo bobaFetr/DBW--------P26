@@ -1499,6 +1499,29 @@ footer {
   margin-top: 18px;
 }
 
+.news-detail {
+  width: min(90%, 900px);
+  margin: 32px auto;
+}
+
+.news-back-link {
+  margin-bottom: 18px;
+}
+
+.news-detail h2 {
+  color: var(--accent);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  margin: 8px 0 20px;
+  overflow-wrap: anywhere;
+}
+
+.news-article-body {
+  color: var(--text-main);
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 
 .airbrush-shell {
   display: grid;
@@ -1788,6 +1811,10 @@ footer {
 
   .single-detail {
     width: min(100% - 32px, 1100px);
+  }
+
+  .news-detail {
+    width: min(100% - 32px, 900px);
   }
 
   .single-summary {

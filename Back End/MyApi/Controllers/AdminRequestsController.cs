@@ -14,7 +14,8 @@ namespace MyApi.Controllers;
 public class AdminRequestsController(
     AppDbContext dbContext,
     UserManager<ApplicationUser> userManager,
-    ICodeGenerator codeGenerator) : ControllerBase
+    ICodeGenerator codeGenerator,
+    IAuditLogger auditLogger) : ControllerBase
 {
     [HttpPost]
     [Authorize]
@@ -74,12 +75,18 @@ public class AdminRequestsController(
 
     [HttpGet("pending")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<IEnumerable<AdminRequestResponse>>> GetPending()
+    public async Task<ActionResult<IEnumerable<AdminRequestResponse>>> GetPending(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
+        if (page < 1 || pageSize < 1) return BadRequest("Page and pageSize must be positive.");
+
         var requests = await dbContext.AdminRequests
             .Include(request => request.User)
             .Where(request => request.Status == AdminRequestStatus.Pending)
             .OrderBy(request => request.RequestedAtUtc)
+            .Skip((page - 1) * Math.Min(pageSize, 50))
+            .Take(Math.Min(pageSize, 50))
             .Select(request => ToResponse(request))
             .ToListAsync();
 
@@ -96,7 +103,8 @@ public class AdminRequestsController(
             return Unauthorized();
         }
 
-        await using var transaction = dbContext.Database.IsRelational()
+        var isRelational = dbContext.Database.IsRelational();
+        await using var transaction = isRelational
             ? await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
             : null;
 
@@ -114,10 +122,14 @@ public class AdminRequestsController(
             return Conflict("Only pending requests can be approved.");
         }
 
-        adminRequest.Status = AdminRequestStatus.Approved;
-        adminRequest.ReviewedBySuperAdminId = superAdmin.Id;
-        adminRequest.ReviewedAtUtc = DateTime.UtcNow;
-        adminRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
+        if (isRelational && !await TryFinalizePendingRequestAsync(
+                adminRequest,
+                AdminRequestStatus.Approved,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending requests can be approved.");
+        }
 
         if (!await userManager.IsInRoleAsync(adminRequest.User, "ContentAdmin"))
         {
@@ -156,12 +168,28 @@ public class AdminRequestsController(
             });
         }
 
+        if (!isRelational && !await TryFinalizePendingRequestAsync(
+                adminRequest,
+                AdminRequestStatus.Approved,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending requests can be approved.");
+        }
+
         await dbContext.SaveChangesAsync();
 
         if (transaction is not null)
         {
             await transaction.CommitAsync();
         }
+
+        await auditLogger.LogAsync(
+            adminRequest.UserId,
+            "content_admin_access_granted",
+            superAdmin.Id,
+            nameof(AdminRequest),
+            adminRequest.Id.ToString());
 
         return Ok(ToResponse(adminRequest));
     }
@@ -190,13 +218,67 @@ public class AdminRequestsController(
             return Conflict("Only pending requests can be denied.");
         }
 
-        adminRequest.Status = AdminRequestStatus.Denied;
-        adminRequest.ReviewedBySuperAdminId = superAdmin.Id;
-        adminRequest.ReviewedAtUtc = DateTime.UtcNow;
-        adminRequest.ReviewNote = CleanOptionalText(request.ReviewNote);
-        await dbContext.SaveChangesAsync();
+        if (!await TryFinalizePendingRequestAsync(
+                adminRequest,
+                AdminRequestStatus.Denied,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending requests can be denied.");
+        }
+
+        await auditLogger.LogAsync(
+            adminRequest.UserId,
+            "content_admin_request_denied",
+            superAdmin.Id,
+            nameof(AdminRequest),
+            adminRequest.Id.ToString());
 
         return Ok(ToResponse(adminRequest));
+    }
+
+    private async Task<bool> TryFinalizePendingRequestAsync(
+        AdminRequest adminRequest,
+        AdminRequestStatus status,
+        string reviewedBySuperAdminId,
+        string? reviewNote)
+    {
+        var reviewedAtUtc = DateTime.UtcNow;
+
+        if (dbContext.Database.IsRelational())
+        {
+            var updated = await dbContext.AdminRequests
+                .Where(request => request.Id == adminRequest.Id &&
+                    request.Status == AdminRequestStatus.Pending)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(request => request.Status, status)
+                    .SetProperty(request => request.ReviewedBySuperAdminId, reviewedBySuperAdminId)
+                    .SetProperty(request => request.ReviewedAtUtc, reviewedAtUtc)
+                    .SetProperty(request => request.ReviewNote, reviewNote));
+            if (updated == 0)
+            {
+                return false;
+            }
+
+            adminRequest.Status = status;
+            adminRequest.ReviewedBySuperAdminId = reviewedBySuperAdminId;
+            adminRequest.ReviewedAtUtc = reviewedAtUtc;
+            adminRequest.ReviewNote = reviewNote;
+            dbContext.Entry(adminRequest).State = EntityState.Unchanged;
+            return true;
+        }
+
+        if (adminRequest.Status != AdminRequestStatus.Pending)
+        {
+            return false;
+        }
+
+        adminRequest.Status = status;
+        adminRequest.ReviewedBySuperAdminId = reviewedBySuperAdminId;
+        adminRequest.ReviewedAtUtc = reviewedAtUtc;
+        adminRequest.ReviewNote = reviewNote;
+        await dbContext.SaveChangesAsync();
+        return true;
     }
 
     private static AdminRequestResponse ToResponse(AdminRequest request)

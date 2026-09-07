@@ -128,8 +128,11 @@ public sealed class UploadsControllerTests : IDisposable
         Assert.Equal(2, chunks.Count);
 
         var streamed = await controller.GetVideo(saved.Id, CancellationToken.None);
-        var fileResult = Assert.IsType<FileContentResult>(streamed);
-        Assert.Equal(bytes, fileResult.FileContents);
+        var fileResult = Assert.IsType<FileStreamResult>(streamed);
+        await using var stream = fileResult.FileStream;
+        await using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        Assert.Equal(bytes, buffer.ToArray());
     }
 
     [Fact]
@@ -157,10 +160,15 @@ public sealed class UploadsControllerTests : IDisposable
 
         var response = await controller.GetVideo(upload.Id, CancellationToken.None);
 
-        var file = Assert.IsType<FileContentResult>(response);
+        var file = Assert.IsType<FileStreamResult>(response);
         Assert.Equal("video/mp4", file.ContentType);
         Assert.True(file.EnableRangeProcessing);
-        Assert.Equal(CreateMp4Header(), file.FileContents);
+        Assert.True(file.FileStream.CanSeek);
+        Assert.Equal(CreateMp4Header().Length, file.FileStream.Length);
+        await using var stream = file.FileStream;
+        await using var buffer = new MemoryStream();
+        await stream.CopyToAsync(buffer);
+        Assert.Equal(CreateMp4Header(), buffer.ToArray());
     }
 
     public void Dispose()
