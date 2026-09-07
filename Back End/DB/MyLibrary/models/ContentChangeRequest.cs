@@ -42,7 +42,7 @@ public class ContentChangeRequest
     [Required]
     public ContentChangeAction Action { get; set; } = ContentChangeAction.Create;
 
-    [Required]
+    [Required, ConcurrencyCheck]
     public ContentChangeStatus Status { get; set; } = ContentChangeStatus.Pending;
 
     [Required]

@@ -150,7 +150,10 @@ public class ContentRequestsController(
 
     [HttpPost("{id:guid}/approve")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<ContentChangeRequestResponse>> Approve(Guid id, ReviewRequestDto request)
+    public Task<ActionResult<ContentChangeRequestResponse>> Approve(Guid id, ReviewRequestDto request) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => ApproveCore(id, request));
+
+    private async Task<ActionResult<ContentChangeRequestResponse>> ApproveCore(Guid id, ReviewRequestDto request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
@@ -197,6 +200,15 @@ public class ContentRequestsController(
             return Conflict("Only pending content requests can be approved.");
         }
 
+        if (!isRelational && !await TryFinalizePendingRequestAsync(
+                changeRequest,
+                ContentChangeStatus.Approved,
+                superAdmin.Id,
+                CleanOptionalText(request.ReviewNote)))
+        {
+            return Conflict("Only pending content requests can be approved.");
+        }
+
         try
         {
             await contentChangeApplier.ApplyAsync(changeRequest);
@@ -218,15 +230,6 @@ public class ContentRequestsController(
             return BadRequest("TargetEntityId is outside the supported range.");
         }
 
-        if (!isRelational && !await TryFinalizePendingRequestAsync(
-                changeRequest,
-                ContentChangeStatus.Approved,
-                superAdmin.Id,
-                CleanOptionalText(request.ReviewNote)))
-        {
-            return Conflict("Only pending content requests can be approved.");
-        }
-
         if (transaction is not null)
         {
             await transaction.CommitAsync();
@@ -244,7 +247,10 @@ public class ContentRequestsController(
 
     [HttpPost("{id:guid}/deny")]
     [Authorize(Roles = "SuperAdmin")]
-    public async Task<ActionResult<ContentChangeRequestResponse>> Deny(Guid id, ReviewRequestDto request)
+    public Task<ActionResult<ContentChangeRequestResponse>> Deny(Guid id, ReviewRequestDto request) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => DenyCore(id, request));
+
+    private async Task<ActionResult<ContentChangeRequestResponse>> DenyCore(Guid id, ReviewRequestDto request)
     {
         var superAdmin = await userManager.GetUserAsync(User);
         if (superAdmin is null)
@@ -296,7 +302,10 @@ public class ContentRequestsController(
 
     [HttpPost("{id:guid}/cancel")]
     [Authorize]
-    public async Task<ActionResult<ContentChangeRequestResponse>> Cancel(Guid id)
+    public Task<ActionResult<ContentChangeRequestResponse>> Cancel(Guid id) =>
+        RequestConcurrencyGuard.ExecuteAsync(() => CancelCore(id));
+
+    private async Task<ActionResult<ContentChangeRequestResponse>> CancelCore(Guid id)
     {
         var user = await userManager.GetUserAsync(User);
         if (user is null)

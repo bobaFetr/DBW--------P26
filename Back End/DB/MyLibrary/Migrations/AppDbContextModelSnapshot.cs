@@ -266,6 +266,7 @@ namespace MyLibrary.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.Property<string>("UserId")
@@ -479,6 +480,7 @@ namespace MyLibrary.Migrations
                         .HasColumnType("text");
 
                     b.Property<int>("Status")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.Property<string>("TargetEntityId")
