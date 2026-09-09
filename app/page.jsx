@@ -8,7 +8,7 @@ export default function HomePage() {
           {/* <span className="eyebrow">Death By Wish is dead</span> */}
           <h2>Paralyze</h2>
           <p>
-            Goth metal band Sofia from Bulgaria.
+            Post punk band Sofia from Bulgaria.
           </p>
           <div className="hero-actions">
             <a className="action-link primary" href="/singles/">
