@@ -20,7 +20,7 @@ function harness(roles, status) {
   const errorClass = source.slice(source.indexOf('class ApiError'), source.indexOf('const COLLECTIONS'));
   const accessHandler = source.slice(source.indexOf('  function handleAdminAccessError('), source.indexOf('  async function boot('));
   const logout = source.slice(source.indexOf('  async function logout('), source.indexOf('  function updateDraft('));
-  vm.runInContext(`${errorClass}\n${accessHandler}\n${logout}\nglobalThis.check = (status) => handleAdminAccessError(new ApiError('Failure', status));\nglobalThis.signOut = logout;\nglobalThis.apiFetch = async () => { ${status ? `throw new ApiError('Failure', ${status});` : ''} };`, context);
+  vm.runInContext(`${errorClass}\n${accessHandler}\n${logout}\nglobalThis.check = (status, code) => handleAdminAccessError(new ApiError('Failure', status, code));\nglobalThis.signOut = logout;\nglobalThis.apiFetch = async () => { ${status ? `throw new ApiError('Failure', ${status});` : ''} };`, context);
   return { context, events };
 }
 test('expired super-admin session clears dashboard and prompts sign-in', () => {
@@ -29,12 +29,39 @@ test('expired super-admin session clears dashboard and prompts sign-in', () => {
   assert.deepEqual(events.slice(0, 2), ['reset', 'clearRole']);
   assert.ok(events.some((e) => Array.isArray(e) && e[0] === 'notice' && /sign in again/.test(e[1])));
 });
-test('content-admin access loss retains revocation handling', () => {
+test('confirmed content-admin removal retains revocation handling', () => {
   for (const status of [401, 403]) {
     const { context, events } = harness(['ContentAdmin']);
-    assert.equal(context.check(status), true);
+    assert.equal(context.check(status, 'content_admin_access_revoked'), true);
     assert.deepEqual(events, ['revoked']);
   }
+});
+
+test('expired content-admin session prompts sign-in without claiming revocation', () => {
+  const { context, events } = harness(['ContentAdmin']);
+  assert.equal(context.check(401), true);
+  assert.ok(!events.includes('revoked'));
+  assert.ok(events.some((e) => Array.isArray(e) && e[0] === 'notice' && /session has expired/.test(e[1])));
+});
+
+test('unrelated forbidden response does not claim content-admin revocation', () => {
+  const { context, events } = harness(['ContentAdmin']);
+  assert.equal(context.check(403), false);
+  assert.deepEqual(events, []);
+});
+
+test('returning with a stored content-admin role and expired cookie prompts sign-in', async () => {
+  const { context, events } = harness(['ContentAdmin'], 401);
+  Object.assign(context, {
+    setIsLoading() {}, setSession() {}, storeAdminRole() {},
+    readStoredAdminRole: () => 'ContentAdmin',
+    loadContentRows: async () => [],
+  });
+  const boot = source.slice(source.indexOf('  async function boot('), source.indexOf('  async function refreshDashboard('));
+  vm.runInContext(`${boot}\nglobalThis.start = boot;`, context);
+  await context.start();
+  assert.ok(events.includes('clearRole'));
+  assert.ok(events.some((e) => Array.isArray(e) && e[0] === 'notice' && /session has expired/.test(e[1])));
 });
 test('server failures and super-admin forbidden responses do not erase sessions', () => {
   for (const status of [403, 500]) {

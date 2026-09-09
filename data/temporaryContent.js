@@ -17,7 +17,7 @@ export const temporaryContent = {
     }
   ],
   singles: [
-{
+    {
       songId: 1,
       songName: "Blow",
       releaseDate: "2026-08-30",

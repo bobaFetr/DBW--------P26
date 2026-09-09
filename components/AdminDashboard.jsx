@@ -39,10 +39,11 @@ const ACTION_LABELS = {
 };
 
 class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, code) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -284,10 +285,12 @@ async function apiFetch(path, options = {}) {
 
   if (!response.ok) {
     let message = `${response.status} ${response.statusText}`;
+    let code;
     const text = await response.text();
 
     try {
       const body = text ? JSON.parse(text) : null;
+      code = body?.code;
       message = Array.isArray(body)
         ? body.map((item) => item.description ?? item.code ?? JSON.stringify(item)).join(" ")
         : body?.title ?? body?.message ?? JSON.stringify(body);
@@ -295,7 +298,7 @@ async function apiFetch(path, options = {}) {
       if (text) message = text;
     }
 
-    throw new ApiError(message, response.status);
+    throw new ApiError(message, response.status, code);
   }
 
   if (response.status === 204) {
@@ -449,9 +452,8 @@ export default function AdminDashboard() {
 
   function handleAdminAccessError(err) {
     if (
-      session?.roles?.includes("ContentAdmin") &&
-      !session?.roles?.includes("SuperAdmin") &&
       err instanceof ApiError &&
+      err.code === "content_admin_access_revoked" &&
       (err.status === 401 || err.status === 403)
     ) {
       handleContentAdminKickout();
@@ -482,12 +484,17 @@ export default function AdminDashboard() {
     } catch (err) {
       setSession(null);
       if (
-        readStoredAdminRole() === "ContentAdmin" &&
         err instanceof ApiError &&
+        err.code === "content_admin_access_revoked" &&
         (err.status === 401 || err.status === 403)
       ) {
         clearStoredAdminRole();
         setForcedLogoutNotice(KICKED_CONTENT_ADMIN_MESSAGE);
+      } else if (err instanceof ApiError && err.status === 401) {
+        if (readStoredAdminRole()) {
+          setForcedLogoutNotice("Your session has expired. Please sign in again.");
+        }
+        clearStoredAdminRole();
       }
       try {
         const failures = await loadContentRows();

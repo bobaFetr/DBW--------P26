@@ -377,6 +377,21 @@ static async Task ValidatePrincipalAsync(CookieValidatePrincipalContext context)
         return;
     }
 
+    // Check the persisted removal before stamp validation discards the old identity.
+    if (context.Principal.IsInRole("ContentAdmin") &&
+        !await userManager.IsInRoleAsync(user, "ContentAdmin") &&
+        !await userManager.IsInRoleAsync(user, "SuperAdmin"))
+    {
+        var db = context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+        if (await db.AdminAuditLogs.AnyAsync(log =>
+            log.AdminUserId == user.Id && log.Action == "content_admin_access_revoked"))
+        {
+            context.HttpContext.Items["content_admin_access_revoked"] = true;
+            await RejectPrincipalAsync(context);
+            return;
+        }
+    }
+
     await SecurityStampValidator.ValidatePrincipalAsync(context);
     if (context.Principal?.Identity?.IsAuthenticated != true)
     {
@@ -439,6 +454,10 @@ static Task WriteApiUnauthorizedAsync(RedirectContext<CookieAuthenticationOption
     if (IsApiRequest(context.Request))
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        if (context.HttpContext.Items.ContainsKey("content_admin_access_revoked"))
+        {
+            return context.Response.WriteAsJsonAsync(new { code = "content_admin_access_revoked" });
+        }
         return Task.CompletedTask;
     }
 
