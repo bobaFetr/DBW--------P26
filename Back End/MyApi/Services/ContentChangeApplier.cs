@@ -121,6 +121,10 @@ public class ContentChangeApplier(
 
         if (existing is null)
         {
+            // A removal is already satisfied if another approved request or a
+            // direct deletion removed the target. Still finalize and audit approval.
+            if (request.Action == ContentChangeAction.Delete) return;
+
             throw new InvalidOperationException(
                 $"{typeof(TEntity).Name} with id '{request.TargetEntityId}' was not found.");
         }

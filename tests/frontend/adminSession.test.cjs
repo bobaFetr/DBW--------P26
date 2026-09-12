@@ -53,7 +53,7 @@ test('unrelated forbidden response does not claim content-admin revocation', () 
 test('returning with a stored content-admin role and expired cookie prompts sign-in', async () => {
   const { context, events } = harness(['ContentAdmin'], 401);
   Object.assign(context, {
-    setIsLoading() {}, setBootError() {}, AbortSignal, setSession() {}, storeAdminRole() {},
+    setIsLoading() {}, setLoadingMessage() {}, setBootError() {}, AbortSignal, setSession() {}, storeAdminRole() {},
     readStoredAdminRole: () => 'ContentAdmin',
     loadContentRows: async () => [],
   });
@@ -98,7 +98,7 @@ test('incorrect kick confirmation password does not clear a valid reviewer sessi
 test('startup API outages show recovery without fetching public content', async () => {
   const { context, events } = harness([], 503);
   Object.assign(context, {
-    AbortSignal, setIsLoading() {}, setSession() {}, storeAdminRole() {},
+    AbortSignal, setIsLoading() {}, setLoadingMessage() {}, setSession() {}, storeAdminRole() {},
     setBootError: (value) => events.push(['bootError', value]),
     loadContentRows: async () => assert.fail('Sign-in must not wait for public content'),
   });
@@ -106,4 +106,22 @@ test('startup API outages show recovery without fetching public content', async 
   vm.runInContext(`${boot}\nglobalThis.start = boot;`, context);
   await context.start();
   assert.ok(events.some(e => Array.isArray(e) && e[0] === 'bootError' && /busy/.test(e[1])));
+});
+
+
+test('dashboard startup does not share the authentication deadline or disable data retries', async () => {
+  const { context } = harness(['SuperAdmin']);
+  let dashboardOptions;
+  Object.assign(context, {
+    setIsLoading() {}, setLoadingMessage() {}, setBootError() {}, setSession() {}, storeAdminRole() {},
+    refreshDashboard: async (_, options) => { dashboardOptions = options; },
+    apiFetch: async () => ({ roles: ['SuperAdmin'] }),
+  });
+  const boot = source.slice(source.indexOf('  async function boot('), source.indexOf('  async function refreshDashboard('));
+  vm.runInContext(`${boot}\nglobalThis.start = boot;`, context);
+  await context.start();
+  assert.ok(dashboardOptions);
+  assert.equal(dashboardOptions.signal, undefined);
+  assert.notEqual(dashboardOptions.retry, false);
+  assert.equal(typeof dashboardOptions.onRetry, 'function');
 });

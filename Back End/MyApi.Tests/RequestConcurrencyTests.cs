@@ -193,6 +193,53 @@ public sealed class RequestConcurrencyTests : IDisposable
         Assert.Same(error, thrown);
     }
 
+    [Theory]
+    [InlineData(ContentChangeAction.Delete, false, true)]
+    [InlineData(ContentChangeAction.Update, false, false)]
+    [InlineData(ContentChangeAction.Delete, true, true)]
+    [InlineData(ContentChangeAction.Update, true, false)]
+    public async Task RemovalApproval_AllowsChangedOrMissingTargetsButProtectsUpdates(
+        ContentChangeAction action, bool removeTarget, bool approved)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        db.Users.Add(new ApplicationUser { Id = "owner", UserName = "owner" });
+        var news = new News { Title = "Original", Content = "Body", Author = "Band", PublicationDate = DateTime.UtcNow };
+        db.News.Add(news);
+        await db.SaveChangesAsync();
+        var validator = new ContentInputValidator(db);
+        var request = new ContentChangeRequest
+        {
+            Id = Guid.NewGuid(), ChangeCode = "CHG-REMOVAL", RequestedByUserId = "owner",
+            ContentType = "news", Action = action, TargetEntityId = news.NewsId.ToString(),
+            TargetVersion = await validator.GetTargetVersionAsync("news", news.NewsId.ToString()),
+            PayloadJson = "{}"
+        };
+        db.ContentChangeRequests.Add(request);
+        news.Title = "Edited after submission";
+        if (removeTarget) db.News.Remove(news);
+        await db.SaveChangesAsync();
+
+        var result = await ContentController(scope).Approve(request.Id, new ReviewRequestDto("Reviewed removal"));
+        if (approved)
+        {
+            Assert.IsType<OkObjectResult>(result.Result);
+            Assert.Empty(await db.News.ToListAsync());
+            Assert.Equal(ContentChangeStatus.Approved, request.Status);
+            Assert.Equal("owner", request.ReviewedBySuperAdminId);
+            Assert.NotNull(request.ReviewedAtUtc);
+            Assert.Contains(await db.AdminAuditLogs.ToListAsync(), log => log.Action == "content_change_approved");
+            Assert.IsType<ConflictObjectResult>((await ContentController(scope).Approve(
+                request.Id, new ReviewRequestDto("Duplicate approval"))).Result);
+        }
+        else
+        {
+            Assert.IsType<ConflictObjectResult>(result.Result);
+            Assert.Equal(ContentChangeStatus.Pending, request.Status);
+            if (!removeTarget) Assert.Equal("Edited after submission", (await db.News.SingleAsync()).Title);
+        }
+    }
+
     private static ControllerContext Actor(string userId) => new()
     {
         HttpContext = new DefaultHttpContext

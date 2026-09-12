@@ -337,6 +337,7 @@ export default function AdminDashboard() {
   const [activeKey, setActiveKey] = useState(COLLECTIONS[0].key);
   const [records, setRecords] = useState({});
   const [summary, setSummary] = useState(null);
+  const [summaryStatus, setSummaryStatus] = useState("idle");
   const [adminPage, setAdminPage] = useState(1);
   const [hasMoreAdmins, setHasMoreAdmins] = useState(false);
   const [hasMoreAudit, setHasMoreAudit] = useState(false);
@@ -361,6 +362,7 @@ export default function AdminDashboard() {
   const [forcedLogoutNotice, setForcedLogoutNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [bootError, setBootError] = useState("");
+  const [loadingMessage, setLoadingMessage] = useState("Loading admin dashboard...");
   const [isMutating, setIsMutating] = useState(false);
   const mutationLock = useRef(false);
   const contentLoadVersion = useRef(0);
@@ -437,6 +439,7 @@ export default function AdminDashboard() {
     }
     setRecords({});
     setSummary(null);
+    setSummaryStatus("idle");
     setDrafts(createInitialDrafts());
     setEditingRecord(null);
     setContentRequests([]);
@@ -491,8 +494,8 @@ export default function AdminDashboard() {
     setIsLoading(true);
     setBootError("");
     setError("");
-    // Bound the entire startup, including response bodies and all collections.
-    const startupOptions = { signal: AbortSignal.timeout(20000), retry: false };
+    setLoadingMessage("Loading admin dashboard...");
+    const startupOptions = { retry: false };
 
     let user;
     try {
@@ -522,7 +525,11 @@ export default function AdminDashboard() {
     }
 
     try {
-      await refreshDashboard(user, startupOptions);
+      await refreshDashboard(user, {
+        onRetry: ({ waitMs }) => setLoadingMessage(
+          `The administration API is busy. Retrying in ${Math.ceil(waitMs / 1000)} seconds...`
+        )
+      });
     } catch (err) {
       setError(err.message || "Some dashboard data could not be loaded.");
     } finally {
@@ -530,11 +537,11 @@ export default function AdminDashboard() {
     }
   }
 
-  async function refreshDashboard(user = session, readOptions = {}) {
+  async function refreshDashboard(user = session, readOptions = {}, scope = {}) {
     const read = (path, options = {}) => apiFetch(path, { ...options, ...readOptions });
-    setSummary(null);
+    setSummaryStatus("refreshing");
     const version = contentLoadVersion.current + 1;
-    const failures = await loadContentRows(readOptions);
+    const failures = await loadContentRows(readOptions, scope.collectionKeys);
     if (version !== contentLoadVersion.current) return;
 
     if (!user) return failures;
@@ -543,10 +550,16 @@ export default function AdminDashboard() {
       const totals = await read("/api/admin-dashboard/summary", { cache: "no-store" });
       if (version !== contentLoadVersion.current) return;
       setSummary(totals);
+      setSummaryStatus("current");
     } catch (err) {
       if (version !== contentLoadVersion.current) return;
       if (handleAdminAccessError(err)) return;
+      setSummaryStatus("stale");
       failures.push("dashboard totals");
+    }
+    if (scope.refreshAdmin === false) {
+      if (failures.length) throw new Error(`Could not refresh: ${failures.join(", ")}.`);
+      return;
     }
     const roles = user.roles ?? [];
     if (roles.includes("SuperAdmin")) {
@@ -593,18 +606,19 @@ export default function AdminDashboard() {
     }
   }
 
-  async function loadContentRows(readOptions = {}) {
+  async function loadContentRows(readOptions = {}, collectionKeys) {
     const version = ++contentLoadVersion.current;
     const result = await loadPublicContent(
-      COLLECTIONS,
+      collectionKeys ? COLLECTIONS.filter((collection) => collectionKeys.includes(collection.key)) : COLLECTIONS,
       (key) => apiFetch(`/api/content/${key}?afterId=0&pageSize=${PAGE_SIZE}`, { cache: "no-store", ...readOptions })
     );
     if (version !== contentLoadVersion.current) return [];
     if (result.records) {
       setRecords((current) => ({ ...current, ...result.records }));
-      setHasMoreRecords(Object.fromEntries(
-        Object.entries(result.records).map(([key, rows]) => [key, rows.length === PAGE_SIZE])
-      ));
+      setHasMoreRecords((current) => ({
+        ...current,
+        ...Object.fromEntries(Object.entries(result.records).map(([key, rows]) => [key, rows.length === PAGE_SIZE]))
+      }));
     }
 
     return result.failures;
@@ -909,7 +923,9 @@ export default function AdminDashboard() {
         [activeCollection.key]: emptyDraft(activeCollection)
       }));
       setEditingRecord(null);
-      await refreshDashboard();
+      await refreshDashboard(session, {}, isSuperAdmin
+        ? { collectionKeys: [activeCollection.key], refreshAdmin: false }
+        : { collectionKeys: [] });
     } catch (err) {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
@@ -977,11 +993,19 @@ export default function AdminDashboard() {
     if (!isSuperAdmin) return;
     if (!beginMutation()) return;
 
+    setError("");
+    const collection = activeCollection;
     try {
-      await apiFetch(`/api/content/${activeCollection.key}/${record[activeCollection.idKey]}`, {
+      await apiFetch(`/api/content/${collection.key}/${record[collection.idKey]}`, {
         method: "DELETE"
       });
-      await refreshDashboard();
+      setRecords((current) => ({
+        ...current,
+        [collection.key]: (current[collection.key] ?? []).filter(
+          (row) => row[collection.idKey] !== record[collection.idKey]
+        )
+      }));
+      await refreshDashboard(session, {}, { collectionKeys: [collection.key], refreshAdmin: false });
     } catch (err) {
       if (!handleAdminAccessError(err)) {
         setError(err.message);
@@ -1146,7 +1170,7 @@ export default function AdminDashboard() {
   }
 
   if (isLoading) {
-    return <p className="admin-empty-state">Loading admin dashboard...</p>;
+    return <p className="admin-empty-state" role="status">{loadingMessage}</p>;
   }
 
   if (bootError) {
@@ -1191,10 +1215,19 @@ export default function AdminDashboard() {
       </div>
 
       <section className="admin-shell" aria-busy={isMutating}>
-        {error && <p className="admin-login-error">{error}</p>}
+        {error && (
+          <div className="admin-login-error" role="alert">
+            <p>{error}</p>
+            <button type="button" onClick={() => void boot()} disabled={isMutating}>Reload dashboard data</button>
+          </div>
+        )}
         {notice && <p className="admin-empty-state">{notice}</p>}
 
-        <div className="admin-summary" aria-label="Dashboard summary">
+        {summaryStatus === "refreshing" && <p role="status">Updating dashboard totals...</p>}
+        {summaryStatus === "stale" && (
+          <p role="status">{summary ? "Showing last successfully loaded totals. Totals could not be refreshed." : "Dashboard totals could not be loaded."}</p>
+        )}
+        <div className="admin-summary" aria-label="Dashboard summary" aria-busy={summaryStatus === "refreshing"}>
           <div className="admin-summary-item">
             <span>Public rows</span>
             <strong>{summary?.publicRows ?? "Unavailable"}</strong>

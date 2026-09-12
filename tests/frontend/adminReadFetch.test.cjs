@@ -3,7 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const test = require("node:test");
 const vm = require("node:vm");
-const context = { module: { exports: {} } };
+const context = { AbortSignal, module: { exports: {} } };
 const source = fs.readFileSync(path.join(__dirname, "../../components/adminReadFetch.js"), "utf8");
 vm.runInNewContext(source.replace("export async function", "async function") + "\nmodule.exports = adminReadFetch;", context);
 const read = context.module.exports;
@@ -47,4 +47,19 @@ test("startup reads surface rate limits immediately and forward their deadline",
   }, async () => assert.fail("Startup must not silently wait for a refill"));
   assert.equal(result.status, 429);
   assert.equal(calls, 1);
+});
+
+
+test("dashboard retries receive fresh deadlines and report rate-limit waits", async () => {
+  const signals = [];
+  const notices = [];
+  const result = await read('/summary', { onRetry: info => notices.push(info) }, async (_, options) => {
+    signals.push(options.signal);
+    assert.equal('onRetry' in options, false);
+    return response(signals.length === 1 ? 429 : 200, '30');
+  }, async () => {});
+  assert.equal(result.status, 200);
+  assert.notEqual(signals[0], signals[1]);
+  assert.equal(signals[1].aborted, false);
+  assert.equal(notices[0].waitMs, 30000);
 });

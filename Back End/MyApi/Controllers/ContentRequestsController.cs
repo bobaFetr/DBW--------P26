@@ -212,12 +212,18 @@ public class ContentRequestsController(
             return Conflict("Only pending content requests can be approved.");
         }
 
-        if (changeRequest.Action is ContentChangeAction.Update or ContentChangeAction.Delete)
+        if (changeRequest.Action == ContentChangeAction.Update)
         {
             var currentVersion = await contentInputValidator.GetTargetVersionAsync(
                 changeRequest.ContentType,
                 changeRequest.TargetEntityId);
-            if (currentVersion is null || currentVersion != changeRequest.TargetVersion)
+            if (currentVersion is null)
+            {
+                return Conflict("The target content no longer exists. This update request cannot be applied.");
+            }
+
+            // Updates must protect edits made since the request was submitted.
+            if (currentVersion != changeRequest.TargetVersion)
             {
                 return Conflict("The target content changed after this request was submitted. Deny this request and submit a new one.");
             }
