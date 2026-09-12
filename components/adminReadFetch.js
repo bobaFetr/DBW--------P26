@@ -1,8 +1,9 @@
 // Retry only reads; mutations must never be replayed automatically.
 export async function adminReadFetch(url, options, fetchImpl = fetch, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))) {
-  const canRetry = ["GET", "HEAD"].includes((options.method ?? "GET").toUpperCase());
+  const { retry = true, ...fetchOptions } = options;
+  const canRetry = retry && ["GET", "HEAD"].includes((options.method ?? "GET").toUpperCase());
   for (let attempt = 0; ; attempt++) {
-    const response = await fetchImpl(url, options);
+    const response = await fetchImpl(url, fetchOptions);
     if (!canRetry || ![429, 503].includes(response.status) || attempt >= 3) return response;
     const retryAfter = response.headers.get("Retry-After");
     const seconds = retryAfter === null ? NaN : Number(retryAfter);

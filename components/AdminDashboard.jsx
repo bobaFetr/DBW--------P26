@@ -11,6 +11,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001"
 const PAGE_SIZE = 50;
 const KICKED_CONTENT_ADMIN_MESSAGE = "Your content admin access has been revoked.";
 const ADMIN_SESSION_ROLE_KEY = "paralyze.adminSessionRole";
+const ADMIN_SECTION_KEY = "paralyze.adminSection";
 
 const CONTENT_ACTION = {
   Create: 1,
@@ -359,6 +360,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [forcedLogoutNotice, setForcedLogoutNotice] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [bootError, setBootError] = useState("");
   const [isMutating, setIsMutating] = useState(false);
   const mutationLock = useRef(false);
   const contentLoadVersion = useRef(0);
@@ -382,6 +384,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (bootStarted.current) return;
     bootStarted.current = true;
+    try {
+      const savedSection = window.sessionStorage.getItem(ADMIN_SECTION_KEY);
+      if (COLLECTIONS.some((collection) => collection.key === savedSection)) {
+        setActiveKey(savedSection);
+      }
+    } catch {
+      // Storage may be disabled; section navigation should still work.
+    }
     void boot();
   }, []);
 
@@ -420,6 +430,11 @@ export default function AdminDashboard() {
     contentLoadVersion.current += 1;
     setSession(null);
     setActiveKey(COLLECTIONS[0].key);
+    try {
+      window.sessionStorage.removeItem(ADMIN_SECTION_KEY);
+    } catch {
+      // Storage is optional.
+    }
     setRecords({});
     setSummary(null);
     setDrafts(createInitialDrafts());
@@ -474,11 +489,14 @@ export default function AdminDashboard() {
 
   async function boot() {
     setIsLoading(true);
+    setBootError("");
     setError("");
+    // Bound the entire startup, including response bodies and all collections.
+    const startupOptions = { signal: AbortSignal.timeout(20000), retry: false };
 
     let user;
     try {
-      user = await apiFetch("/api/auth/me");
+      user = await apiFetch("/api/auth/me", startupOptions);
       storeAdminRole(user);
       setSession(user);
     } catch (err) {
@@ -496,20 +514,15 @@ export default function AdminDashboard() {
         }
         clearStoredAdminRole();
       }
-      try {
-        const failures = await loadContentRows();
-        if (failures.length) {
-          setError(`Could not load: ${failures.join(", ")}.`);
-        }
-      } catch {
-        setError("Public content could not be loaded from the administration API.");
+      if (!(err instanceof ApiError && [401, 403].includes(err.status))) {
+        setBootError("The administration API is unavailable or busy. Please try again shortly.");
       }
       setIsLoading(false);
       return;
     }
 
     try {
-      await refreshDashboard(user);
+      await refreshDashboard(user, startupOptions);
     } catch (err) {
       setError(err.message || "Some dashboard data could not be loaded.");
     } finally {
@@ -517,16 +530,17 @@ export default function AdminDashboard() {
     }
   }
 
-  async function refreshDashboard(user = session) {
+  async function refreshDashboard(user = session, readOptions = {}) {
+    const read = (path, options = {}) => apiFetch(path, { ...options, ...readOptions });
     setSummary(null);
     const version = contentLoadVersion.current + 1;
-    const failures = await loadContentRows();
+    const failures = await loadContentRows(readOptions);
     if (version !== contentLoadVersion.current) return;
 
     if (!user) return failures;
 
     try {
-      const totals = await apiFetch("/api/admin-dashboard/summary", { cache: "no-store" });
+      const totals = await read("/api/admin-dashboard/summary", { cache: "no-store" });
       if (version !== contentLoadVersion.current) return;
       setSummary(totals);
     } catch (err) {
@@ -537,10 +551,10 @@ export default function AdminDashboard() {
     const roles = user.roles ?? [];
     if (roles.includes("SuperAdmin")) {
       const results = await Promise.allSettled([
-        apiFetch(`/api/content-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
-        apiFetch(`/api/content-admins?page=1&pageSize=${PAGE_SIZE}`),
-        apiFetch(`/api/content-admin-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
-        apiFetch("/api/ca-requests-permission")
+        read(`/api/content-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
+        read(`/api/content-admins?page=1&pageSize=${PAGE_SIZE}`),
+        read(`/api/content-admin-requests/pending?page=1&pageSize=${PAGE_SIZE}`),
+        read("/api/ca-requests-permission")
       ]);
       if (version !== contentLoadVersion.current) return;
       if (results[0].status === "fulfilled") {
@@ -563,7 +577,7 @@ export default function AdminDashboard() {
       else failures.push("CA requests permission status");
     } else {
       try {
-        const requests = await apiFetch(`/api/content-requests/mine?page=1&pageSize=${PAGE_SIZE}`);
+        const requests = await read(`/api/content-requests/mine?page=1&pageSize=${PAGE_SIZE}`);
         if (version !== contentLoadVersion.current) return;
         setContentRequests(requests);
         setHasMoreContentRequests(requests.length === PAGE_SIZE);
@@ -579,11 +593,11 @@ export default function AdminDashboard() {
     }
   }
 
-  async function loadContentRows() {
+  async function loadContentRows(readOptions = {}) {
     const version = ++contentLoadVersion.current;
     const result = await loadPublicContent(
       COLLECTIONS,
-      (key) => apiFetch(`/api/content/${key}?afterId=0&pageSize=${PAGE_SIZE}`, { cache: "no-store" })
+      (key) => apiFetch(`/api/content/${key}?afterId=0&pageSize=${PAGE_SIZE}`, { cache: "no-store", ...readOptions })
     );
     if (version !== contentLoadVersion.current) return [];
     if (result.records) {
@@ -1135,6 +1149,15 @@ export default function AdminDashboard() {
     return <p className="admin-empty-state">Loading admin dashboard...</p>;
   }
 
+  if (bootError) {
+    return (
+      <section className="admin-empty-state">
+        <p role="alert">{bootError}</p>
+        <button type="button" onClick={() => void boot()}>Try again</button>
+      </section>
+    );
+  }
+
   if (!session || !isAdmin) {
     return (
       <AdminLogin
@@ -1233,6 +1256,11 @@ export default function AdminDashboard() {
                   }
                   setEditingRecord(null);
                   setActiveKey(collection.key);
+                  try {
+                    window.sessionStorage.setItem(ADMIN_SECTION_KEY, collection.key);
+                  } catch {
+                    // Storage is optional.
+                  }
                 }}
               >
                 <span>{collection.label}</span>

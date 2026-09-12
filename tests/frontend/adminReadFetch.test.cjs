@@ -34,3 +34,17 @@ test("mutations and authentication failures are never retried", async () => {
     assert.equal(calls, 1);
   }
 });
+
+
+test("startup reads surface rate limits immediately and forward their deadline", async () => {
+  const signal = {};
+  let calls = 0;
+  const result = await read("/api/auth/me", { retry: false, signal }, async (_, options) => {
+    calls++;
+    assert.equal(options.signal, signal);
+    assert.equal("retry" in options, false);
+    return response(429, "30");
+  }, async () => assert.fail("Startup must not silently wait for a refill"));
+  assert.equal(result.status, 429);
+  assert.equal(calls, 1);
+});

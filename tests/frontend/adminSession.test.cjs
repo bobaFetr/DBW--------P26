@@ -53,7 +53,7 @@ test('unrelated forbidden response does not claim content-admin revocation', () 
 test('returning with a stored content-admin role and expired cookie prompts sign-in', async () => {
   const { context, events } = harness(['ContentAdmin'], 401);
   Object.assign(context, {
-    setIsLoading() {}, setSession() {}, storeAdminRole() {},
+    setIsLoading() {}, setBootError() {}, AbortSignal, setSession() {}, storeAdminRole() {},
     readStoredAdminRole: () => 'ContentAdmin',
     loadContentRows: async () => [],
   });
@@ -92,4 +92,18 @@ test('incorrect kick confirmation password does not clear a valid reviewer sessi
   await context.kick({ preventDefault() {} });
   assert.ok(!events.includes('reset'));
   assert.ok(events.some((e) => Array.isArray(e) && e[1] === 'Wrong confirmation password'));
+});
+
+
+test('startup API outages show recovery without fetching public content', async () => {
+  const { context, events } = harness([], 503);
+  Object.assign(context, {
+    AbortSignal, setIsLoading() {}, setSession() {}, storeAdminRole() {},
+    setBootError: (value) => events.push(['bootError', value]),
+    loadContentRows: async () => assert.fail('Sign-in must not wait for public content'),
+  });
+  const boot = source.slice(source.indexOf('  async function boot('), source.indexOf('  async function refreshDashboard('));
+  vm.runInContext(`${boot}\nglobalThis.start = boot;`, context);
+  await context.start();
+  assert.ok(events.some(e => Array.isArray(e) && e[0] === 'bootError' && /busy/.test(e[1])));
 });
