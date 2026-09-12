@@ -676,6 +676,14 @@ main {
   overflow-wrap: anywhere;
 }
 
+.timeline-location {
+  color: #ccc;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  overflow-wrap: anywhere;
+}
+
 .timeline-description {
   color: #eee;
   font-size: 1rem;

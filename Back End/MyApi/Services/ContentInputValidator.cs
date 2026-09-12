@@ -251,7 +251,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     {
         return ValidateRequiredDate(timeLine.Date, "Date")
             ?? ValidateRequiredText(timeLine.Event, "Event", 200)
-            ?? ValidateRequiredText(timeLine.Description, "Description", 5_000)
+            ?? ValidateOptionalText(timeLine.Description, "Description", 5_000)
             ?? ValidateOptionalText(timeLine.Location, "Location", 200);
     }
 

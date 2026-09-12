@@ -11,6 +11,22 @@ namespace MyApi.Tests;
 
 public class ContentControllerTests
 {
+    [Theory]
+    [InlineData("{\"date\":\"2026-09-13T00:00:00Z\",\"event\":\"Live show\"}")]
+    [InlineData("{\"date\":\"2026-09-13T00:00:00Z\",\"event\":\"Live show\",\"description\":\"\"}")]
+    [InlineData("{\"date\":\"2026-09-13T00:00:00Z\",\"event\":\"Live show\",\"description\":null}")]
+    public async Task Create_TimelineWithoutDescription_IsPublishedAndReadable(string json)
+    {
+        using var db = TestDb.Create();
+        var controller = CreateController(db);
+        using var payload = JsonDocument.Parse(json);
+        Assert.IsType<OkObjectResult>(await controller.Create("timeline", payload.RootElement, CancellationToken.None));
+        var result = Assert.IsType<OkObjectResult>((await controller.GetAll("timeline", CancellationToken.None)).Result);
+        var timeline = Assert.IsType<TimeLine>(Assert.Single(Assert.IsAssignableFrom<IEnumerable<object>>(result.Value)));
+        Assert.Equal("Live show", timeline.Event);
+        Assert.Equal(string.Empty, timeline.Description);
+    }
+
     [Fact]
     public async Task GetAll_GalleryWithLegacyMissingMedia_ReturnsTheEditableRow()
     {

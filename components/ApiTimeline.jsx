@@ -20,7 +20,8 @@ export default function ApiTimeline() {
         rows.map((row) => ({
           date: formatDate(row.date),
           title: row.event,
-          description: row.description
+          location: row.location?.trim() ?? "",
+          description: row.description?.trim() ?? ""
         }))
       );
     } catch {
@@ -61,7 +62,8 @@ export default function ApiTimeline() {
             <div className="timeline-content">
               <div className="timeline-date">{item.date}</div>
               <div className="timeline-title">{item.title}</div>
-              <div className="timeline-description">{item.description}</div>
+              {item.location && <div className="timeline-location">Location: {item.location}</div>}
+              {item.description && <div className="timeline-description">{item.description}</div>}
             </div>
           </article>
         ))}

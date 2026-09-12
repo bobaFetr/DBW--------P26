@@ -6,6 +6,38 @@ namespace MyApi.Tests;
 public class ContentInputValidatorTests
 {
     [Theory]
+    [InlineData("{}")]
+    [InlineData("{\"description\":null}")]
+    [InlineData("{\"description\":\"\"}")]
+    [InlineData("{\"description\":\"   \"}")]
+    public async Task Timeline_AllowsMissingOrBlankDescription(string optionalFields)
+    {
+        using var db = TestDb.Create();
+        var validator = new ContentInputValidator(db);
+        var fields = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(optionalFields)!;
+        fields["event"] = "Live show";
+        fields["date"] = "2026-09-13T00:00:00Z";
+        var payload = System.Text.Json.JsonSerializer.Serialize(fields);
+        Assert.Null(await validator.ValidateChangeRequestAsync(ContentChangeAction.Create, "timeline", null, payload));
+        var request = new ContentChangeRequest { ContentType = "timeline", Action = ContentChangeAction.Create, PayloadJson = payload };
+        await new ContentChangeApplier(db, validator).ApplyAsync(request);
+        var timeline = Assert.Single(db.TimeLines);
+        Assert.True(string.IsNullOrWhiteSpace(timeline.Description));
+    }
+
+    [Fact]
+    public async Task Timeline_StillRejectsOverlongDescription()
+    {
+        using var db = TestDb.Create();
+        var error = await new ContentInputValidator(db).ValidateEntityAsync(new TimeLine
+        {
+            Date = DateTime.UtcNow, Event = "Live show", Description = new string('x', 5001)
+        });
+        Assert.NotNull(error);
+        Assert.Contains("Description", error);
+    }
+
+    [Theory]
     [InlineData("album", "albums")]
     [InlineData(" Albums ", "albums")]
     [InlineData("single", "singles")]

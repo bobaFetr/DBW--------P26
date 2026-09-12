@@ -130,7 +130,7 @@ const COLLECTIONS = [
       { key: "date", label: "Date", required: true, type: "date" },
       { key: "event", label: "Event", required: true },
       { key: "location", label: "Location", emptyValue: "" },
-      { key: "description", label: "Description", required: true, type: "textarea" }
+      { key: "description", label: "Description (optional)", emptyValue: "", type: "textarea" }
     ],
     title: (record) => record.event,
     meta: (record) => [formatDate(record.date), record.location].filter(Boolean).join(" / "),

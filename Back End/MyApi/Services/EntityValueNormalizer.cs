@@ -13,6 +13,7 @@ public static class EntityValueNormalizer
         {
             case TimeLine timeLine:
                 timeLine.Location ??= string.Empty;
+                timeLine.Description ??= string.Empty;
                 break;
             case Gallery gallery:
                 gallery.Description ??= string.Empty;
