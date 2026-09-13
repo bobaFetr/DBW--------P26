@@ -306,13 +306,20 @@ Limits partition authenticated calls by username and anonymous calls by client I
 | Policy | Capacity | Refill | Applied to |
 |---|---:|---|---|
 | Global concurrency | 12 simultaneous calls | Released when completed | API requests passing rate-limit middleware |
-| Global token bucket | 60 | 30 tokens / 30 seconds | Same global scope |
+| Admin read token bucket | 130 | 1 token / second | Authenticated SuperAdmin/ContentAdmin GET requests |
+| Ordinary token bucket | 60 | 30 tokens / 30 seconds | All other requests passing rate-limit middleware |
 | AuthSensitive | 5 | 2 / minute | Login, anonymous admin registration |
 | AdminMutation | 20 | 10 / minute | Content-request submission, registration-setting change |
 | ReauthSensitive | 5 | 1 / 5 minutes | Content-admin removal |
 | UploadSensitive | 5 | 2 / minute | Image/video upload |
 
 Queues are disabled. Rejected requests return 429. Named limits supplement the global limits; the name AdminMutation does not mean every write has that named policy. Direct content writes and approval/denial endpoints currently rely on the global limiter.
+
+Admin reads and ordinary requests use separate token buckets, but share the same 12 concurrent slots per client. Refreshes therefore cannot consume the ordinary write allowance. The separate buckets allow up to two requests per second combined for an admin doing both reads and writes; admin reads alone retain the previous sustained average of one request per second. Login, upload, and other named policies are unchanged.
+
+A super-admin startup makes 13 API requests (session, seven content collections, summary, and four administration reads); a content-admin startup makes 10. A full admin-read bucket accommodates ten complete super-admin reloads without token-limit waiting, excluding other tabs, focus checks, the 10-second session poll, and overlapping requests. This is a bounded burst allowance, not unlimited refresh or a latency guarantee. After exhaustion the server still returns 429 and the frontend honors Retry-After. Sequential one-second replenishment avoids the previous 30-second refill boundary for admin reads.
+
+Load assessment: the seven collection reads each return at most 50 rows. Summary executes nine database counts for a super-admin and eight for a content-admin, so ten super-admin reloads execute 90 count queries plus list and authentication queries. Counts may become expensive as tables grow. Cookie validation queries users, roles, and active profiles on every authenticated request and runs BEFORE the rate limiter; the limiter does not protect that authentication work. Limits are per client and per API process, not a shared server/database capacity limit. Multiple admins, multiple API instances, and repeated abandoned browser loads can still overload a small database. No production capacity claim follows from limiter tests; validating that requires representative database sizes and concurrent-user load measurements (latency, database CPU, connections, and 429 rate). No sensitive data is cached and authorization freshness is preserved by this change.
 
 Database migrations run at API startup. Bootstrap uses `InitialAdminBootstrapCompleted` to avoid recreating administrator accounts on every restart. Initial administrators are created only for an empty, not-yet-bootstrapped user database. Existing users are not silently promoted or repaired by the seeder.
 

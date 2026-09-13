@@ -7,6 +7,45 @@ public class ContentInputValidatorTests
 {
     [Theory]
     [InlineData("{}")]
+    [InlineData("{\"content\":null}")]
+    [InlineData("{\"content\":\"\"}")]
+    [InlineData("{\"content\":\"   \"}")]
+    public async Task News_AllowsMissingOrBlankContent(string optionalFields)
+    {
+        using var db = TestDb.Create();
+        var validator = new ContentInputValidator(db);
+        var fields = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object?>>(optionalFields)!;
+        fields["title"] = "Band update";
+        fields["author"] = "Band";
+        fields["publicationDate"] = "2026-09-13T00:00:00Z";
+        var payload = System.Text.Json.JsonSerializer.Serialize(fields);
+        Assert.Null(await validator.ValidateChangeRequestAsync(ContentChangeAction.Create, "news", null, payload));
+        await new ContentChangeApplier(db, validator).ApplyAsync(new ContentChangeRequest
+        {
+            ContentType = "news", Action = ContentChangeAction.Create, PayloadJson = payload
+        });
+        var news = Assert.Single(db.News);
+        Assert.NotNull(news.Content);
+        Assert.True(string.IsNullOrWhiteSpace(news.Content));
+        Assert.True(System.ComponentModel.DataAnnotations.Validator.TryValidateObject(
+            news, new System.ComponentModel.DataAnnotations.ValidationContext(news), null, true));
+    }
+
+    [Fact]
+    public async Task News_StillRejectsOverlongContent()
+    {
+        using var db = TestDb.Create();
+        var error = await new ContentInputValidator(db).ValidateEntityAsync(new News
+        {
+            Title = "Update", Author = "Band", PublicationDate = DateTime.UtcNow,
+            Content = new string('x', 10_001)
+        });
+        Assert.NotNull(error);
+        Assert.Contains("Content", error);
+    }
+
+    [Theory]
+    [InlineData("{}")]
     [InlineData("{\"description\":null}")]
     [InlineData("{\"description\":\"\"}")]
     [InlineData("{\"description\":\"   \"}")]

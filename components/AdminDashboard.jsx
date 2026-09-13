@@ -115,7 +115,7 @@ const COLLECTIONS = [
       { key: "title", label: "Title", required: true },
       { key: "publicationDate", label: "Publication date", required: true, type: "date" },
       { key: "author", label: "Author", required: true },
-      { key: "content", label: "Content", required: true, type: "textarea" }
+      { key: "content", label: "Content (optional)", type: "textarea", emptyValue: "" }
     ],
     title: (record) => record.title,
     meta: (record) => [formatDate(record.publicationDate), record.author].filter(Boolean).join(" / "),
@@ -233,6 +233,31 @@ function formatPreviewValue(value) {
   return String(value);
 }
 
+function RequestFieldPreview({ field, value, version = "Submitted" }) {
+  const imageUrl = field.type === "image" ? safeAdminMediaUrl(value) : null;
+  const [failedUrl, setFailedUrl] = useState(null);
+  if (!imageUrl) return formatPreviewValue(value);
+
+  return (
+    <span className="admin-request-photo">
+      {failedUrl === imageUrl ? (
+        <small>Photo preview could not be loaded.</small>
+      ) : (
+        /* Uploaded images are served by the API and may also be external URLs. */
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={imageUrl}
+          alt={`${version} ${field.label.toLowerCase()}`}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailedUrl(imageUrl)}
+        />
+      )}
+      <a href={imageUrl} target="_blank" rel="noopener noreferrer">Open full-size photo</a>
+    </span>
+  );
+}
+
 function getChangedFields(collection, current, payload) {
   if (!payload) return [];
 
@@ -246,6 +271,7 @@ function getChangedFields(collection, current, payload) {
       return {
         key: field.key,
         label: field.label,
+        type: field.type,
         before,
         after,
         changed: String(before ?? "") !== String(after ?? "")
@@ -1481,6 +1507,13 @@ export default function AdminDashboard() {
                       </div>
                       <p className="meta">{activeCollection.meta(record)}</p>
                       <p>{activeCollection.detail(record)}</p>
+                      {activeCollection.key === "members" && record.photoUrl && (
+                        <RequestFieldPreview
+                          field={{ type: "image", label: `photo of ${record.name}` }}
+                          value={record.photoUrl}
+                          version="Published"
+                        />
+                      )}
                       <small>Visible on public site</small>
                     </div>
                     <div className="admin-record-actions">
@@ -1569,8 +1602,8 @@ export default function AdminDashboard() {
                             changedFields.map((field) => (
                               <div className="admin-change-row" key={field.key}>
                                 <span>{field.label}</span>
-                                <del>{formatPreviewValue(field.before)}</del>
-                                <strong>{formatPreviewValue(field.after)}</strong>
+                                <del><RequestFieldPreview field={field} value={field.before} version="Current" /></del>
+                                <strong><RequestFieldPreview field={field} value={field.after} /></strong>
                               </div>
                             ))
                           ) : (
@@ -1583,7 +1616,7 @@ export default function AdminDashboard() {
                           {collection.fields.map((field) => (
                             <div className="admin-change-row" key={field.key}>
                               <span>{field.label}</span>
-                              <strong>{formatPreviewValue(payload[field.key])}</strong>
+                              <strong><RequestFieldPreview field={field} value={payload[field.key]} /></strong>
                             </div>
                           ))}
                         </div>

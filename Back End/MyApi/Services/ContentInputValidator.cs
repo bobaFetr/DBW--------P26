@@ -243,7 +243,7 @@ public sealed class ContentInputValidator(AppDbContext dbContext) : IContentInpu
     {
         return ValidateRequiredDate(news.PublicationDate, "PublicationDate")
             ?? ValidateRequiredText(news.Title, "Title", 200)
-            ?? ValidateRequiredText(news.Content, "Content", 10_000)
+            ?? ValidateOptionalText(news.Content, "Content", 10_000)
             ?? ValidateRequiredText(news.Author, "Author", 150);
     }
 

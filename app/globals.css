@@ -2430,6 +2430,28 @@ body.lightbox-open {
   color: var(--text-main);
 }
 
+.admin-request-photo,
+.admin-change-row .admin-request-photo {
+  display: grid;
+  gap: 8px;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.admin-request-photo img {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  height: 180px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.admin-request-photo a {
+  font-size: 0.85rem;
+}
+
 .admin-change-row del {
   color: #b9b9b9;
   text-decoration-thickness: 2px;

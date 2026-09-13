@@ -165,26 +165,7 @@ builder.Services.AddRateLimiter(options =>
 
         await context.HttpContext.Response.WriteAsync("Too many requests.", cancellationToken);
     };
-    options.GlobalLimiter = PartitionedRateLimiter.CreateChained(
-        PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            RateLimitPartition.GetConcurrencyLimiter(
-                GetClientPartition(context),
-                _ => new ConcurrencyLimiterOptions
-                {
-                    PermitLimit = 12,
-                    QueueLimit = 0
-                })),
-        PartitionedRateLimiter.Create<HttpContext, string>(context =>
-            RateLimitPartition.GetTokenBucketLimiter(
-                GetClientPartition(context),
-                _ => new TokenBucketRateLimiterOptions
-                {
-                    TokenLimit = 60,
-                    TokensPerPeriod = 30,
-                    ReplenishmentPeriod = TimeSpan.FromSeconds(30),
-                    AutoReplenishment = true,
-                    QueueLimit = 0
-                })));
+    options.GlobalLimiter = GlobalRequestLimiter.Create(GetClientPartition);
 
     options.AddPolicy(AuthRateLimitPolicy, context =>
         RateLimitPartition.GetTokenBucketLimiter(
