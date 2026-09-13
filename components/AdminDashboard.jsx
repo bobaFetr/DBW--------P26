@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { displayImageInputValue, normalizeDraft, parseSongRows } from "./adminDraft";
 import AdminLogin from "./AdminLogin";
 import { loadPublicContent } from "./adminContent";
+import { loadOwnRequestStatus, deniedRequestExpiresAt, isVisibleOwnRequest } from "./adminRequestStatus";
 import { adminReadFetch } from "./adminReadFetch";
 import { resolveApiMediaUrl } from "./securityUrls";
 
@@ -258,6 +259,23 @@ function RequestFieldPreview({ field, value, version = "Submitted" }) {
   );
 }
 
+function ReviewNoteInput({ value, onChange, disabled }) {
+  return (
+    <label className="admin-review-note">
+      <span>Review note (optional)</span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        maxLength={1000}
+        rows={3}
+        disabled={disabled}
+        placeholder="Explain your decision for this request"
+      />
+      <small>Saved when you click Approve or Deny. {value.length}/1000 characters.</small>
+    </label>
+  );
+}
+
 function getChangedFields(collection, current, payload) {
   if (!payload) return [];
 
@@ -381,7 +399,9 @@ export default function AdminDashboard() {
   const [kickConfirmation, setKickConfirmation] = useState(null);
   const [kickPassword, setKickPassword] = useState("");
   const [editingRecord, setEditingRecord] = useState(null);
-  const [reviewNote, setReviewNote] = useState("");
+  const [reviewNotes, setReviewNotes] = useState({});
+  const [requestStatusError, setRequestStatusError] = useState("");
+  const [requestExpiryTick, setRequestExpiryTick] = useState(0);
   const [uploadingField, setUploadingField] = useState("");
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
@@ -405,8 +425,8 @@ export default function AdminDashboard() {
   const activeRecords = records[activeCollection.key] ?? [];
   const activeDraft = drafts[activeCollection.key] ?? emptyDraft(activeCollection);
   const isEditing = editingRecord?.collectionKey === activeCollection.key;
-  const pendingRequests = contentRequests.filter(
-    (request) => normalizeStatus(request.status) === "Pending"
+  const visibleContentRequests = contentRequests.filter(
+    (request) => isSuperAdmin && normalizeStatus(request.status) === "Pending"
   );
 
   useEffect(() => {
@@ -454,6 +474,58 @@ export default function AdminDashboard() {
     };
   }, [session?.id, session?.roles, isAdmin]);
 
+  useEffect(() => {
+    if (!isAdmin || isSuperAdmin) return undefined;
+    const controller = new AbortController();
+    let inFlight = false;
+    async function updateRequestStatus() {
+      if (inFlight || mutationLock.current || document.hidden) return;
+      inFlight = true;
+      const version = contentLoadVersion.current;
+      try {
+        const read = (path) => apiFetch(path, {
+          retry: false, cache: "no-store",
+          signal: AbortSignal.any([controller.signal, AbortSignal.timeout(20000)])
+        });
+        const [result, totals] = await Promise.all([
+          loadOwnRequestStatus(read, contentRequests.length, PAGE_SIZE),
+          read("/api/admin-dashboard/summary")
+        ]);
+        if (controller.signal.aborted || mutationLock.current || version !== contentLoadVersion.current) return;
+        setContentRequests(result.requests);
+        setHasMoreContentRequests(result.hasMore);
+        setSummary(totals);
+        setSummaryStatus("current");
+        setRequestStatusError("");
+      } catch (err) {
+        if (!controller.signal.aborted && version === contentLoadVersion.current && !handleAdminAccessError(err)) {
+          setRequestStatusError("Request decisions could not be updated. Showing the last loaded status.");
+        }
+      } finally {
+        inFlight = false;
+      }
+    }
+    const interval = window.setInterval(updateRequestStatus, 10000);
+    window.addEventListener("focus", updateRequestStatus);
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+      window.removeEventListener("focus", updateRequestStatus);
+    };
+  }, [session?.id, isAdmin, isSuperAdmin, contentRequests.length]);
+
+  useEffect(() => {
+    if (!isAdmin || isSuperAdmin) return undefined;
+    const now = Date.now();
+    const expirations = contentRequests.map(deniedRequestExpiresAt)
+      .filter((expiresAt) => expiresAt !== null && expiresAt > now);
+    if (!expirations.length) return undefined;
+    // Expire locally even if polling fails. Refetching never restarts the minute.
+    const timer = window.setTimeout(() => setRequestExpiryTick((tick) => tick + 1),
+      Math.min(Math.min(...expirations) - now, 60000));
+    return () => window.clearTimeout(timer);
+  }, [contentRequests, isAdmin, isSuperAdmin, requestExpiryTick]);
+
   function resetAdminState() {
     contentLoadVersion.current += 1;
     setSession(null);
@@ -480,7 +552,8 @@ export default function AdminDashboard() {
     setAdminRequests([]);
     setAuditLogs([]);
     setSelectedAuditUserId("");
-    setReviewNote("");
+    setReviewNotes({});
+    setRequestStatusError("");
     setUploadingField("");
     setKickConfirmation(null);
     setKickPassword("");
@@ -962,40 +1035,35 @@ export default function AdminDashboard() {
   }
 
   async function approveRequest(requestId) {
-    if (!isSuperAdmin) return;
-    if (!beginMutation()) return;
-
-    try {
-      await apiFetch(`/api/content-requests/${requestId}/approve`, {
-        method: "POST",
-        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved for public site" })
-      });
-      setReviewNote("");
-      await refreshDashboard();
-    } catch (err) {
-      if (!handleAdminAccessError(err)) {
-        setError(err.message);
-      }
-    } finally {
-      endMutation();
-    }
+    await submitReview("content", requestId, "approve");
   }
 
   async function denyRequest(requestId) {
-    if (!isSuperAdmin) return;
-    if (!beginMutation()) return;
+    await submitReview("content", requestId, "deny");
+  }
 
+  async function submitReview(kind, requestId, decision) {
+    if (!isSuperAdmin || !beginMutation()) return;
+    const key = `${kind}:${requestId}`;
+    const note = (reviewNotes[key] ?? "").trim();
+    setError("");
+    setNotice("");
     try {
-      await apiFetch(`/api/content-requests/${requestId}/deny`, {
+      if (note.length > 1000) throw new Error("Review notes must be 1,000 characters or fewer.");
+      const endpoint = kind === "content" ? "content-requests" : "content-admin-requests";
+      const result = await apiFetch(`/api/${endpoint}/${requestId}/${decision}`, {
         method: "POST",
-        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
+        body: JSON.stringify({ reviewNote: note || null })
       });
-      setReviewNote("");
+      setReviewNotes((current) => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+      setNotice(`${result.changeCode ?? "Signup request"} ${decision === "approve" ? "approved" : "denied"}.${result.reviewNote ? ` Review note saved: ${result.reviewNote}` : ""}`);
       await refreshDashboard();
     } catch (err) {
-      if (!handleAdminAccessError(err)) {
-        setError(err.message);
-      }
+      if (!handleAdminAccessError(err)) setError(err.message);
     } finally {
       endMutation();
     }
@@ -1069,39 +1137,11 @@ export default function AdminDashboard() {
   }
 
   async function approveAdminRequest(requestId) {
-    if (!beginMutation()) return;
-    try {
-      await apiFetch(`/api/content-admin-requests/${requestId}/approve`, {
-        method: "POST",
-        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Approved as content admin" })
-      });
-      setReviewNote("");
-      await refreshDashboard();
-    } catch (err) {
-      if (!handleAdminAccessError(err)) {
-        setError(err.message);
-      }
-    } finally {
-      endMutation();
-    }
+    await submitReview("signup", requestId, "approve");
   }
 
   async function denyAdminRequest(requestId) {
-    if (!beginMutation()) return;
-    try {
-      await apiFetch(`/api/content-admin-requests/${requestId}/deny`, {
-        method: "POST",
-        body: JSON.stringify({ reviewNote: reviewNote.trim() || "Denied by super admin" })
-      });
-      setReviewNote("");
-      await refreshDashboard();
-    } catch (err) {
-      if (!handleAdminAccessError(err)) {
-        setError(err.message);
-      }
-    } finally {
-      endMutation();
-    }
+    await submitReview("signup", requestId, "deny");
   }
 
   function beginKickContentAdmin(profile) {
@@ -1497,6 +1537,33 @@ export default function AdminDashboard() {
             </form>
 
             <div className="admin-record-list" aria-live="polite">
+              {!isSuperAdmin && contentRequests
+                .filter((request) => String(request.contentType).toLowerCase() === activeCollection.key
+                  && isVisibleOwnRequest(request))
+                .map((request) => {
+                  const status = normalizeStatus(request.status);
+                  const payload = safeParsePayload(request.payloadJson);
+                  return (
+                    <article className="admin-record" key={`request-${request.id}`}>
+                      <div>
+                        <div className="admin-record-topline">
+                          <h4>{payload && activeCollection.title(payload) || request.changeCode}</h4>
+                          <span className={`status-${status.toLowerCase()}`}>
+                            {status === "Pending" ? "Awaiting review" : "Denied"}
+                          </span>
+                        </div>
+                        <p className="meta">{normalizeAction(request.action)} request · {request.changeCode}</p>
+                        {status === "Denied" && (
+                          <p className="admin-saved-review-note">
+                            <strong>Super-admin review note:</strong> {request.reviewNote || "No review note was provided."}
+                          </p>
+                        )}
+                        {status === "Pending" && <small>Awaiting a super-admin decision.</small>}
+                      </div>
+                    </article>
+                  );
+                })}
+              {!isSuperAdmin && requestStatusError && <p role="status">{requestStatusError}</p>}
               {activeRecords.length ? (
                 activeRecords.map((record) => (
                   <article className="admin-record" key={record[activeCollection.idKey]}>
@@ -1544,31 +1611,26 @@ export default function AdminDashboard() {
                 Load more {activeCollection.label.toLowerCase()}
               </button>
             )}
+            {!isSuperAdmin && hasMoreContentRequests && (
+              <button type="button" onClick={loadMoreContentRequests} disabled={isMutating}>
+                Load older request decisions
+              </button>
+            )}
           </div>
         </div>
 
+        {isSuperAdmin && (
         <div className="admin-review-panel">
           <div className="admin-editor-heading">
             <div>
-              <h3>ContentChangeRequests</h3>
-              <p>Pending content changes awaiting review by a super admin.</p>
+              <h3>Content change requests</h3>
+              <p>Pending content changes awaiting your review.</p>
             </div>
           </div>
 
-          {isSuperAdmin && (
-            <label className="admin-review-note">
-              <span>Review note</span>
-              <input
-                value={reviewNote}
-                onChange={(event) => setReviewNote(event.target.value)}
-                placeholder="Optional approval or denial note"
-              />
-            </label>
-          )}
-
           <div className="admin-record-list">
-            {pendingRequests.length ? (
-              pendingRequests.map((request) => {
+            {visibleContentRequests.length ? (
+              visibleContentRequests.map((request) => {
                 const collection = COLLECTIONS.find(
                   (item) => item.key === String(request.contentType).toLowerCase()
                 );
@@ -1596,7 +1658,7 @@ export default function AdminDashboard() {
                         {request.requestedByUserName ?? request.requestedByUserId}
                       </p>
                       <p>{payload && collection?.title(payload) ? collection.title(payload) : request.message}</p>
-                      {action === "Update" && (
+                      {action === "Update" && status === "Pending" && (
                         <div className="admin-change-preview">
                           {changedFields.length ? (
                             changedFields.map((field) => (
@@ -1621,12 +1683,19 @@ export default function AdminDashboard() {
                           ))}
                         </div>
                       )}
-                      {action === "Delete" && targetRecord && (
+                      {action === "Delete" && status === "Pending" && targetRecord && (
                         <div className="admin-change-preview">
                           <small>Will remove {collection?.title(targetRecord)} from the public site.</small>
                         </div>
                       )}
-                      {request.reviewNote ? <small>{request.reviewNote}</small> : null}
+                      {request.reviewNote ? <p className="admin-saved-review-note"><strong>Review note:</strong> {request.reviewNote}</p> : null}
+                      {isSuperAdmin && status === "Pending" && (
+                        <ReviewNoteInput
+                          value={reviewNotes[`content:${request.id}`] ?? ""}
+                          onChange={(value) => setReviewNotes((current) => ({ ...current, [`content:${request.id}`]: value }))}
+                          disabled={isMutating}
+                        />
+                      )}
                     </div>
                     <div className="admin-record-actions">
                       {isSuperAdmin && status === "Pending" && (
@@ -1638,11 +1707,6 @@ export default function AdminDashboard() {
                             Deny
                           </button>
                         </>
-                      )}
-                      {!isSuperAdmin && status === "Pending" && (
-                        <button type="button" onClick={() => cancelRequest(request.id)}>
-                          Cancel
-                        </button>
                       )}
                     </div>
                   </article>
@@ -1659,6 +1723,7 @@ export default function AdminDashboard() {
           )}
         </div>
 
+        )}
         {isSuperAdmin && (
           <>
             <div className="admin-review-panel">
@@ -1679,6 +1744,11 @@ export default function AdminDashboard() {
                         </div>
                         <p className="meta">{request.email}</p>
                         <p>{request.message}</p>
+                        <ReviewNoteInput
+                          value={reviewNotes[`signup:${request.id}`] ?? ""}
+                          onChange={(value) => setReviewNotes((current) => ({ ...current, [`signup:${request.id}`]: value }))}
+                          disabled={isMutating}
+                        />
                       </div>
                       <div className="admin-record-actions">
                         <button type="button" onClick={() => approveAdminRequest(request.id)}>

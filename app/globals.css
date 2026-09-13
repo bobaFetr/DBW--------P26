@@ -2286,6 +2286,7 @@ body.lightbox-open {
 
 .admin-form input,
 .admin-form textarea,
+.admin-review-note textarea,
 .admin-review-note input,
 .admin-kick-confirmation input,
 .admin-export textarea {
@@ -2305,6 +2306,7 @@ body.lightbox-open {
 }
 
 .admin-form textarea,
+.admin-review-note textarea,
 .admin-export textarea {
   padding: 12px;
   resize: vertical;
@@ -2312,6 +2314,7 @@ body.lightbox-open {
 
 .admin-form input:focus,
 .admin-form textarea:focus,
+.admin-review-note textarea:focus,
 .admin-review-note input:focus,
 .admin-kick-confirmation input:focus,
 .admin-export textarea:focus {
@@ -2485,6 +2488,11 @@ body.lightbox-open {
   gap: 8px;
   color: var(--text-muted);
   font-weight: bold;
+}
+
+.admin-saved-review-note {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .admin-kick-confirmation {
