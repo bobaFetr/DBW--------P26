@@ -108,5 +108,10 @@ export default function ApiCardGrid({ contentType, emptyMessage = "No content ha
     return <p className="content-empty-state">{emptyMessage}</p>;
   }
 
-  return <CardGrid cards={cards} />;
+  return (
+    <CardGrid
+      cards={cards}
+      className={contentType === "members" ? "member-card-grid" : ""}
+    />
+  );
 }

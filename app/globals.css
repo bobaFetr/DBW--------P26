@@ -462,12 +462,13 @@ main {
 }
 
 .album-card-grid {
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  width: min(85%, 1320px);
-  margin-inline: auto;
+  /* Keep album and member cards the same width: a responsive maximum of 360px. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 360px));
+  justify-content: center;
 }
 
 .member-card-grid {
+  /* Keep this 360px maximum in sync with .album-card-grid above. */
   grid-template-columns: minmax(0, 360px);
   justify-content: center;
 }
@@ -516,9 +517,9 @@ main {
 }
 
 .album-card-grid .card-cover {
-  height: clamp(260px, 30vw, 420px);
+  height: auto;
   min-height: 0;
-  aspect-ratio: auto;
+  aspect-ratio: 1 / 1;
 }
 
 .album-card-grid .card-cover img {
