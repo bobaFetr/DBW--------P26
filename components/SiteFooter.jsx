@@ -51,6 +51,14 @@ export default function SiteFooter() {
             >
               Tik Tok
             </a>
+            <a
+              href="https://www.instagram.com/paralyze___?utm_source=ig_web_button_share_sheet&stkn=ZDNlZDc0MzIxNw=="
+              target="_blank"
+              rel="noreferrer"
+              className="footer-pill"
+            >
+              Instagram
+            </a>
           </div>
         </div>
 
