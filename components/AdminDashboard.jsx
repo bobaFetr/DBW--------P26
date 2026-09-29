@@ -336,9 +336,9 @@ async function apiFetch(path, options = {}) {
     try {
       const body = text ? JSON.parse(text) : null;
       code = body?.code;
-      message = Array.isArray(body)
+      message = (Array.isArray(body)
         ? body.map((item) => item.description ?? item.code ?? JSON.stringify(item)).join(" ")
-        : body?.title ?? body?.message ?? JSON.stringify(body);
+        : body?.title ?? body?.message ?? (body === null ? "" : JSON.stringify(body))) || message;
     } catch {
       if (text) message = text;
     }
@@ -355,25 +355,37 @@ async function apiFetch(path, options = {}) {
 
 function readStoredAdminRole() {
   if (typeof window === "undefined") return "";
-  return window.localStorage.getItem(ADMIN_SESSION_ROLE_KEY) ?? "";
+  try {
+    return window.localStorage.getItem(ADMIN_SESSION_ROLE_KEY) ?? "";
+  } catch {
+    return "";
+  }
 }
 
 function storeAdminRole(user) {
   if (typeof window === "undefined") return;
 
-  const roles = user?.roles ?? [];
-  if (roles.includes("SuperAdmin")) {
-    window.localStorage.setItem(ADMIN_SESSION_ROLE_KEY, "SuperAdmin");
-  } else if (roles.includes("ContentAdmin")) {
-    window.localStorage.setItem(ADMIN_SESSION_ROLE_KEY, "ContentAdmin");
-  } else {
-    window.localStorage.removeItem(ADMIN_SESSION_ROLE_KEY);
+  try {
+    const roles = user?.roles ?? [];
+    if (roles.includes("SuperAdmin")) {
+      window.localStorage.setItem(ADMIN_SESSION_ROLE_KEY, "SuperAdmin");
+    } else if (roles.includes("ContentAdmin")) {
+      window.localStorage.setItem(ADMIN_SESSION_ROLE_KEY, "ContentAdmin");
+    } else {
+      window.localStorage.removeItem(ADMIN_SESSION_ROLE_KEY);
+    }
+  } catch {
+    // This optional notice hint must not prevent cookie-based sign-in.
   }
 }
 
 function clearStoredAdminRole() {
   if (typeof window === "undefined") return;
-  window.localStorage.removeItem(ADMIN_SESSION_ROLE_KEY);
+  try {
+    window.localStorage.removeItem(ADMIN_SESSION_ROLE_KEY);
+  } catch {
+    // Sign-out must work even when browser storage is unavailable.
+  }
 }
 
 export default function AdminDashboard() {

@@ -10,12 +10,14 @@ function formatDate(value) {
 export default function ApiTimeline() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   const loadTimeline = useCallback(async () => {
     try {
       const rows = await loadPublicContent("timeline", {
         cache: "no-store"
       });
+      setLoadError(false);
       setItems(
         rows.map((row) => ({
           date: formatDate(row.date),
@@ -25,7 +27,7 @@ export default function ApiTimeline() {
         }))
       );
     } catch {
-      // Leave the timeline empty when the API is offline.
+      setLoadError(true);
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +54,8 @@ export default function ApiTimeline() {
   return (
     <section className="timeline-section">
       {isLoading ? <p className="content-empty-state">Loading timeline...</p> : null}
-      {!isLoading && !items.length ? (
+      {loadError ? <p className="content-empty-state" role="alert">Timeline could not be refreshed. Please reload the page to try again.</p> : null}
+      {!isLoading && !loadError && !items.length ? (
         <p className="content-empty-state">No timeline entries have been published yet.</p>
       ) : null}
       <div className="timeline">

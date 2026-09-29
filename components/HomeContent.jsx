@@ -122,7 +122,7 @@ export default function HomeContent() {
   const stats = useMemo(
     () => COLLECTIONS.map((collection) => ({
       label: collection.label,
-      value: data[collection.key]?.length ?? 0
+      value: data[collection.key]?.length ?? "Unavailable"
     })),
     [data]
   );
@@ -150,7 +150,7 @@ export default function HomeContent() {
         </p>
       ) : null}
       {!isLoading && latestCards.length ? <CardGrid cards={latestCards} /> : null}
-      {!isLoading && !latestCards.length ? (
+      {!isLoading && !unavailableCollections.length && !latestCards.length ? (
         <p className="content-empty-state">No featured content has been published yet.</p>
       ) : null}
     </>

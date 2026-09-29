@@ -14,6 +14,38 @@ namespace MyApi.Tests;
 public class AdminLifecycleTests
 {
     [Fact]
+    public async Task AuthenticatedSignup_RespectsPermissionToggle()
+    {
+        var collection = new ServiceCollection();
+        collection.AddLogging();
+        collection.AddDbContext<AppDbContext>(o => o.UseInMemoryDatabase(Guid.NewGuid().ToString()));
+        collection.AddIdentityCore<ApplicationUser>().AddRoles<IdentityRole>().AddEntityFrameworkStores<AppDbContext>();
+        using var services = collection.BuildServiceProvider();
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var candidate = new ApplicationUser { UserName = "candidate", EmailConfirmed = true };
+        Assert.True((await users.CreateAsync(candidate)).Succeeded);
+        var setting = new SiteSetting { Key = CaRequestsPermissionController.SettingKey, BooleanValue = false };
+        db.SiteSettings.Add(setting);
+        await db.SaveChangesAsync();
+        var controller = new AdminRequestsController(db, users, new CodeGenerator(), new AuditLogger(db))
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext {
+                User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, candidate.Id)], "test"))
+            }}
+        };
+        var denied = await controller.Create(new CreateAdminRequestDto("Please approve"));
+        Assert.Equal(403, Assert.IsType<ObjectResult>(denied.Result).StatusCode);
+        Assert.Empty(db.AdminRequests);
+        setting.BooleanValue = true;
+        await db.SaveChangesAsync();
+        var allowed = await controller.Create(new CreateAdminRequestDto("Please approve"));
+        Assert.IsType<CreatedAtActionResult>(allowed.Result);
+        Assert.Single(db.AdminRequests);
+    }
+
+    [Fact]
     public async Task Signup_Duplicate_Denial_Reapplication_Approval_Revocation_Reapproval()
     {
         var collection = new ServiceCollection();

@@ -5,6 +5,27 @@ const vm = require('node:vm');
 const test = require('node:test');
 
 const source = fs.readFileSync(path.join(__dirname, '../../components/AdminDashboard.jsx'), 'utf8');
+test('blocked browser storage does not interrupt session setup or cleanup', () => {
+  const context = { ADMIN_SESSION_ROLE_KEY: 'role', window: {} };
+  Object.defineProperty(context.window, 'localStorage', { get() { throw new Error('Storage blocked'); } });
+  vm.createContext(context);
+  vm.runInContext(source.slice(source.indexOf('function readStoredAdminRole('), source.indexOf('export default function AdminDashboard')), context);
+  assert.equal(context.readStoredAdminRole(), '');
+  assert.doesNotThrow(() => context.storeAdminRole({ roles: ['SuperAdmin'] }));
+  assert.doesNotThrow(() => context.clearStoredAdminRole());
+});
+
+test('empty API error bodies retain a useful HTTP error message', async () => {
+  const context = {
+    API_BASE: 'http://localhost:5001',
+    adminReadFetch: async () => ({ ok: false, status: 403, statusText: 'Forbidden', text: async () => '' })
+  };
+  vm.createContext(context);
+  vm.runInContext(source.slice(source.indexOf('class ApiError'), source.indexOf('const COLLECTIONS')) +
+    source.slice(source.indexOf('function isUnsafeMethod('), source.indexOf('function readStoredAdminRole(')), context);
+  await assert.rejects(context.apiFetch('/test'), { message: '403 Forbidden' });
+});
+
 function harness(roles, status) {
   const events = [];
   const context = {

@@ -21,6 +21,15 @@ public class AdminRequestsController(
     [Authorize]
     public async Task<ActionResult<AdminRequestResponse>> Create(CreateAdminRequestDto request)
     {
+        var requestsEnabled = await dbContext.SiteSettings
+            .Where(setting => setting.Key == CaRequestsPermissionController.SettingKey)
+            .Select(setting => setting.BooleanValue)
+            .SingleOrDefaultAsync();
+        if (!requestsEnabled)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, "CA requests are forbidden");
+        }
+
         var user = await userManager.GetUserAsync(User);
         if (user is null)
         {

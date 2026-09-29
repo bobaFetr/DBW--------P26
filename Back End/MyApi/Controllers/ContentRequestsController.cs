@@ -76,17 +76,14 @@ public class ContentRequestsController(
         dbContext.ContentChangeRequests.Add(changeRequest);
         await dbContext.SaveChangesAsync();
 
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync();
-        }
-
         await auditLogger.LogAsync(
             user.Id,
             "content_change_requested",
             user.Id,
             nameof(ContentChangeRequest),
             changeRequest.Id.ToString());
+
+        if (transaction is not null) await transaction.CommitAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = changeRequest.Id }, ToResponse(changeRequest));
     }
@@ -268,17 +265,14 @@ public class ContentRequestsController(
             return BadRequest("TargetEntityId is outside the supported range.");
         }
 
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync();
-        }
-
         await auditLogger.LogAsync(
             changeRequest.RequestedByUserId,
             "content_change_approved",
             superAdmin.Id,
             nameof(ContentChangeRequest),
             changeRequest.Id.ToString());
+
+        if (transaction is not null) await transaction.CommitAsync();
 
         return Ok(ToResponse(changeRequest));
     }
@@ -323,17 +317,14 @@ public class ContentRequestsController(
             return Conflict("Only pending content requests can be denied.");
         }
 
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync();
-        }
-
         await auditLogger.LogAsync(
             changeRequest.RequestedByUserId,
             "content_change_denied",
             superAdmin.Id,
             nameof(ContentChangeRequest),
             changeRequest.Id.ToString());
+
+        if (transaction is not null) await transaction.CommitAsync();
 
         return Ok(ToResponse(changeRequest));
     }
@@ -350,6 +341,10 @@ public class ContentRequestsController(
         {
             return Unauthorized();
         }
+
+        await using var transaction = dbContext.Database.IsRelational()
+            ? await dbContext.Database.BeginTransactionAsync()
+            : null;
 
         var changeRequest = await dbContext.ContentChangeRequests
             .Include(requestEntity => requestEntity.RequestedByUser)
@@ -385,6 +380,8 @@ public class ContentRequestsController(
             user.Id,
             nameof(ContentChangeRequest),
             changeRequest.Id.ToString());
+
+        if (transaction is not null) await transaction.CommitAsync();
 
         return Ok(ToResponse(changeRequest));
     }

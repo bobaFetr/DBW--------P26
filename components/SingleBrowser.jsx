@@ -35,6 +35,7 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
   const selectedSingleId = searchParams.get("singleId");
   const [singles, setSingles] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -46,7 +47,7 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
           setSingles(rows);
         }
       } catch {
-        // Leave the page empty when the API is offline.
+        if (!ignore) setLoadError(true);
       } finally {
         if (!ignore) {
           setIsLoading(false);
@@ -67,6 +68,10 @@ export default function SingleBrowser({ emptyMessage = "No singles have been pub
 
   if (isLoading) {
     return <p className="content-empty-state">Loading singles...</p>;
+  }
+
+  if (loadError) {
+    return <p className="content-empty-state" role="alert">Singles could not be loaded. Please reload the page to try again.</p>;
   }
 
   if (!singles.length) {

@@ -8,6 +8,27 @@ namespace MyApi.Tests;
 
 public class CaRequestsPermissionControllerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task AuthenticatedRequest_WhenPermissionIsMissingOrDisabled_IsRejected(bool stored)
+    {
+        using var db = TestDb.Create();
+        if (stored)
+        {
+            db.SiteSettings.Add(new SiteSetting
+            {
+                Key = CaRequestsPermissionController.SettingKey, BooleanValue = false
+            });
+            await db.SaveChangesAsync();
+        }
+        var controller = new AdminRequestsController(db, null!, null!, null!);
+        var result = await controller.Create(new CreateAdminRequestDto("Please approve"));
+        var response = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(403, response.StatusCode);
+        Assert.Empty(db.AdminRequests);
+    }
+
     [Fact]
     public async Task Registration_WhenPermissionIsDisabled_ReturnsExactForbiddenError()
     {

@@ -71,7 +71,33 @@ try
     Check(await users.IsInRoleAsync(target, "ContentAdmin"), "revocation role rollback");
     Check(target.SecurityStamp == stamp, "revocation session-stamp rollback");
     Check(await db.AdminProfiles.AnyAsync(), "revocation profile rollback");
-    Console.WriteLine("PASS: PostgreSQL approval, denial, and revocation roll back completely when audit logging fails.");
+    var validator = new ContentInputValidator(db);
+    var changes = new ContentRequestsController(db, users, new CodeGenerator(),
+        new ContentChangeApplier(db, validator), validator, new FailingAudit()) { ControllerContext = actor };
+    const string payload = """{"title":"Audit rollback","content":"Body","author":"Band","publicationDate":"2026-09-29T00:00:00Z"}""";
+    await ExpectAuditFailure(() => changes.Create(new CreateContentChangeRequestDto(
+        "news", null, ContentChangeAction.Create, payload, null)));
+    db.ChangeTracker.Clear();
+    Check(!await db.ContentChangeRequests.AnyAsync(), "content request creation rollback");
+
+    var change = new ContentChangeRequest
+    {
+        ChangeCode = "CHG-AUDIT-CHECK", RequestedByUserId = reviewer.Id,
+        ContentType = "news", Action = ContentChangeAction.Create, PayloadJson = payload
+    };
+    db.ContentChangeRequests.Add(change);
+    await db.SaveChangesAsync();
+    await ExpectAuditFailure(() => changes.Approve(change.Id, new ReviewRequestDto(null)));
+    db.ChangeTracker.Clear();
+    Check((await db.ContentChangeRequests.SingleAsync()).Status == ContentChangeStatus.Pending, "content approval status rollback");
+    Check(!await db.News.AnyAsync(), "published content rollback");
+    await ExpectAuditFailure(() => changes.Deny(change.Id, new ReviewRequestDto(null)));
+    db.ChangeTracker.Clear();
+    Check((await db.ContentChangeRequests.SingleAsync()).Status == ContentChangeStatus.Pending, "content denial rollback");
+    await ExpectAuditFailure(() => changes.Cancel(change.Id));
+    db.ChangeTracker.Clear();
+    Check((await db.ContentChangeRequests.SingleAsync()).Status == ContentChangeStatus.Pending, "content cancellation rollback");
+    Console.WriteLine("PASS: PostgreSQL admin and content-request mutations roll back completely when audit logging fails.");
 }
 finally
 {

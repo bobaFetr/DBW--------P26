@@ -9,6 +9,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5001"
 export default function GalleryGrid() {
   const [items, setItems] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [activeIndex, setActiveIndex] = useState(null);
   const closeButtonRef = useRef(null);
   const triggerRef = useRef(null);
@@ -52,7 +53,7 @@ export default function GalleryGrid() {
           );
         }
       } catch {
-        // Leave the gallery empty when the API is offline.
+        if (!ignore) setLoadError(true);
       } finally {
         if (!ignore) {
           setIsLoading(false);
@@ -130,7 +131,8 @@ export default function GalleryGrid() {
   return (
     <>
       {isLoading ? <p className="content-empty-state">Loading gallery...</p> : null}
-      {!isLoading && !items.length ? (
+      {loadError ? <p className="content-empty-state" role="alert">Gallery could not be loaded. Please reload the page to try again.</p> : null}
+      {!isLoading && !loadError && !items.length ? (
         <p className="content-empty-state">No gallery items have been published yet.</p>
       ) : null}
       <div className="gallery-masonry">

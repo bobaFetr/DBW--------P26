@@ -75,9 +75,12 @@ function albumBody(row) {
 export default function ApiCardGrid({ contentType, emptyMessage = "No content has been published yet." }) {
   const [cards, setCards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let ignore = false;
+    setIsLoading(true);
+    setLoadError(false);
 
     async function loadCards() {
       try {
@@ -86,7 +89,7 @@ export default function ApiCardGrid({ contentType, emptyMessage = "No content ha
           setCards(toCards(contentType, rows));
         }
       } catch {
-        // Leave the page empty when the API is offline.
+        if (!ignore) setLoadError(true);
       } finally {
         if (!ignore) {
           setIsLoading(false);
@@ -102,6 +105,10 @@ export default function ApiCardGrid({ contentType, emptyMessage = "No content ha
 
   if (isLoading) {
     return <p className="content-empty-state">Loading content...</p>;
+  }
+
+  if (loadError) {
+    return <p className="content-empty-state" role="alert">Content could not be loaded. Please reload the page to try again.</p>;
   }
 
   if (!cards.length) {

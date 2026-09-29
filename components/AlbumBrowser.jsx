@@ -35,6 +35,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
   const selectedSongNumber = hashParams.get("song");
   const [albums, setAlbums] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -46,7 +47,7 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
           setAlbums(rows);
         }
       } catch {
-        // Leave the page empty when the API is offline.
+        if (!ignore) setLoadError(true);
       } finally {
         if (!ignore) {
           setIsLoading(false);
@@ -67,6 +68,10 @@ export default function AlbumBrowser({ emptyMessage = "No albums have been publi
 
   if (isLoading) {
     return <p className="content-empty-state">Loading albums...</p>;
+  }
+
+  if (loadError) {
+    return <p className="content-empty-state" role="alert">Albums could not be loaded. Please reload the page to try again.</p>;
   }
 
   if (!albums.length) {

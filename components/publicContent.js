@@ -28,12 +28,7 @@ export async function loadPublicContent(contentType, fetchOptions) {
     }
 
     try {
-      const response = await fetch(`${API_BASE}/api/content/${contentType}`, fetchOptions);
-      if (!response.ok) {
-        return orderRows(contentType, temporaryRows);
-      }
-
-      const localAdminRows = await response.json();
+      const localAdminRows = await loadApiContent(contentType, fetchOptions);
       return orderRows(
         contentType,
         mergeTemporaryWithLocal(contentType, temporaryRows, localAdminRows)
@@ -43,6 +38,10 @@ export async function loadPublicContent(contentType, fetchOptions) {
     }
   }
 
+  return loadApiContent(contentType, fetchOptions);
+}
+
+async function loadApiContent(contentType, fetchOptions) {
   const rows = [];
   let page = 1;
 

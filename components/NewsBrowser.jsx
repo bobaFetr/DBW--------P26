@@ -24,6 +24,7 @@ export default function NewsBrowser({ emptyMessage = "No news posts have been pu
   const selectedNewsId = searchParams.get("newsId");
   const [posts, setPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -35,7 +36,7 @@ export default function NewsBrowser({ emptyMessage = "No news posts have been pu
           setPosts(rows);
         }
       } catch {
-        // Leave the page empty when the API is offline.
+        if (!ignore) setLoadError(true);
       } finally {
         if (!ignore) {
           setIsLoading(false);
@@ -56,6 +57,10 @@ export default function NewsBrowser({ emptyMessage = "No news posts have been pu
 
   if (isLoading) {
     return <p className="content-empty-state">Loading news...</p>;
+  }
+
+  if (loadError) {
+    return <p className="content-empty-state" role="alert">News could not be loaded. Please reload the page to try again.</p>;
   }
 
   if (!posts.length) {
