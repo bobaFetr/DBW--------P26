@@ -68,6 +68,16 @@ export default function SiteHeader() {
   }, [pathname]);
 
   useEffect(() => {
+    const desktop = window.matchMedia("(min-width: 769px)");
+    function closeOnDesktop() {
+      if (desktop.matches) setMenuOpen(false);
+    }
+    closeOnDesktop();
+    desktop.addEventListener("change", closeOnDesktop);
+    return () => desktop.removeEventListener("change", closeOnDesktop);
+  }, []);
+
+  useEffect(() => {
     function handleKeyDown(event) {
       if (event.key === "Escape") setMenuOpen(false);
     }

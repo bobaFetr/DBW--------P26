@@ -71,8 +71,13 @@ export default function GalleryGrid() {
 
     function onKey(e) {
       if (e.key === "Escape") close();
-      if (e.key === "ArrowLeft") prev();
-      if (e.key === "ArrowRight") next();
+      // Let the video's native controls handle seeking with the arrow keys.
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        if (e.target instanceof HTMLVideoElement) return;
+        e.preventDefault();
+        if (e.key === "ArrowLeft") prev();
+        else next();
+      }
       if (e.key === "Tab") {
         const focusable = Array.from(
           document.querySelectorAll(".lightbox-inner button:not(:disabled)")
