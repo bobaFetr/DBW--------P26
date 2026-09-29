@@ -1669,8 +1669,7 @@ footer {
     transition: 0.25s ease;
   }
 
-  #menu-btn:hover,
-  #menu-btn:active {
+  #menu-btn[aria-expanded="true"] {
     background: var(--accent);
     color: black;
   }
