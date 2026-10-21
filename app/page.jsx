@@ -8,7 +8,8 @@ export default function HomePage() {
           {/* <span className="eyebrow">Death By Wish is dead</span> */}
           <h2>Paralyze</h2>
           <p>
-            Post punk band Sofia from Bulgaria.
+            {/*Post punk band Sofia from Bulgaria. */}
+            We are sorry, but new information on this site will be delayed..
           </p>
           <div className="hero-actions">
             <a className="action-link primary" href="/singles/">
