@@ -1,0 +1,1230 @@
+{
+  "checkedAt": "2026-10-27T10:52:33.738Z",
+  "origin": "https://paralyze-site.onrender.com",
+  "pages": [
+    {
+      "route": "/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/singles/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Singles",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/news/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | News",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/albums/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Albums",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/concerts/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Concerts",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/gallery/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Gallery",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/timeline/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Timeline",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/members/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Members",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/about/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | About",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/merch/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Merch",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/privacy-policy/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Privacy Policy",
+      "matchesLocalOutput": false
+    },
+    {
+      "route": "/airbrush-board/",
+      "status": 200,
+      "headers": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.cdnfonts.com; font-src 'self' https://fonts.cdnfonts.com; img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'none'; object-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests",
+        "strict-transport-security": "max-age=315360000; includeSubdomains; preload",
+        "x-content-type-options": "nosniff",
+        "x-frame-options": "DENY",
+        "referrer-policy": "strict-origin-when-cross-origin",
+        "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()"
+      },
+      "inlineScripts": 0,
+      "title": "Paralyze | Airbrush Board",
+      "matchesLocalOutput": false
+    }
+  ],
+  "privatePaths": [
+    {
+      "route": "/.env.local",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/.env",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/admin/index.html",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/admin/",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/.git/config",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "htmlErrorPage": false,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/appsettings.json",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/package.json",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/package-lock.json",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/next.config.mjs",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/SECURITY_DEPLOYMENT_REVIEW.md",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/api/auth/me",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/Back%20End/MyApi/appsettings.Development.json",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    },
+    {
+      "route": "/api/content/news",
+      "status": 404,
+      "contentType": "text/html; charset=utf-8",
+      "htmlErrorPage": true,
+      "sensitivePattern": false
+    }
+  ],
+  "assets": [
+    {
+      "path": "/_next/static/chunks/webpack-74c939c87fa0092a.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/css/fba3459f30e6d751.css",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/4bd1b696-c023c6e3521b1417.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/logo.ico",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/main-app-d3a6c44ccd754a42.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/layout-4780dbf94a5b19ac.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/error-64f5602503afb0cd.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/255-1f92380adbc6ec99.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/global-error-2b791100ecdcca14.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/page-e48eec1677bdcf6f.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/3814cddd18b2095e01abb745a99e5ada90178e709c09879324c3b623f2d829ea.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/5781bd868167016c6a49ca16c0a6b9a04800e18c8356000017b51c47acda2826.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/bc3db0f7463dc5ef194cbb240297cc880ad54e1e54af4acf1bb6e1a5e6e5b4e7.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/01206fd30b03500c635f4afe9383afeed1dad8a3b16018e3823fa0c45bc42d9b.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/c06b0361c096f3cbabe91b9bf63cb9a5d3265328147b3be268b6197c1e53a9a3.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/00f358ffb0a5b79cd3bc707591dfb8ed86bdf64f1bceee8f865e6c27c84542aa.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/a18ffae3960d9e2233da3d3662a0efe78954111d876c75896980973a34b548e9.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/2690292ee393f69a009dbf8ad9ca471c7e930c3b506fecaf5f3d8b3db9b35d77.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/singles/page-e03c4271f7c7fef9.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/7b7bfab5d91f36b3b161d8361e4359a288264e487d3d25de5108898603067764.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/cde4b7802f60084eef046fe91078e8a51c6a9816f72343c02dfea9efe1b5b018.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/1872e152ac97e2cdfc5a3caf6ac0f55d6851d607c1cf1b79911b0a42f994153b.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/2caaa3bf4132890792dc8bfe2353887757a4e8f7de01be7db1350a253d27c357.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/570b866d91ac39c6c39b4226cb71141954b22eb7e5fd7f998f33cca3e793b5dd.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/4b35e0401f51ac030e24e96f4a5482303fac063de44c35d5d84b8688f021c9d2.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/news/page-6864b6d8452df53f.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/cdd02a256b97c0d1c4bf559db44c5692f441fffbd16a51c00e348300f1f16731.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/77fc06aeddd208fdef40b98617b616080d2a47717bc87bb059acf1390513b507.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/1f1ff48aa2a45c7a74f473afad4e21d8b010de6f7e4efc8fd8becedadf377829.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/76cb67988ab733d477728ab661161719a115432dac10a5282afc7a863642d435.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/albums/page-972685aaec2c0e16.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/concerts/page-3e85e637c6e6f95e.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/272-5ee701c95aa3838e.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/b5b74eaff0d74fd3568b1b22aababbccd6b31b658255673b698091f471c72dae.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/859aefc6f8d2f1b347f092b5cd36a32e4ce65380e0d801559d7355303820e36f.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/17f52ef91722b05b7d947183b72ff40e826860fa0cb42b37a305d16f667848d7.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/489ca6aaacf1fa6c9ebf568c4aa64d43727c151e5678853b1004879e49bfd8b7.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/gallery/page-dc4043ecc6665072.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/26623fb8e3346ec431501efc69c1ab7ff8b4fadadd09105611f1196a9ea31d69.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/92918f3de65900e8ca92b2187623c68cf44108a7934875a8876dec6a17876152.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/cdedd5f55d38e1da7d85190caed1016e12a81d03aa1843ff61ca9efa897b9f09.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/timeline/page-fcb13bf094f33fbb.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/a80b8b0437f46efd78341fc099947364f49d4ac265369c23d805e00613457884.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/28e2fd23699bb56e14551cbdd4ddf38e09afce8c0190a97dd688dfb7f1e278f2.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/members/page-eeb404a8156bf32f.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/8f2fef18a9064d5c3cfa876b55aaf007b86ac43f51ae9d818fe4d98333940910.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/e7936818ebe3e204ab391eb26c1381a304f05fe1b0d208076b4364dc7c75a87e.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/fc477d3787c195b52d8e2168c9b4254536d57f171c90ef0f4cc2b92736e648c9.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/864e5b8e0ea49114d15b8186e2b3a82b2f1788a4b19b0a4f5838353f76476fe0.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/af2af4b47325ba26d17846f725c4fdb80d6e2130c383335677cb5d2ec48ebf1c.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/d08053d968518b78751a1155387a8fe3d41fc7d4b3b7194b93d5dc72694b51ff.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/6a2431c9f962a1a61266479d0e6e4789795ec26bb4909580b60a585b17d7fff3.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/6e0f825a323c469a5c807607e91b96e33e0e9cb0141143c35d1a18528f53ca89.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/09ff9d8d957b14f6f4344822fc940e81a21b8b289349c717b1e492f29b919fd7.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/d88432654fe1d297a705098160da115136899a75d1c9da4bc1c092af1d479414.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/c5170765820e906475c3c3bac0c857e89663518dc608a60d34d28e486f530827.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/993c8fdb06aa00768b50d25e4a86fff5e17e1440197405be79f774dd4e5cd26a.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/33e50e5db5a68f7a0eba4519cefeecaec180a26ebd1e513dace1b5b8ee413741.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/chunks/app/airbrush-board/page-5bbe9b3a171fa05c.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/943c2fabecfb06843286b217ab3e5ed83df01df55c78155a6316e1ef7c96c6fb.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/e2ca9aec2834803b774dcd7010dc0387bfcf6517f6ff797b57ff2985174b242f.js",
+      "status": 200,
+      "matchesLocalOutput": null,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    },
+    {
+      "path": "/_next/static/inline-csp/36bf83a086b4c58f73353a685c6e9a1a5f84643681a7da5124f9068b07cdc654.js",
+      "status": 200,
+      "matchesLocalOutput": true,
+      "adminCode": false,
+      "privateKeyOrConnection": false,
+      "localhostApi": false,
+      "sourceMapReference": false
+    }
+  ],
+  "sourceMaps": [
+    {
+      "path": "/_next/static/chunks/webpack-74c939c87fa0092a.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/main-app-d3a6c44ccd754a42.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/4bd1b696-c023c6e3521b1417.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/255-1f92380adbc6ec99.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/error-64f5602503afb0cd.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/global-error-2b791100ecdcca14.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/page-e48eec1677bdcf6f.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/layout-4780dbf94a5b19ac.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/polyfills-42372ed130431b0a.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/3814cddd18b2095e01abb745a99e5ada90178e709c09879324c3b623f2d829ea.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/c06b0361c096f3cbabe91b9bf63cb9a5d3265328147b3be268b6197c1e53a9a3.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/bc3db0f7463dc5ef194cbb240297cc880ad54e1e54af4acf1bb6e1a5e6e5b4e7.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/a18ffae3960d9e2233da3d3662a0efe78954111d876c75896980973a34b548e9.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/5781bd868167016c6a49ca16c0a6b9a04800e18c8356000017b51c47acda2826.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/01206fd30b03500c635f4afe9383afeed1dad8a3b16018e3823fa0c45bc42d9b.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/00f358ffb0a5b79cd3bc707591dfb8ed86bdf64f1bceee8f865e6c27c84542aa.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/7b7bfab5d91f36b3b161d8361e4359a288264e487d3d25de5108898603067764.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/cde4b7802f60084eef046fe91078e8a51c6a9816f72343c02dfea9efe1b5b018.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/singles/page-e03c4271f7c7fef9.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/2690292ee393f69a009dbf8ad9ca471c7e930c3b506fecaf5f3d8b3db9b35d77.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/1872e152ac97e2cdfc5a3caf6ac0f55d6851d607c1cf1b79911b0a42f994153b.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/2caaa3bf4132890792dc8bfe2353887757a4e8f7de01be7db1350a253d27c357.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/4b35e0401f51ac030e24e96f4a5482303fac063de44c35d5d84b8688f021c9d2.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/news/page-6864b6d8452df53f.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/albums/page-972685aaec2c0e16.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/77fc06aeddd208fdef40b98617b616080d2a47717bc87bb059acf1390513b507.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/cdd02a256b97c0d1c4bf559db44c5692f441fffbd16a51c00e348300f1f16731.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/570b866d91ac39c6c39b4226cb71141954b22eb7e5fd7f998f33cca3e793b5dd.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/76cb67988ab733d477728ab661161719a115432dac10a5282afc7a863642d435.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/272-5ee701c95aa3838e.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/concerts/page-3e85e637c6e6f95e.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/1f1ff48aa2a45c7a74f473afad4e21d8b010de6f7e4efc8fd8becedadf377829.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/859aefc6f8d2f1b347f092b5cd36a32e4ce65380e0d801559d7355303820e36f.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/b5b74eaff0d74fd3568b1b22aababbccd6b31b658255673b698091f471c72dae.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/gallery/page-dc4043ecc6665072.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/489ca6aaacf1fa6c9ebf568c4aa64d43727c151e5678853b1004879e49bfd8b7.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/17f52ef91722b05b7d947183b72ff40e826860fa0cb42b37a305d16f667848d7.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/a80b8b0437f46efd78341fc099947364f49d4ac265369c23d805e00613457884.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/26623fb8e3346ec431501efc69c1ab7ff8b4fadadd09105611f1196a9ea31d69.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/timeline/page-fcb13bf094f33fbb.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/92918f3de65900e8ca92b2187623c68cf44108a7934875a8876dec6a17876152.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/8f2fef18a9064d5c3cfa876b55aaf007b86ac43f51ae9d818fe4d98333940910.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/members/page-eeb404a8156bf32f.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/cdedd5f55d38e1da7d85190caed1016e12a81d03aa1843ff61ca9efa897b9f09.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/28e2fd23699bb56e14551cbdd4ddf38e09afce8c0190a97dd688dfb7f1e278f2.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/fc477d3787c195b52d8e2168c9b4254536d57f171c90ef0f4cc2b92736e648c9.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/af2af4b47325ba26d17846f725c4fdb80d6e2130c383335677cb5d2ec48ebf1c.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/e7936818ebe3e204ab391eb26c1381a304f05fe1b0d208076b4364dc7c75a87e.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/864e5b8e0ea49114d15b8186e2b3a82b2f1788a4b19b0a4f5838353f76476fe0.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/d88432654fe1d297a705098160da115136899a75d1c9da4bc1c092af1d479414.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/6a2431c9f962a1a61266479d0e6e4789795ec26bb4909580b60a585b17d7fff3.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/d08053d968518b78751a1155387a8fe3d41fc7d4b3b7194b93d5dc72694b51ff.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/c5170765820e906475c3c3bac0c857e89663518dc608a60d34d28e486f530827.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/6e0f825a323c469a5c807607e91b96e33e0e9cb0141143c35d1a18528f53ca89.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/09ff9d8d957b14f6f4344822fc940e81a21b8b289349c717b1e492f29b919fd7.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/993c8fdb06aa00768b50d25e4a86fff5e17e1440197405be79f774dd4e5cd26a.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/33e50e5db5a68f7a0eba4519cefeecaec180a26ebd1e513dace1b5b8ee413741.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/943c2fabecfb06843286b217ab3e5ed83df01df55c78155a6316e1ef7c96c6fb.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/chunks/app/airbrush-board/page-5bbe9b3a171fa05c.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/e2ca9aec2834803b774dcd7010dc0387bfcf6517f6ff797b57ff2985174b242f.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    },
+    {
+      "path": "/_next/static/inline-csp/36bf83a086b4c58f73353a685c6e9a1a5f84643681a7da5124f9068b07cdc654.js.map",
+      "status": 404,
+      "sourceMapBody": false
+    }
+  ],
+  "oldAdminBundles": [
+    {
+      "path": "/_next/static/chunks/app/admin/page-52e46e7965ee4808.js",
+      "status": 404
+    }
+  ],
+  "httpRedirect": {
+    "status": 301,
+    "location": "https://paralyze-site.onrender.com/"
+  },
+  "adminDetails": [
+    {
+      "route": "/admin/",
+      "status": 200,
+      "title": "Paralyze | Page Not Found",
+      "headings": [],
+      "adminLogin": false,
+      "notFound": true,
+      "scripts": [
+        "/_next/static/chunks/4bd1b696-c023c6e3521b1417.js",
+        "/_next/static/chunks/255-81ba70bd132d3eed.js",
+        "/_next/static/chunks/main-app-d3a6c44ccd754a42.js",
+        "/_next/static/chunks/619-ba102abea3e3d0e4.js",
+        "/_next/static/chunks/app/global-error-60798107be517c0d.js",
+        "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+        "/_next/static/chunks/webpack-74c939c87fa0092a.js"
+      ]
+    },
+    {
+      "route": "/admin/index.html",
+      "status": 200,
+      "title": "Paralyze | Page Not Found",
+      "headings": [],
+      "adminLogin": false,
+      "notFound": true,
+      "scripts": [
+        "/_next/static/chunks/4bd1b696-c023c6e3521b1417.js",
+        "/_next/static/chunks/255-81ba70bd132d3eed.js",
+        "/_next/static/chunks/main-app-d3a6c44ccd754a42.js",
+        "/_next/static/chunks/619-ba102abea3e3d0e4.js",
+        "/_next/static/chunks/app/global-error-60798107be517c0d.js",
+        "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+        "/_next/static/chunks/webpack-74c939c87fa0092a.js"
+      ]
+    },
+    {
+      "route": "/nonexistent-security-check-20261027/",
+      "status": 404,
+      "title": "Paralyze | Page Not Found",
+      "headings": [
+        "PARALYZE",
+        "404 - Lost Signal",
+        "Find Your Way Back"
+      ],
+      "adminLogin": false,
+      "notFound": true,
+      "scripts": [
+        "/_next/static/chunks/4bd1b696-c023c6e3521b1417.js",
+        "/_next/static/chunks/255-1f92380adbc6ec99.js",
+        "/_next/static/chunks/main-app-d3a6c44ccd754a42.js",
+        "/_next/static/chunks/app/layout-4780dbf94a5b19ac.js",
+        "/_next/static/chunks/app/error-64f5602503afb0cd.js",
+        "/_next/static/chunks/app/global-error-2b791100ecdcca14.js",
+        "/_next/static/chunks/polyfills-42372ed130431b0a.js",
+        "/_next/static/chunks/webpack-74c939c87fa0092a.js",
+        "/_next/static/inline-csp/3814cddd18b2095e01abb745a99e5ada90178e709c09879324c3b623f2d829ea.js",
+        "/_next/static/inline-csp/fc477d3787c195b52d8e2168c9b4254536d57f171c90ef0f4cc2b92736e648c9.js",
+        "/_next/static/inline-csp/a7bb72de8005695e3637e862a4ba87c21b91359d2afd9fec2b99d83ec674ce94.js",
+        "/_next/static/inline-csp/d08053d968518b78751a1155387a8fe3d41fc7d4b3b7194b93d5dc72694b51ff.js",
+        "/_next/static/inline-csp/6a2431c9f962a1a61266479d0e6e4789795ec26bb4909580b60a585b17d7fff3.js",
+        "/_next/static/inline-csp/def98722285712de1821d8faceda7e75d7575bf17633fd98cfc15c2bf2bb1c73.js",
+        "/_next/static/inline-csp/6e0f825a323c469a5c807607e91b96e33e0e9cb0141143c35d1a18528f53ca89.js"
+      ]
+    }
+  ]
+}
