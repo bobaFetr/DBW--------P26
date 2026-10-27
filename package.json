@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:api": "dotnet run --project \"Back End/MyApi/MyApi.csproj\" --launch-profile http",
     "dev:frontend": "next dev",
-    "build": "next build && node scripts/externalize-inline-scripts.cjs && node scripts/remove-disabled-admin-output.cjs",
+    "build": "node scripts/build-static.cjs",
     "start": "next start",
     "lint": "eslint .",
     "test": "npm run test:backend && npm run test:frontend",
@@ -14,16 +14,17 @@
     "test:frontend": "node --test tests/frontend/*.test.cjs"
   },
   "dependencies": {
-    "next": "15.5.24",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "next": "15.5.28",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "eslint": "^9.24.0",
-    "eslint-config-next": "15.5.23"
+    "eslint-config-next": "15.5.28"
   },
   "overrides": {
     "postcss": "^8.5.23",
-    "sharp": "^0.35.0"
+    "sharp": "^0.35.5",
+    "source-map-js": "^1.2.2"
   }
 }

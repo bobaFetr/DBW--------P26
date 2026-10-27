@@ -4,6 +4,8 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 const sharedConfig = {
   output: "export",
   trailingSlash: true,
+  productionBrowserSourceMaps: false,
+  poweredByHeader: false,
   images: {
     unoptimized: true
   }

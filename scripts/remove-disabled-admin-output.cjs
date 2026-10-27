@@ -10,11 +10,12 @@ if (process.env.ENABLE_LOCAL_ADMIN === "true") {
 }
 
 const outputDirectory = path.resolve(__dirname, "..", "out");
-const adminDirectory = path.resolve(outputDirectory, "admin");
-
-if (path.dirname(adminDirectory) !== outputDirectory) {
-  throw new Error("Refusing to remove an admin output path outside the static output directory.");
+for (const relative of ["admin", "_next/static/chunks/app/admin"]) {
+  const adminDirectory = path.resolve(outputDirectory, relative);
+  const withinOutput = path.relative(outputDirectory, adminDirectory);
+  if (!withinOutput || withinOutput.startsWith("..") || path.isAbsolute(withinOutput)) {
+    throw new Error("Refusing to remove an admin output path outside the static output directory.");
+  }
+  fs.rmSync(adminDirectory, { recursive: true, force: true });
 }
-
-fs.rmSync(adminDirectory, { recursive: true, force: true });
-console.log("Removed /admin/ from static output (local admin is disabled).");
+console.log("Removed /admin/ and its JavaScript bundle from static output (local admin is disabled).");

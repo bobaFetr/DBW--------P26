@@ -78,6 +78,20 @@ configuration files.
 
 ## Testing and validation
 
+Security maintenance plans (Bulgarian):
+
+- [Current static deployment](SECURITY_MAINTENANCE_STATIC_BG.md)
+- [Backend launch and maintenance](SECURITY_MAINTENANCE_BACKEND_BG.md)
+
+`npm run build` always creates the public static deployment: it overrides local
+admin/API settings, uses the bundled public content, disables the local overlay,
+and checks `public/` and the final output for unapproved file types, private paths,
+selected credential patterns, source maps, and inline scripts. Local administration
+remains available through `npm run dev`; it is never included in this deployment
+build. A rejected asset must be reviewed before extending the publication allowlist.
+These checks are defense in depth, not a comprehensive secret scanner or a way to
+prevent copying public browser code.
+
 Run everything:
 
 ```bash

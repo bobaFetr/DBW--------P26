@@ -9,6 +9,8 @@ services:
         value: temporary
       - key: ENABLE_LOCAL_ADMIN
         value: "false"
+      - key: NEXT_PUBLIC_LOCAL_ADMIN_OVERLAY
+        value: "false"
     headers:
       - path: "/*"
         name: Content-Security-Policy
